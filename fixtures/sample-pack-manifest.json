@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0.0",
+  "pack_id": "basic-impacts",
+  "version": "1.0.0",
+  "name": "Basic Impacts",
+  "description": "基本的な衝撃系触覚パターン集",
+  "author": "Hapbeat",
+  "created_at": "2026-03-22T00:00:00Z",
+  "target_device": {
+    "firmware_version_min": "1.0.0"
+  },
+  "events": {
+    "impact.hit": {
+      "clip": "clips/hit_01.wav",
+      "description": "基本的な衝撃",
+      "tags": ["impact", "basic"],
+      "parameters": {
+        "gain": 1.0,
+        "loop": false
+      }
+    },
+    "impact.hit-light": {
+      "clip": "clips/hit_light_01.wav",
+      "description": "軽い衝撃",
+      "tags": ["impact", "light"]
+    },
+    "impact.explosion": {
+      "clip": "clips/explosion_01.wav",
+      "description": "爆発衝撃",
+      "tags": ["impact", "heavy"],
+      "parameters": {
+        "gain": 0.8,
+        "loop": false
+      }
+    },
+    "vibration.rumble": {
+      "clip": "clips/rumble_01.wav",
+      "description": "持続的な振動",
+      "tags": ["vibration", "sustained"],
+      "parameters": {
+        "gain": 0.6,
+        "loop": true
+      }
+    },
+    "ui.click": {
+      "clip": "clips/click_01.wav",
+      "description": "UI クリックフィードバック",
+      "tags": ["ui", "feedback"]
+    }
+  },
+  "clips": {
+    "clips/hit_01.wav": {
+      "duration_ms": 150,
+      "sample_rate": 44100,
+      "channels": 1,
+      "format": "pcm_s16le"
+    },
+    "clips/hit_light_01.wav": {
+      "duration_ms": 80,
+      "sample_rate": 44100,
+      "channels": 1,
+      "format": "pcm_s16le"
+    },
+    "clips/explosion_01.wav": {
+      "duration_ms": 500,
+      "sample_rate": 44100,
+      "channels": 1,
+      "format": "pcm_s16le"
+    },
+    "clips/rumble_01.wav": {
+      "duration_ms": 1000,
+      "sample_rate": 44100,
+      "channels": 1,
+      "format": "pcm_s16le"
+    },
+    "clips/click_01.wav": {
+      "duration_ms": 30,
+      "sample_rate": 44100,
+      "channels": 1,
+      "format": "pcm_s16le"
+    }
+  }
+}

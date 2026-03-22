@@ -1,0 +1,64 @@
+{
+  "_comment": "Hapbeat UDP コマンドサンプル集 — contract test 用 fixture",
+  "protocol_version": 1,
+  "commands": [
+    {
+      "name": "play_immediate",
+      "description": "即時再生コマンド",
+      "command_type": "0x01",
+      "fields": {
+        "event_id": "impact.hit",
+        "target_time": 0,
+        "target_group": 0,
+        "gain": 1.0
+      }
+    },
+    {
+      "name": "play_scheduled",
+      "description": "スケジュール再生コマンド（targetTime指定）",
+      "command_type": "0x01",
+      "fields": {
+        "event_id": "vibration.rumble",
+        "target_time": 1679500000000,
+        "target_group": 1,
+        "gain": 0.6
+      }
+    },
+    {
+      "name": "play_namespaced",
+      "description": "名前空間付き Event ID での再生",
+      "command_type": "0x01",
+      "fields": {
+        "event_id": "my-content/impact.sword-slash",
+        "target_time": 0,
+        "target_group": 0,
+        "gain": 0.9
+      }
+    },
+    {
+      "name": "stop_event",
+      "description": "特定イベント停止",
+      "command_type": "0x02",
+      "fields": {
+        "event_id": "vibration.rumble",
+        "target_group": 0
+      }
+    },
+    {
+      "name": "stop_all",
+      "description": "全イベント停止",
+      "command_type": "0x03",
+      "fields": {
+        "target_group": 0
+      }
+    },
+    {
+      "name": "ping",
+      "description": "疎通確認",
+      "command_type": "0x10",
+      "fields": {
+        "timestamp": 1679500000000
+      }
+    }
+  ]
+}

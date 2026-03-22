@@ -1,0 +1,151 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://hapbeat.com/schemas/pack-manifest.schema.json",
+  "title": "Hapbeat Pack Manifest",
+  "description": "Hapbeat Pack の manifest.json を検証するための JSON Schema。Pack は触覚コンテンツの配布単位であり、wav クリップと Event ID の対応表を含む。",
+  "type": "object",
+  "required": ["schema_version", "pack_id", "version", "name", "events"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "manifest スキーマのバージョン",
+      "examples": ["1.0.0"]
+    },
+    "pack_id": {
+      "type": "string",
+      "description": "Pack の一意識別子。英小文字・数字・ハイフンのみ使用可能。先頭は英小文字。",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "examples": ["basic-impacts", "vr-environment-v2"]
+    },
+    "version": {
+      "type": "string",
+      "description": "Pack 自体のバージョン（semver 形式）",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(-(0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(\\.(0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*)?$",
+      "examples": ["1.0.0", "0.1.0-alpha"]
+    },
+    "name": {
+      "type": "string",
+      "description": "Pack の表示名",
+      "minLength": 1,
+      "examples": ["基本インパクトパック"]
+    },
+    "description": {
+      "type": "string",
+      "description": "Pack の説明文"
+    },
+    "author": {
+      "type": "string",
+      "description": "Pack の作者名"
+    },
+    "created_at": {
+      "type": "string",
+      "description": "Pack の作成日時（ISO 8601 形式）",
+      "format": "date-time",
+      "examples": ["2025-01-15T10:30:00Z"]
+    },
+    "target_device": {
+      "type": "object",
+      "description": "対象デバイス情報。対応するファームウェアバージョンの範囲を指定する。",
+      "required": ["firmware_version_min"],
+      "additionalProperties": false,
+      "properties": {
+        "firmware_version_min": {
+          "type": "string",
+          "description": "対応する最小ファームウェアバージョン",
+          "examples": ["0.1.0"]
+        },
+        "firmware_version_max": {
+          "type": "string",
+          "description": "対応する最大ファームウェアバージョン（省略時は上限なし）",
+          "examples": ["2.0.0"]
+        }
+      }
+    },
+    "events": {
+      "type": "object",
+      "description": "Event ID → clip 定義の辞書。キーは Event ID 文字列、値はクリップ定義オブジェクト。",
+      "minProperties": 1,
+      "patternProperties": {
+        "^([a-z][a-z0-9_-]{0,63}/)?[a-z][a-z0-9_-]{0,63}(\\.[a-z][a-z0-9_-]{0,63}){1,3}$": {
+          "type": "object",
+          "description": "Event ID に対応するクリップ定義",
+          "required": ["clip"],
+          "additionalProperties": false,
+          "properties": {
+            "clip": {
+              "type": "string",
+              "description": "clips/ ディレクトリからの相対パス。wav ファイルを指定する。",
+              "pattern": "^[^/\\\\].*\\.wav$",
+              "examples": ["hit_medium.wav", "ambient/rain_loop.wav"]
+            },
+            "description": {
+              "type": "string",
+              "description": "このイベントの説明"
+            },
+            "tags": {
+              "type": "array",
+              "description": "分類用タグの配列",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            },
+            "parameters": {
+              "type": "object",
+              "description": "再生パラメータ",
+              "additionalProperties": false,
+              "properties": {
+                "gain": {
+                  "type": "number",
+                  "description": "再生ゲイン。0.0（無音）〜 1.0（最大）の範囲。",
+                  "minimum": 0.0,
+                  "maximum": 1.0
+                },
+                "loop": {
+                  "type": "boolean",
+                  "description": "ループ再生の有無。デフォルトは false。",
+                  "default": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "clips": {
+      "type": "object",
+      "description": "clip メタデータの辞書。キーは clips/ からの相対ファイルパス、値はメタデータオブジェクト。",
+      "additionalProperties": {
+        "type": "object",
+        "description": "クリップファイルのメタデータ",
+        "additionalProperties": false,
+        "properties": {
+          "duration_ms": {
+            "type": "number",
+            "description": "クリップの再生時間（ミリ秒）",
+            "minimum": 0
+          },
+          "sample_rate": {
+            "type": "number",
+            "description": "サンプルレート（Hz）",
+            "enum": [8000, 11025, 16000, 22050, 32000, 44100, 48000]
+          },
+          "channels": {
+            "type": "number",
+            "description": "チャンネル数",
+            "minimum": 1,
+            "maximum": 2
+          },
+          "format": {
+            "type": "string",
+            "description": "フォーマット識別子",
+            "examples": ["pcm_s16le", "pcm_u8"]
+          }
+        }
+      }
+    }
+  }
+}
