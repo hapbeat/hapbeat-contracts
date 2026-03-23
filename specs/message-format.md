@@ -78,6 +78,20 @@ PING に対する応答。Bridge から SDK に返送される。
 | timestamp | int64 | 元の PING のタイムスタンプ（マイクロ秒） |
 | server_time | int64 | Bridge が PONG を送信した時刻（マイクロ秒） |
 
+### 0x11 PONG（デバイス応答時の拡張）
+
+デバイスが直接 PONG を返す場合（Wi-Fi UDP 直接通信時）、標準フィールドに加えて以下の拡張フィールドを含む。
+
+| フィールド | 型 | 説明 |
+|-----------|-----|------|
+| timestamp | int64 | 元の PING のタイムスタンプ（マイクロ秒） |
+| server_time | int64 | デバイスが PONG を送信した時刻（マイクロ秒） |
+| device_name | null-terminated string | デバイス名 |
+| group | uint8 | グループ ID |
+| firmware_version | null-terminated string | ファームウェアバージョン |
+
+受信側は `payload_length` を確認することで、Bridge 標準 PONG（16 bytes）とデバイス拡張 PONG（16 bytes + 可変長）を区別できる。
+
 ### 0xFF ERROR
 
 エラー通知。Bridge から SDK に送信される。
