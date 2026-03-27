@@ -42,7 +42,7 @@ Desktop アプリ（hapbeat-desktop）から Hapbeat デバイスに USB serial 
   "cmd": "get_info",
   "data": {
     "name": "Hapbeat-A",
-    "group": 0,
+    "address": "player_1/chest",
     "firmware": "2.0.0",
     "mac": "AA:BB:CC:DD:EE:FF",
     "wifi_connected": false,
@@ -86,18 +86,18 @@ Desktop アプリ（hapbeat-desktop）から Hapbeat デバイスに USB serial 
 {"status": "ok", "cmd": "set_name"}
 ```
 
-### 4.4 set_group — グループ ID 設定
+### 4.4 set_address — デバイスアドレス設定
 
 **Request:**
 ```json
-{"cmd": "set_group", "group": 1}
+{"cmd": "set_address", "address": "red/player_1/chest"}
 ```
 
-グループ ID は 0〜254（0 = ブロードキャスト受信、255 = 予約）。
+アドレスはスラッシュ区切りの文字列（最大 64 bytes）。末尾2セグメントは `player_{N}/{position}` 形式。詳細は `device-addressing.md` を参照。
 
 **Response:**
 ```json
-{"status": "ok", "cmd": "set_group"}
+{"status": "ok", "address": "red/player_1/chest"}
 ```
 
 ### 4.5 get_wifi_status — Wi-Fi 接続状態取得
@@ -152,7 +152,7 @@ Desktop アプリ（hapbeat-desktop）から Hapbeat デバイスに USB serial 
 
 | namespace | key | 型 | 説明 |
 |-----------|-----|-----|------|
-| hapbeat | group_id | uint8 | グループ ID |
+| hapbeat | address | string (max 64) | デバイスアドレス（例: `player_1/chest`） |
 | hapbeat | dev_name | string | デバイス名（最大 32 文字） |
 | hapbeat | wifi_ssid | string | Wi-Fi SSID |
 | hapbeat | wifi_pass | string | Wi-Fi パスワード |

@@ -1,0 +1,162 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://hapbeat.com/schemas/display-layout.schema.json",
+  "title": "Hapbeat Display Layout Configuration",
+  "description": "Hapbeat デバイスの OLED ディスプレイレイアウト設定スキーマ",
+  "type": "object",
+  "required": ["grid", "pages"],
+  "properties": {
+    "grid": {
+      "description": "グリッドサイズ [cols, rows]",
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "pages": {
+      "description": "ページ定義の配列",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/page"
+      }
+    },
+    "button_actions": {
+      "$ref": "#/definitions/buttonActions"
+    },
+    "template": {
+      "$ref": "#/definitions/templateMeta"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "page": {
+      "type": "object",
+      "required": ["id", "name", "elements"],
+      "properties": {
+        "id": {
+          "description": "ページの一意識別子",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]*$"
+        },
+        "name": {
+          "description": "ページの表示名",
+          "type": "string"
+        },
+        "elements": {
+          "description": "ページ内の表示要素の配列",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/element"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "element": {
+      "type": "object",
+      "required": ["type", "position"],
+      "properties": {
+        "type": {
+          "description": "要素タイプ",
+          "type": "string",
+          "enum": [
+            "channel",
+            "volume",
+            "battery",
+            "wifi_status",
+            "connection_status",
+            "ip_address",
+            "firmware_version",
+            "device_name",
+            "custom_text",
+            "gain",
+            "group_id"
+          ]
+        },
+        "position": {
+          "description": "配置位置 [x, y]（グリッド座標、左上が原点）",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "size": {
+          "description": "要素サイズ [width, height]（グリッド単位）。省略時はタイプごとのデフォルト値を使用",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "text": {
+          "description": "custom_text タイプの場合に表示する文字列",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "if": {
+        "properties": {
+          "type": { "const": "custom_text" }
+        }
+      },
+      "then": {
+        "required": ["type", "position", "size", "text"]
+      }
+    },
+    "buttonActions": {
+      "type": "object",
+      "description": "ボタン操作に対するアクション割り当て",
+      "properties": {
+        "short_press": {
+          "$ref": "#/definitions/buttonAction"
+        },
+        "long_press": {
+          "$ref": "#/definitions/buttonAction"
+        },
+        "double_press": {
+          "$ref": "#/definitions/buttonAction"
+        }
+      },
+      "additionalProperties": false
+    },
+    "buttonAction": {
+      "type": "string",
+      "description": "ボタンアクションの動作",
+      "enum": [
+        "next_page",
+        "previous_page",
+        "toggle_display",
+        "none"
+      ]
+    },
+    "templateMeta": {
+      "type": "object",
+      "description": "テンプレートメタデータ（テンプレートとして配布する場合のみ使用）",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "description": "テンプレートの一意識別子",
+          "type": "string"
+        },
+        "name": {
+          "description": "テンプレートの表示名",
+          "type": "string"
+        },
+        "description": {
+          "description": "テンプレートの説明",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
