@@ -103,8 +103,23 @@ Event ID の形式:
 
 | フィールド | 型 | 必須 | 説明 |
 |-----------|-----|------|------|
-| `gain` | number | いいえ | 再生ゲイン。0.0（無音）〜 1.0（最大）の範囲 |
+| `intensity` | number | いいえ | 制作者が意図した基準強度。0.0〜1.0（デフォルト: 1.0） |
+| `device_wiper` | integer | いいえ | イベント調整時の MCP4018 ワイパー値（0–127）。再現性のための参照情報 |
 | `loop` | boolean | いいえ | ループ再生の有無。デフォルトは `false` |
+
+### intensity (number, 0.0–1.0, default: 1.0)
+
+制作者が意図した基準強度。WAV のフル振幅に対する倍率。
+
+- `1.0`: WAV をそのまま再生（デフォルト）
+- `0.7`: WAV の 70% の強さ（制作者が「これが中」と判断した値）
+- SDK の gain パラメータは intensity に対する追加倍率として適用される
+- 最終出力 = WAV振幅 × intensity × SDK_gain × デバイス音量
+
+### device_wiper (integer, 0–127, optional)
+
+イベント調整時の Hapbeat デバイスの MCP4018 ワイパー値。
+再現性のための参照情報。デバイスが異なるモデルの場合は無視される。
 
 ### clips オブジェクト（オプション）
 
@@ -137,7 +152,8 @@ Event ID の形式:
       "description": "中程度の打撃",
       "tags": ["impact", "basic"],
       "parameters": {
-        "gain": 0.8,
+        "intensity": 0.8,
+        "device_wiper": 64,
         "loop": false
       }
     },
@@ -149,14 +165,15 @@ Event ID の形式:
       "clip": "hit_hard.wav",
       "description": "強い打撃",
       "parameters": {
-        "gain": 1.0
+        "intensity": 1.0,
+        "device_wiper": 64
       }
     },
     "environment.rain": {
       "clip": "ambient/rain_loop.wav",
       "description": "雨の環境音触覚",
       "parameters": {
-        "gain": 0.3,
+        "intensity": 0.3,
         "loop": true
       }
     }

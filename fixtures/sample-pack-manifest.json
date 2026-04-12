@@ -15,7 +15,8 @@
       "description": "基本的な衝撃",
       "tags": ["impact", "basic"],
       "parameters": {
-        "gain": 1.0,
+        "intensity": 1.0,
+        "device_wiper": 64,
         "loop": false
       }
     },
@@ -29,7 +30,8 @@
       "description": "爆発衝撃",
       "tags": ["impact", "heavy"],
       "parameters": {
-        "gain": 0.8,
+        "intensity": 0.8,
+        "device_wiper": 64,
         "loop": false
       }
     },
@@ -38,7 +40,7 @@
       "description": "持続的な振動",
       "tags": ["vibration", "sustained"],
       "parameters": {
-        "gain": 0.6,
+        "intensity": 0.6,
         "loop": true
       }
     },

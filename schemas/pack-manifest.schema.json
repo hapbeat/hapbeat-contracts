@@ -97,11 +97,18 @@
               "description": "再生パラメータ",
               "additionalProperties": false,
               "properties": {
-                "gain": {
+                "intensity": {
                   "type": "number",
-                  "description": "再生ゲイン。0.0（無音）〜 1.0（最大）の範囲。",
+                  "description": "制作者が意図した基準強度。WAV フル振幅に対する倍率。SDK gain=1.0 でこの強度で再生される。",
                   "minimum": 0.0,
-                  "maximum": 1.0
+                  "maximum": 1.0,
+                  "default": 1.0
+                },
+                "device_wiper": {
+                  "type": "integer",
+                  "description": "イベント調整時の Hapbeat デバイスの MCP4018 ワイパー値。再現性のための参照情報。",
+                  "minimum": 0,
+                  "maximum": 127
                 },
                 "loop": {
                   "type": "boolean",
