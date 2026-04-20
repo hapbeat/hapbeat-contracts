@@ -1,5 +1,11 @@
 # Pack フォーマット仕様
 
+## 用語注記
+
+- **Pack**: 本文書で定義する内部仕様の正式名称
+- **Kit**: UI / designer 向け表記。Studio や各 SDK の UI では Kit と呼称する
+- 両者は同じ概念を指す。将来のリファクタリングで名称を `Kit` に統一する予定（decision-log DEC-023 参照）
+
 ## 1. 概要
 
 Pack は Hapbeat デバイス向け触覚コンテンツの配布単位である。wav クリップファイル、manifest（メタデータおよび Event ID とクリップの対応表）、UI アセット等をひとつのディレクトリにまとめたローカル資産パッケージとして構成される。
@@ -33,6 +39,15 @@ Pack を差し替えるだけでデバイスの触覚体験を変更でき、フ
 - **clips/**（必須）: 触覚出力に使用する wav ファイルを格納するディレクトリ。すべてのクリップファイルはこのディレクトリ配下に配置する。サブディレクトリによる分類も許容する。
 - **assets/**（オプション）: アイコン画像やプレビュー用サムネイル等の UI アセットを格納するディレクトリ。
 - **README.md**（オプション）: Pack の概要・使用方法・ライセンス情報等を記述するドキュメント。
+
+### 3.1 運用上の推奨
+
+各 SDK は Kit を ホストプロジェクトの asset 配下 に配置することを推奨する。例:
+
+- Unity: `Assets/HapbeatKits/<pack-id>/`
+- Unreal: `Content/HapbeatKits/<pack-id>/`
+
+これにより Studio の working directory と SDK の asset 読み込みパスが一致し、二重管理が発生しない。詳細は decision-log DEC-024 参照。
 
 ## 4. Pack ID
 
@@ -94,10 +109,21 @@ Event ID の形式:
 
 | フィールド | 型 | 必須 | 説明 |
 |-----------|-----|------|------|
-| `clip` | string | はい | clips/ ディレクトリからの相対パス（例: `"hit_soft.wav"`） |
+| `mode` | string | いいえ | 再生モード (`"command"` / `"stream_clip"` / `"stream_source"`)。既定 `"command"` |
+| `clip` | string | 条件付き | mode=command では必須。stream_* では optional（Kit 同梱の wav を指すパス） |
 | `description` | string | いいえ | このイベントの説明 |
 | `tags` | string[] | いいえ | 分類用タグの配列 |
 | `parameters` | object | いいえ | 再生パラメータ |
+
+### mode (string, optional, default: "command")
+
+event の再生モード。SDK が Kit を読み込む際、どのような方法で触覚再生を行うかを決定する。
+
+- `"command"` (default): device 側に焼き込んだ clip を eventId で再生する従来モード。`clip` フィールド必須。pack-tools が device binary を生成する際はこの mode の event のみ含める。
+- `"stream_clip"`: SDK (Unity 等) が AudioClip を PCM データとして UDP STREAM_BEGIN/DATA/END で送信するモード。`clip` フィールドは optional（Kit に音源を同梱して SDK が Asset として import する場合に指定）。device 側には焼き込まれない。
+- `"stream_source"`: SDK が live AudioSource をキャプチャして UDP ストリーミングするモード。`clip` フィールドは不要。device 側には何も焼き込まれない。
+
+device firmware は mode != "command" の event を load 時にスキップする (後方互換のため、mode が無い既存 manifest は command として扱う)。
 
 **parameters オブジェクト**:
 
@@ -115,6 +141,12 @@ Event ID の形式:
 - `0.7`: WAV の 70% の強さ（制作者が「これが中」と判断した値）
 - SDK の gain パラメータは intensity に対する追加倍率として適用される
 - 最終出力 = WAV振幅 × intensity × SDK_gain × デバイス音量
+
+**SDK_gain の範囲**: 1.0 を基準として 0.0 ～ 約 2.0。1.0 で intensity そのままの強さ、2.0 で intensity の倍（ただし最終値は SDK 側で clip される）。
+
+**stream_clip / stream_source mode での intensity**: `device 側で stored clip の振幅に乗算される` のではなく、`SDK 側が STREAM_BEGIN.gain または PLAY.gain の float32 値に intensity を乗算して送信する`。
+
+**デバイス音量**: SDK は感知しない。Studio で kit authoring 時点のデバイス wiper 値を `parameters.device_wiper` に記録しており、再現するユーザーは当該 wiper 値にデバイスを合わせることで制作者の意図した強度を得られる。
 
 ### device_wiper (integer, 0–127, optional)
 
