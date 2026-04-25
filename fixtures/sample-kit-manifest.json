@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "pack_id": "basic-impacts",
+  "kit_id": "basic-impacts",
   "version": "1.0.0",
   "name": "Basic Impacts",
   "description": "基本的な衝撃系触覚パターン集",

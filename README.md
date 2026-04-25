@@ -8,7 +8,7 @@ Hapbeat SDK エコシステム全体の**中核仕様リポジトリ**です。
 本リポジトリで定義・管理する仕様:
 
 - **Event ID 命名規則** -- 触覚イベントを一意に識別するための ID 体系
-- **Pack 形式仕様** -- 触覚パターンをまとめた Pack ファイルのマニフェスト・ディレクトリ構造
+- **Kit 形式仕様** -- 触覚パターンをまとめた Kit ファイルのマニフェスト・ディレクトリ構造
 - **Bridge API 仕様** -- hapbeat-bridge が公開する API エンドポイントの定義
 - **UDP/OSC メッセージ仕様** -- Bridge・Transmitter 間、SDK・Bridge 間で流れるメッセージのフォーマット
 - **バージョニング方針** -- 仕様のバージョン管理と互換性の維持ルール
@@ -20,7 +20,7 @@ hapbeat-contracts は**依存関係の起点**です。
 
 ```
 hapbeat-contracts (ここ)
- ├── hapbeat-pack-tools
+ ├── hapbeat-kit-tools
  ├── hapbeat-device-firmware
  ├── hapbeat-bridge
  ├── hapbeat-transmitter-firmware
@@ -47,12 +47,12 @@ hapbeat-contracts 自体は他のどの repo にも依存しません。
 | 方向 | 内容 |
 |------|------|
 | **この repo が依存するもの** | なし |
-| **この repo に依存する repo** | hapbeat-pack-tools, hapbeat-device-firmware, hapbeat-bridge, hapbeat-transmitter-firmware, hapbeat-unity-sdk, hapbeat-unreal-sdk, hapbeat-creative-kit |
+| **この repo に依存する repo** | hapbeat-kit-tools, hapbeat-device-firmware, hapbeat-bridge, hapbeat-transmitter-firmware, hapbeat-unity-sdk, hapbeat-unreal-sdk, hapbeat-creative-kit |
 
 ## 今後の最初のタスク
 
 1. **Event ID 命名規則の策定** -- 触覚イベントを識別する ID の命名体系を決定する
-2. **Pack manifest schema の定義** -- Pack ファイルのマニフェスト JSON Schema を策定する
+2. **Kit manifest schema の定義** -- Kit ファイルのマニフェスト JSON Schema を策定する
 3. **Bridge API の基本仕様策定** -- hapbeat-bridge が公開するエンドポイント・プロトコルを定義する
 
 ## 現在の状態

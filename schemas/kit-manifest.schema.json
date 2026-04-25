@@ -1,10 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://hapbeat.com/schemas/pack-manifest.schema.json",
-  "title": "Hapbeat Pack Manifest",
-  "description": "Hapbeat Pack の manifest.json を検証するための JSON Schema。Pack は触覚コンテンツの配布単位であり、wav クリップと Event ID の対応表を含む。",
+  "$id": "https://hapbeat.com/schemas/kit-manifest.schema.json",
+  "title": "Hapbeat Kit Manifest",
+  "description": "Hapbeat Kit の manifest.json を検証するための JSON Schema。Kit は触覚コンテンツの配布単位であり、wav クリップと Event ID の対応表を含む。",
   "type": "object",
-  "required": ["schema_version", "pack_id", "version", "name", "events"],
+  "required": ["schema_version", "kit_id", "version", "name", "events"],
   "additionalProperties": false,
   "properties": {
     "schema_version": {
@@ -12,35 +12,35 @@
       "description": "manifest スキーマのバージョン",
       "examples": ["1.0.0"]
     },
-    "pack_id": {
+    "kit_id": {
       "type": "string",
-      "description": "Pack の一意識別子。英小文字・数字・ハイフンのみ使用可能。先頭は英小文字。",
+      "description": "Kit の一意識別子。英小文字・数字・ハイフンのみ使用可能。先頭は英小文字。",
       "pattern": "^[a-z][a-z0-9-]*$",
       "examples": ["basic-impacts", "vr-environment-v2"]
     },
     "version": {
       "type": "string",
-      "description": "Pack 自体のバージョン（semver 形式）",
+      "description": "Kit 自体のバージョン（semver 形式）",
       "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(-(0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(\\.(0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*)?$",
       "examples": ["1.0.0", "0.1.0-alpha"]
     },
     "name": {
       "type": "string",
-      "description": "Pack の表示名",
+      "description": "Kit の表示名",
       "minLength": 1,
       "examples": ["基本インパクトパック"]
     },
     "description": {
       "type": "string",
-      "description": "Pack の説明文"
+      "description": "Kit の説明文"
     },
     "author": {
       "type": "string",
-      "description": "Pack の作者名"
+      "description": "Kit の作者名"
     },
     "created_at": {
       "type": "string",
-      "description": "Pack の作成日時（ISO 8601 形式）",
+      "description": "Kit の作成日時（ISO 8601 形式）",
       "format": "date-time",
       "examples": ["2025-01-15T10:30:00Z"]
     },

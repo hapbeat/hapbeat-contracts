@@ -2,7 +2,7 @@
 
 ## 1. 概要
 
-Desktop アプリ（hapbeat-desktop）から Hapbeat デバイスに USB serial 経由で設定を行うためのプロトコル。Pack install プロトコル（バイナリフレーム）と同一の serial ポート上で共存する。
+Desktop アプリ（hapbeat-desktop）から Hapbeat デバイスに USB serial 経由で設定を行うためのプロトコル。Kit install プロトコル（バイナリフレーム）と同一の serial ポート上で共存する。
 
 ## 2. 通信仕様
 
@@ -14,14 +14,14 @@ Desktop アプリ（hapbeat-desktop）から Hapbeat デバイスに USB serial 
 | エンコーディング | UTF-8 |
 | 最大コマンド長 | 512 bytes |
 
-## 3. Pack install プロトコルとの共存
+## 3. Kit install プロトコルとの共存
 
-同一 serial ポート上で Pack install プロトコル（バイナリフレーム、先頭バイト `0xAA`）と共存する。
+同一 serial ポート上で Kit install プロトコル（バイナリフレーム、先頭バイト `0xAA`）と共存する。
 
 | 先頭バイト | ルーティング先 |
 |-----------|---------------|
 | `{` (0x7B) | Serial 設定プロトコル（本仕様） |
-| `0xAA` | Pack install プロトコル |
+| `0xAA` | Kit install プロトコル |
 | その他 | 無視 |
 
 デバイスは受信バイトの先頭を確認し、適切なハンドラにルーティングする。
