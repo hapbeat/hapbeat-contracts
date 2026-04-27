@@ -46,7 +46,7 @@
     },
     "target_device": {
       "type": "object",
-      "description": "対象デバイス情報。対応するファームウェアバージョンの範囲を指定する。",
+      "description": "対象デバイス情報。Kit 作者がチューニング時に使ったハードウェア / 設定のコンテキストを記録する。再生時の互換チェックや再現性確認に利用する。",
       "required": ["firmware_version_min"],
       "additionalProperties": false,
       "properties": {
@@ -59,6 +59,28 @@
           "type": "string",
           "description": "対応する最大ファームウェアバージョン（省略時は上限なし）",
           "examples": ["2.0.0"]
+        },
+        "board": {
+          "type": "string",
+          "description": "想定基板識別子。Kit 作者が調整に使ったハードウェアを示す。デバイスのメタ情報と照合して警告に使用してよい",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "examples": ["duo_wl_v3", "neck_wl_v2"]
+        },
+        "volume_level": {
+          "type": "integer",
+          "description": "Kit 作者がチューニング時に使ったデバイス音量レベル",
+          "minimum": 0
+        },
+        "volume_wiper": {
+          "type": "integer",
+          "description": "MCP4018 wiper 値 (0–127)。volume_level より低レベルで再現性が高い",
+          "minimum": 0,
+          "maximum": 127
+        },
+        "volume_steps": {
+          "type": "integer",
+          "description": "デバイスがレポートする音量ステップ総数。Kit 作者環境のコンテキスト",
+          "minimum": 1
         }
       }
     },
@@ -95,9 +117,9 @@
             },
             "clip": {
               "type": "string",
-              "description": "clips/ ディレクトリからの相対パス。wav ファイルを指定する。mode=command では必須、stream_* では optional。",
+              "description": "WAV ファイルへの参照。mode=command では install-clips/ 配下のファイル名 (例: 'hit_medium.wav'。サブディレクトリ可)。mode=stream_* ではキットルートからの相対パス (例: 'stream-clips/foo.wav')。command で必須、stream_* では optional。",
               "pattern": "^[^/\\\\].*\\.wav$",
-              "examples": ["hit_medium.wav", "ambient/rain_loop.wav"]
+              "examples": ["hit_medium.wav", "ambient/rain_loop.wav", "stream-clips/ambient_rain_loop.wav"]
             },
             "description": {
               "type": "string",
@@ -142,9 +164,9 @@
       },
       "additionalProperties": false
     },
-    "clips": {
+    "install_clips": {
       "type": "object",
-      "description": "clip メタデータの辞書。キーは clips/ からの相対ファイルパス、値はメタデータオブジェクト。",
+      "description": "デバイスに焼き込む command-mode WAV のメタデータ辞書。キーは install-clips/ 配下の相対ファイル名 (events.<id>.clip と同じ表記)、値はメタデータオブジェクト。stream-clips/ 配下のファイルは含めない。",
       "additionalProperties": {
         "type": "object",
         "description": "クリップファイルのメタデータ",
