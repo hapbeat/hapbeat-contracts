@@ -4,19 +4,13 @@
   "title": "Hapbeat Kit Manifest",
   "description": "Hapbeat Kit の manifest.json を検証するための JSON Schema。Kit は触覚コンテンツの配布単位であり、wav クリップと Event ID の対応表を含む。",
   "type": "object",
-  "required": ["schema_version", "kit_id", "version", "name", "events"],
+  "required": ["schema_version", "version", "name", "events"],
   "additionalProperties": false,
   "properties": {
     "schema_version": {
       "type": "string",
       "description": "manifest スキーマのバージョン",
       "examples": ["1.0.0"]
-    },
-    "kit_id": {
-      "type": "string",
-      "description": "Kit の一意識別子。英小文字・数字・ハイフンのみ使用可能。先頭は英小文字。",
-      "pattern": "^[a-z][a-z0-9-]*$",
-      "examples": ["basic-impacts", "vr-environment-v2"]
     },
     "version": {
       "type": "string",
@@ -26,9 +20,9 @@
     },
     "name": {
       "type": "string",
-      "description": "Kit の表示名",
-      "minLength": 1,
-      "examples": ["基本インパクトパック"]
+      "description": "Kit の名前（= Kit 一意識別子 = ディレクトリ名 = wire-protocol 上の kit_id）。英小文字・数字・ハイフンのみ。先頭は英小文字。",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "examples": ["basic-impacts", "vr-environment-v2"]
     },
     "description": {
       "type": "string",

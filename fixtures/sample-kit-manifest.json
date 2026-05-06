@@ -1,8 +1,7 @@
 {
   "schema_version": "1.0.0",
-  "kit_id": "basic-impacts",
   "version": "1.0.0",
-  "name": "Basic Impacts",
+  "name": "basic-impacts",
   "description": "基本的な衝撃系触覚パターン集",
   "author": "Hapbeat",
   "created_at": "2026-03-22T00:00:00Z",
@@ -11,7 +10,7 @@
   },
   "events": {
     "impact.hit": {
-      "clip": "clips/hit_01.wav",
+      "clip": "hit_01.wav",
       "description": "基本的な衝撃",
       "tags": ["impact", "basic"],
       "parameters": {
@@ -21,12 +20,12 @@
       }
     },
     "impact.hit-light": {
-      "clip": "clips/hit_light_01.wav",
+      "clip": "hit_light_01.wav",
       "description": "軽い衝撃",
       "tags": ["impact", "light"]
     },
     "impact.explosion": {
-      "clip": "clips/explosion_01.wav",
+      "clip": "explosion_01.wav",
       "description": "爆発衝撃",
       "tags": ["impact", "heavy"],
       "parameters": {
@@ -36,7 +35,7 @@
       }
     },
     "vibration.rumble": {
-      "clip": "clips/rumble_01.wav",
+      "clip": "rumble_01.wav",
       "description": "持続的な振動",
       "tags": ["vibration", "sustained"],
       "parameters": {
@@ -45,37 +44,37 @@
       }
     },
     "ui.click": {
-      "clip": "clips/click_01.wav",
+      "clip": "click_01.wav",
       "description": "UI クリックフィードバック",
       "tags": ["ui", "feedback"]
     }
   },
-  "clips": {
-    "clips/hit_01.wav": {
+  "install_clips": {
+    "hit_01.wav": {
       "duration_ms": 150,
       "sample_rate": 44100,
       "channels": 1,
       "format": "pcm_s16le"
     },
-    "clips/hit_light_01.wav": {
+    "hit_light_01.wav": {
       "duration_ms": 80,
       "sample_rate": 44100,
       "channels": 1,
       "format": "pcm_s16le"
     },
-    "clips/explosion_01.wav": {
+    "explosion_01.wav": {
       "duration_ms": 500,
       "sample_rate": 44100,
       "channels": 1,
       "format": "pcm_s16le"
     },
-    "clips/rumble_01.wav": {
+    "rumble_01.wav": {
       "duration_ms": 1000,
       "sample_rate": 44100,
       "channels": 1,
       "format": "pcm_s16le"
     },
-    "clips/click_01.wav": {
+    "click_01.wav": {
       "duration_ms": 30,
       "sample_rate": 44100,
       "channels": 1,
