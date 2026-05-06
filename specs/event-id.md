@@ -98,11 +98,11 @@ HapbeatManager.Play("my-content/impact.sword-slash");
 {
   "events": {
     "impact.hit": {
-      "clip": "clips/hit_01.wav",
+      "clip": "hit_01.wav",
       "description": "基本的な衝撃"
     },
     "impact.explosion": {
-      "clip": "clips/explosion_01.wav",
+      "clip": "explosion_01.wav",
       "description": "爆発衝撃"
     }
   }

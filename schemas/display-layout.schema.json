@@ -72,6 +72,7 @@
             "ip_address",
             "firmware_version",
             "device_name",
+            "app_name",
             "custom_text",
             "gain",
             "group_id"
