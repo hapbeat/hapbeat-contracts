@@ -9,7 +9,7 @@ Hapbeat デバイスは **パスベースのアドレス文字列** を持ち、
 ## 2. アドレス構造
 
 ```
-[自由プレフィックス/] player_{N} / {position}
+[自由プレフィックス/] player_{N} / {position} [/group_{M}]
 ```
 
 | 部分 | 必須 | 形式 | 例 | 設定方法 |
@@ -17,6 +17,7 @@ Hapbeat デバイスは **パスベースのアドレス文字列** を持ち、
 | プレフィックス | 任意（0段以上） | 自由文字列 | `red/alpha` | Desktop アプリ |
 | **Player** | **必須** | `player_{数字}` | `player_1` | Desktop / デバイスボタン |
 | **Position** | **必須** | 定義済み語彙 | `chest` | Desktop / デバイスボタン |
+| Group | 任意（0段または1段） | `group_{数字}` | `group_5` | Desktop / デバイスボタン |
 
 ### 2.1 アドレス例
 
@@ -27,22 +28,24 @@ Hapbeat デバイスは **パスベースのアドレス文字列** を持ち、
 | チーム制 | `red/player_1/chest` |
 | チーム＋小隊 | `red/alpha/player_3/chest` |
 | アプリ混在 | `app_a/player_1/chest` |
+| グループ分離 | `player_1/chest/group_1`, `player_1/chest/group_2` |
 
 ### 2.2 制約
 
 - 区切り文字: `/`（スラッシュ）
 - セグメントに使用可能な文字: `[a-zA-Z0-9_-]`
 - 最大長: 64 bytes（null 終端含む）
-- 末尾2セグメントは必ず `player_{N}/{position}` の形式
+- `player_{N}` と `{position}` の順序は不変。**`player_{N}/{position}`** が必ず連続して現れる
+- `group_{M}` を使う場合は **`{position}` の直後** に置く（自由プレフィックスの使い方と衝突しない位置）。前後に他のセグメントを置くことはできない
 
 ### 2.3 Player / Group 番号の範囲
 
-**Player 番号 `{N}` および Group ID は `1..99` の整数** とする。
+**Player 番号 `{N}` および Group 番号 `{M}` は `1..99` の整数** とする。
 
 | 項目 | 範囲 | 備考 |
 |------|------|-----|
 | `player_{N}` | `1..99` | デバイスボタン (`player_inc` / `player_dec`) は 99 → 1 / 1 → 99 で wrap-around |
-| Group ID | `1..99` | デバイスボタン (`group_inc` / `group_dec`) も同様に wrap-around。`group_id` 表示要素は OLED 上 `Gr:01` 〜 `Gr:99` (2 桁ゼロ埋め) で表示 |
+| `group_{M}` | `1..99` | アドレス末尾に追加する任意セグメント。デバイスボタン (`group_inc` / `group_dec`) も同様に wrap-around。`group_id` 表示要素は OLED 上 `Gr:01` 〜 `Gr:99` (2 桁ゼロ埋め) で表示 |
 
 技術的には `uint8_t` (0..255) で保持しているため 100 以上も格納可能だが、現実的なユースケース (= ローカルマルチプレイ最大数十人規模) で 99 あれば充分という判断で **当面 1..99 に制限** する。
 
@@ -105,6 +108,10 @@ SDK / Desktop が送信時に指定する。デバイスはこのターゲット
 | `"player_1/pos_*"` | `player_1/pos_neck` | ✓ | 全部位ワイルドカード |
 | `"red"` | `red/player_1/pos_neck` | ✓ | 前方一致 |
 | `"red/*/player_1"` | `red/alpha/player_1/pos_neck` | ✓ | ワイルドカード + 前方一致 |
+| `"player_1/pos_neck/group_1"` | `player_1/pos_neck/group_1` | ✓ | group まで完全一致 |
+| `"player_1/pos_neck/group_1"` | `player_1/pos_neck/group_2` | ✗ | group 不一致 |
+| `"player_1/pos_neck"` | `player_1/pos_neck/group_1` | ✓ | 前方一致（group 指定なし = 全 group） |
+| `"*/*/group_1"` | `player_2/pos_chest/group_1` | ✓ | player/position をワイルドカード、group のみ指定 |
 
 ### 4.3 マッチングアルゴリズム（擬似コード）
 
