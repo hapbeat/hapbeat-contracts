@@ -35,6 +35,28 @@ Hapbeat デバイスは **パスベースのアドレス文字列** を持ち、
 - 最大長: 64 bytes（null 終端含む）
 - 末尾2セグメントは必ず `player_{N}/{position}` の形式
 
+### 2.3 Player / Group 番号の範囲
+
+**Player 番号 `{N}` および Group ID は `1..99` の整数** とする。
+
+| 項目 | 範囲 | 備考 |
+|------|------|-----|
+| `player_{N}` | `1..99` | デバイスボタン (`player_inc` / `player_dec`) は 99 → 1 / 1 → 99 で wrap-around |
+| Group ID | `1..99` | デバイスボタン (`group_inc` / `group_dec`) も同様に wrap-around。`group_id` 表示要素は OLED 上 `Gr:01` 〜 `Gr:99` (2 桁ゼロ埋め) で表示 |
+
+技術的には `uint8_t` (0..255) で保持しているため 100 以上も格納可能だが、現実的なユースケース (= ローカルマルチプレイ最大数十人規模) で 99 あれば充分という判断で **当面 1..99 に制限** する。
+
+**将来的に 100 以上が必要になった場合の拡張容易性:**
+- 内部表現は `uint8_t` のまま 1..255 へ拡張可能 (= NVS / 通信プロトコル変更不要)
+- 修正必要箇所は以下のみ:
+  - firmware: `DEVICE_GROUP_MAX` (`hapbeat_config.h`) と `actionPlayerInc / actionPlayerDec` の wrap 上限値
+  - Studio: OLED 表示 element サイズ (`group_id` `[5,1]` → `[6,1]` で 3 桁化、`player_number` 同様) およびシミュレータの zero-pad 桁数
+  - 256 以上が必要な場合のみ contracts / 通信フォーマットの型 (uint8 → uint16) 拡張も伴う
+
+**バリデーション:** 範囲外の値を受信した場合の挙動は実装依存だが、推奨は **境界値にクランプして ok 応答** か **error 応答**。silent-drop はしない。
+
+
+
 ## 3. Position 語彙
 
 装着部位は以下の固定語彙から選択する。
