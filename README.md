@@ -9,10 +9,12 @@ Hapbeat SDK エコシステム全体の**中核仕様リポジトリ**です。
 
 - **Event ID 命名規則** -- 触覚イベントを一意に識別するための ID 体系
 - **Kit 形式仕様** -- 触覚パターンをまとめた Kit ファイルのマニフェスト・ディレクトリ構造
+- **UDP/TCP メッセージ仕様** -- SDK・デバイス間で流れるメッセージのフォーマット
+- **デバイスアドレッシング仕様** -- グループ・ターゲット指定の方式
+- **display-layout 仕様** -- OLED 表示レイアウトの JSON スキーマ
+- **シリアル設定コマンド仕様** -- USB シリアル経由の設定コマンド体系
 - **Bridge API 仕様** -- hapbeat-bridge が公開する API エンドポイントの定義
-- **UDP/OSC メッセージ仕様** -- Bridge・Transmitter 間、SDK・Bridge 間で流れるメッセージのフォーマット
 - **バージョニング方針** -- 仕様のバージョン管理と互換性の維持ルール
-- **互換性ルール** -- 各コンポーネント間のバージョン互換性マトリクス
 
 ## 全体の中での位置づけ
 
@@ -49,12 +51,29 @@ hapbeat-contracts 自体は他のどの repo にも依存しません。
 | **この repo が依存するもの** | なし |
 | **この repo に依存する repo** | hapbeat-kit-tools, hapbeat-device-firmware, hapbeat-bridge, hapbeat-transmitter-firmware, hapbeat-unity-sdk, hapbeat-unreal-sdk, hapbeat-creative-kit |
 
-## 今後の最初のタスク
-
-1. **Event ID 命名規則の策定** -- 触覚イベントを識別する ID の命名体系を決定する
-2. **Kit manifest schema の定義** -- Kit ファイルのマニフェスト JSON Schema を策定する
-3. **Bridge API の基本仕様策定** -- hapbeat-bridge が公開するエンドポイント・プロトコルを定義する
-
 ## 現在の状態
 
-現時点では実装コードはありません。仕様書・schema 定義・テスト用 fixtures を順次追加していく予定です。
+主要仕様は策定済みで、各実装 repo が本リポジトリの仕様に基づいて稼働中です。
+
+### specs/（規範的な仕様文書）
+
+| ファイル | 内容 |
+|---|---|
+| `kit-format.md` | Kit マニフェスト形式・ディレクトリ構造・フィールド定義 |
+| `event-id.md` | Event ID 命名規則（`<kit-name>.<clip-name>` 形式） |
+| `message-format.md` | UDP/TCP メッセージプロトコル（PLAY/STOP/STOP_ALL/CONNECT_STATUS 他） |
+| `device-addressing.md` | デバイスアドレッシング仕様（`group_<N>` suffix 方式） |
+| `display-layout.md` | OLED display_layout.json スキーマ |
+| `serial-config.md` | シリアルコマンド仕様 |
+| `kit-install-protocol.md` | Kit インストールプロトコル（TCP 経由の転送手順） |
+| `bridge-api.md` | hapbeat-bridge 公開 API 仕様 |
+| `internal-bridge-transmitter.md` | Bridge ↔ Transmitter 内部プロトコル（ESP-NOW 経路） |
+| `versioning.md` | 仕様バージョニング方針・互換性ルール |
+
+### schemas/
+
+JSON Schema ファイル（manifest 検証用）。
+
+### fixtures/
+
+テスト・検証用サンプルデータ。
