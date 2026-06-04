@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://hapbeat.dev/schemas/firmware-manifest.schema.json",
+  "title": "Hapbeat Firmware Distribution Manifest",
+  "description": "Unified firmware manifest aggregating variants across multiple firmware repos. See specs/firmware-distribution.md (DEC-034).",
+  "type": "object",
+  "required": ["schema_version", "variants"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": 2 },
+    "generated_at": {
+      "type": "integer",
+      "description": "Unix epoch ms when this manifest was aggregated."
+    },
+    "variants": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/variant" }
+    }
+  },
+  "definitions": {
+    "artifact": {
+      "type": "object",
+      "required": ["filename", "size"],
+      "additionalProperties": false,
+      "properties": {
+        "filename": { "type": "string" },
+        "size": { "type": "integer", "minimum": 0 },
+        "mtime": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "variant": {
+      "type": "object",
+      "required": ["id", "repo", "env", "role", "transport", "label", "fwVersion", "fullSerial"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "description": "Unique id within the manifest, e.g. <repo-short>/<env>." },
+        "repo": { "type": "string" },
+        "env": { "type": "string", "description": "PlatformIO environment name." },
+        "role": { "enum": ["receiver", "sensor", "broker", "transmitter"] },
+        "transport": { "enum": ["udp", "mqtt", "espnow_stream"] },
+        "transports": {
+          "type": "array",
+          "items": { "enum": ["udp", "mqtt", "espnow_stream"] }
+        },
+        "board": { "type": "string" },
+        "label": { "type": "string" },
+        "description": { "type": "string" },
+        "fwVersion": { "type": "string" },
+        "appOta": { "$ref": "#/definitions/artifact" },
+        "fullSerial": { "$ref": "#/definitions/artifact" }
+      }
+    }
+  }
+}

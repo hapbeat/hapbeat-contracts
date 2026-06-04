@@ -61,10 +61,14 @@ hapbeat-contracts 自体は他のどの repo にも依存しません。
 |---|---|
 | `kit-format.md` | Kit マニフェスト形式・ディレクトリ構造・フィールド定義 |
 | `event-id.md` | Event ID 命名規則（`<kit-name>.<clip-name>` 形式） |
-| `message-format.md` | UDP/TCP メッセージプロトコル（PLAY/STOP/STOP_ALL/CONNECT_STATUS 他） |
+| `message-format.md` | UDP/TCP メッセージプロトコル（PLAY/STOP/STOP_ALL/CONNECT_STATUS 他、`udp` transport） |
+| `node-roles.md` | ノード役割 / 通信モード taxonomy（receiver/sensor/broker/transmitter × udp/mqtt/espnow_stream、DEC-034） |
+| `mqtt-transport.md` | MQTT transport（センサ起点の遠隔通知。topic/payload/broker 発見） |
+| `espnow-stream.md` | ESP-NOW streaming transport（会場同報のライブ音声。packet 形式、DEC-033） |
+| `firmware-distribution.md` | ファーム配布 manifest（複数 repo × role/transport/board の集約） |
 | `device-addressing.md` | デバイスアドレッシング仕様（`group_<N>` suffix 方式） |
 | `display-layout.md` | OLED display_layout.json スキーマ |
-| `serial-config.md` | シリアルコマンド仕様 |
+| `serial-config.md` | シリアルコマンド仕様（全ノード共通の設定プロトコル + 役割固有コマンド） |
 | `kit-install-protocol.md` | Kit インストールプロトコル（TCP 経由の転送手順） |
 | `bridge-api.md` | hapbeat-bridge 公開 API 仕様 |
 | `internal-bridge-transmitter.md` | Bridge ↔ Transmitter 内部プロトコル（ESP-NOW 経路） |

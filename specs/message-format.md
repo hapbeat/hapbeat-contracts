@@ -16,6 +16,13 @@ Hapbeat システムの通信は以下の 3 層で構成される。
 
 SDK 開発者は Layer 1 のみを意識すればよい。Layer 2・Layer 3 は Bridge および Firmware が内部的に処理する。
 
+本文書は **`udp` transport** の wire format を定義する。他の transport は別文書で定義する（`node-roles.md` の taxonomy 参照）:
+
+- **`mqtt` transport**（センサ起点の遠隔通知）→ `mqtt-transport.md`
+- **`espnow_stream` transport**（会場同報のライブ音声）→ `espnow-stream.md`
+
+触覚資産（Kit / event_id）と再生意味論は transport 非依存で共通。各 transport はその搬送方法だけが異なる。
+
 ## 3. 共通ヘッダ構造（Layer 1 UDP パケット）
 
 すべての UDP パケットは以下の共通ヘッダで始まる。
