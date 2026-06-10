@@ -93,12 +93,20 @@ ESP-NOW / MQTT の追加で、Hapbeat のファームは **複数 repo × 複数
 | `board` | ➖ | 基板識別子（書込時の board mismatch 検証に使用）。v2 fragment では明示推奨。v1 からの推論で決まらない場合は省略可（mismatch 検証は board 未定なら skip） |
 | `label` | ✅ | Studio 表示名（人間向け） |
 | `description` | ➖ | 補足説明 |
-| `fwVersion` | ✅ | ビルドに焼かれた FIRMWARE_VERSION |
-| `appOta` | ➖ | Wi-Fi OTA 用 app-only イメージ（Wi-Fi ノードのみ） |
-| `fullSerial` | ✅ | USB serial download 用 merged イメージ |
+| `fwVersion` | ✅ | **最新版**の FIRMWARE_VERSION（`versions[0]` のコピー） |
+| `appOta` | ➖ | **最新版**の Wi-Fi OTA 用 app-only イメージ（Wi-Fi ノードのみ） |
+| `fullSerial` | ✅ | **最新版**の USB serial download 用 merged イメージ |
+| `versions` | ➖ | **アーカイブを含む全バージョン**（新しい順）。各要素は `{fwVersion, tag?, appOta?, fullSerial?}`。省略時は最新のみ（dev 環境等） |
 
 - `appOta` は Wi-Fi 経路を持つノード（receiver(udp/mqtt) / broker / sensor）のみ。transmitter / espnow_stream 受信機は serial のみ。
 - `fullSerial` は全 variant 必須（Studio からの初回書込は USB serial が基本経路）。
+
+### アーカイブ（過去バージョンへのロールバック）
+
+GitHub Releases は過去リリースを保持し続ける（新リリースで旧版は消えない）。配布側の集約は **直近 N リリース**（既定 6）を全て取り込み、variant ごとに `versions[]` へ新しい順で格納する。これにより Studio はユーザーがいつでも過去バージョンへ書き戻せる（例: v0.1.4 で問題が出たら v0.1.3 を選んで再書込）。
+
+- 成果物ファイル名はバージョンを含めて衝突回避する: **`<repo-short>_<env>_<fwVersion>_<stem>.bin`**
+- variant のトップレベル `fwVersion`/`appOta`/`fullSerial` は常に `versions[0]`（最新）のコピー（versions 非対応の reader 互換）。
 
 ## 5. 後方互換（移行）
 

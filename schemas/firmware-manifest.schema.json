@@ -28,6 +28,17 @@
         "mtime": { "type": "integer", "minimum": 0 }
       }
     },
+    "version": {
+      "type": "object",
+      "required": ["fwVersion"],
+      "additionalProperties": false,
+      "properties": {
+        "fwVersion": { "type": "string" },
+        "tag": { "type": "string", "description": "GitHub Release tag this version came from (e.g. v0.1.3)." },
+        "appOta": { "$ref": "#/definitions/artifact" },
+        "fullSerial": { "$ref": "#/definitions/artifact" }
+      }
+    },
     "variant": {
       "type": "object",
       "required": ["id", "repo", "env", "role", "transport", "label", "fwVersion", "fullSerial"],
