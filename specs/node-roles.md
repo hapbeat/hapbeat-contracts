@@ -64,6 +64,7 @@
 | `set_input_level` | ➖ | ➖ | ➖ | ✅ | ライン入力レベル |
 | `set_broker_config` | ➖ | ➖ | ✅ | ➖ | broker の static octet / port |
 | `set_sensor_mapping` / `get_sensor_mapping` | ➖ | ✅ | ➖ | ➖ | センサ値 → event の対応表（`mqtt-transport.md` §5） |
+| `get_sensor_reading` | ➖ | ✅ | ➖ | ➖ | センサ現在値（ライブ閾値チューニング用、`serial-config.md` §4.14） |
 
 各コマンドの詳細フォーマットは `serial-config.md` を参照。
 
