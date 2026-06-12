@@ -442,6 +442,12 @@ TXT レコード:
 | `group` | グループ ID | `1` |
 | `fw` | ファームウェアバージョン | `2.0.0` |
 | `mac` | MAC アドレス | `AA:BB:CC:DD:EE:FF` |
+| `role` | ノード役割 (specs/node-roles.md, DEC-034) | `receiver` / `sensor` / `broker` / `transmitter` |
+| `transport` | 通信モード (specs/node-roles.md) | `udp` / `mqtt` / `espnow_stream` |
+
+`role` / `transport` は省略可（旧ファームウェアは送らない）。受信側は欠落時に
+`receiver` / `udp` として扱う。これによりツール (Helper / Studio) は get_info の
+TCP 往復を待たずに discovery 時点でノード役割に応じた UI を出せる。
 
 ### UDP ブロードキャスト PING による検出
 
