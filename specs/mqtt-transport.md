@@ -132,9 +132,11 @@ mapping エントリ:
 | `target` | string | ターゲットアドレス |
 | `gain` | number | 0.0〜1.0 |
 | `debounce_ms` | number | optional。同一 key 連続発火の最小間隔（既定はノード実装値） |
+| `topic` | string | optional。この key の publish 先 topic **root**（スラッシュ無し、≤32 文字）。指定時は `<root>/play` ではなく `<topic>/play` へ publish する。空/未指定はセンサ既定 root（§7 `topic_root`）。色やセンサ単位で受信機グループを分けたい場合に使う（receiver は §7 の自 root を subscribe するので、`topic` と受信機 root を合わせると一致グループのみ届く） |
 
-- sensor は周期的にセンサを読み、`match` に最初に一致した `key` の payload を `hapbeat/play` に publish する。
+- sensor は周期的にセンサを読み、`match` に最初に一致した `key` の payload を `<topic or topic_root>/play` に publish する。
 - 色センサの分類は chromaticity（clear 正規化 RGB）で行うことを推奨（明るさ変動に頑健）。実装詳細はファーム側。
+- **既定はトピック単一・payload ルーティング**（全色が `topic_root/play` へ。`target` で受信機を選別）。`topic` はそれをトピック分割したい場合の任意機能で、Studio 側で「送り先」を登録 → mapping で選択する UI を提供する。
 
 ## 6. receiver 側の扱い
 
