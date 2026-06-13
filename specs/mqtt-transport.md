@@ -145,13 +145,17 @@ mapping エントリ:
 ## 7. クライアント側 MQTT 設定（sensor / receiver(mqtt) 共通）
 
 `serial-config.md` §4.8 `set_broker_host` で書き込む。設定面は以下の 3 項目に正規化する
-（QoS は §2 の通り仕様固定で設定項目にしない）。
+設定面は以下に正規化する。
 
 | 項目 | NVS キー | 既定 | 意味 |
 |---|---|---|---|
 | `host` | `hapbeat/broker_host` | `"auto"` | broker の解決方法（auto = mDNS browse / 明示 IP・ホスト名） |
 | `port` | `hapbeat/broker_port` (u16) | 1883 | 明示 host 時の接続ポート。`auto` 時は mDNS が advertise したポートが優先 |
 | `topic_root` | `hapbeat/mq_root` | `"hapbeat"` | §4 topic root |
+| `qos` | `hapbeat/mq_qos` (u8) | 1 | publish/subscribe の QoS（0 or 1）。既定は §2.1 の信頼性のため 1。低遅延優先時のみ 0 |
+
+`get_info` は同名フィールド（`broker_host` / `broker_port` / `topic_root` / `mqtt_qos`）＋
+`mqtt_connected`（bool, broker への接続状態）を返す。
 
 ## 8. broker の get_info 拡張フィールド
 
