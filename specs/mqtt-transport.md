@@ -21,14 +21,33 @@
 | ポート | 1883（既定。`set_broker_config.port` で変更可、plaintext、LAN 内前提） |
 | mDNS | サービス `_mqtt._tcp`（ポートを advertise）、ホスト名はデバイス名（既定 `<board>-<MAC4>`） |
 | 認証 | LAN 内前提のため必須としない（将来 username/role 分類は任意拡張） |
-| QoS | **0（fire-and-forget）** |
+| QoS | **0（wire レベル）+ アプリ層の定期再送で信頼性を担保**（§2.1） |
 
 > plaintext/no-auth は「施設の隔離 LAN 内」を前提とする割り切り。インターネット越え/TLS が要るユースケースは本仕様の対象外（別途検討）。
->
-> **QoS 0 の理由**: 触覚イベントは momentary で「遅れて届くより消えた方がマシ」（§4.3 retain と同じ思想）。
-> 再送による遅延発火の方が体験を壊す。また実装面でも publisher (PubSubClient) の publish は QoS 0 のみ、
-> 組み込み broker (sMQTTBroker) も QoS 0 実装であり、これを正式仕様とする
-> （旧版の「QoS 1」記載は実装と乖離していたため 2026-06-13 に訂正）。QoS はユーザー設定項目にしない。
+
+### 2.1 配信信頼性モデル（MQTT は「確実に届く」ことが重要）
+
+MQTT transport の主用途は **UDP とは異なる**。UDP は「ライブ会場の同期触覚」で momentary・遅延より欠落が正だが、
+**MQTT は「施設アラートの遠隔通知」（例: ナースコール色灯 → 離れた装着者へ振動）で、数秒の遅延は許容する代わりに
+"アラートが起きたことが確実に伝わる" ことが最重要**。
+
+ただし **wire レベルの QoS 1 は現実装では提供しない**:
+
+- 組み込み MQTT クライアント (PubSubClient) の `publish()` は QoS 0 固定（QoS 引数を持たない）。
+- 組み込み MQTT broker (sMQTTBroker v0.1.8) も QoS 0 実装（subscriber への QoS1 配信 + PUBACK 待機が未実装）。
+- → QoS 1 end-to-end には MQTT ライブラリ一式の差し替え（AsyncMqttClient 等 + broker の PUBACK 実装）が必要で、本フェーズの対象外。
+
+代わりに **「QoS 0 + アプリ層の定期再送」で実用的な信頼性を担保する**:
+
+- sensor は、アラート条件（一致 `key`）が**継続している間、`debounce_ms` 間隔で同じ `hapbeat/play` を再送し続ける**
+  （§5 `debounce_ms`、既定 4000ms）。1 パケット落ちても次の再送（数秒後）で届く。
+- これは「数秒の遅延は許容・確実に伝える」という MQTT 用途の要件と一致する。瞬間的に消えるアラートには
+  `debounce_ms` を短くする / 同一イベントを数回バースト送出する運用で対応する。
+- 持続状態を late-joiner（再起動・後から接続した receiver）にも届けたい場合は、retained な状態トピックを使う
+  （§4.3、現状は未定義。必要になった時点で `hapbeat/state/<target>` を追加検討）。sMQTTBroker の retained 配信は機能する。
+
+> 旧版は「QoS 1」と記載していたが実装と乖離していたため 2026-06-13 に「QoS 0 + 定期再送」モデルへ訂正。
+> QoS は wire レベルでは設定項目にしない（再送間隔 `debounce_ms` がユーザー可変な信頼性ノブ）。
 
 ## 3. ブローカー発見（zero-config）
 
