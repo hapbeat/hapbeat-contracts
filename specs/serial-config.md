@@ -35,28 +35,31 @@ Desktop アプリ（hapbeat-desktop）から Hapbeat デバイスに USB serial 
 {"cmd": "get_info"}
 ```
 
-**Response:**
+**Response:** フィールドは**フラット**（`data{}` ラッパー無し）。バージョンは `fw`（`firmware` ではない）。
 ```json
 {
   "status": "ok",
-  "cmd": "get_info",
-  "data": {
-    "name": "Hapbeat-A",
-    "address": "player_1/chest",
-    "firmware": "2.0.0",
-    "mac": "AA:BB:CC:DD:EE:FF",
-    "role": "receiver",
-    "transport": "udp",
-    "transports": ["udp"],
-    "board": "band_wl_v3",
-    "wifi_connected": false,
-    "wifi_ssid": "",
-    "wifi_ip": "",
-    "espnow_channel": 1,
-    "broker_host": "auto"
-  }
+  "name": "Hapbeat-A",
+  "group": 1,
+  "address": "player_1/pos_r_wrist",
+  "fw": "2.0.0",
+  "build": "a1b2c3d",
+  "mac": "AA:BB:CC:DD:EE:FF",
+  "role": "receiver",
+  "transport": "udp",
+  "transports": ["udp"],
+  "board": "band_wl_v3",
+  "wifi_connected": false,
+  "wifi_ssid": "",
+  "wifi_ip": "",
+  "espnow_channel": 1,
+  "broker_host": "auto"
 }
 ```
+
+> wire 上はフラット構造が source of truth（firmware `tcp_server.cpp cmdGetInfo` /
+> `serial_config.cpp` と Studio の読み出しが一致。2026-06-13 監査で確認）。
+> 旧版の `data{}` ラッパー・`firmware` キーは廃止。
 
 `role` / `transport` / `board` は **全ノード必須**（`node-roles.md` §4）。
 `transports` は複数 transport 対応時のみ。役割固有フィールド（`broker_host` / `gain` / `input_level` / `static_octet` / `mqtt_port` / `mappings` 等）は当該役割でのみ含める。
