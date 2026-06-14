@@ -146,6 +146,7 @@ mapping エントリ:
 | `oled` | string | optional。一致時に publish する `play` payload の `oled` 文言（≤32 文字、§4.1）。受信機の OLED に表示する。空/未指定 = 表示なし |
 | `critical` | bool | optional。true なら payload に `critical:true` を載せる（§6.3）。受信機が「制限モード」でも再生される重要色（例: 赤）。false/未指定は通常色（制限モード中は抑制される） |
 | `topic` | string | optional。この key の publish 先 topic **root**（スラッシュ無し、≤32 文字）。指定時は `<root>/play` ではなく `<topic>/play` へ publish する。空/未指定はセンサ既定 root（§7 `topic_root`）。色やセンサ単位で受信機グループを分けたい場合に使う（receiver は §7 の自 root を subscribe するので、`topic` と受信機 root を合わせると一致グループのみ届く） |
+| `topics` | string[] | optional。**複数の送り先 root**。指定時（要素 ≥ 1）はこの key を各 `<root>/play` に publish する（1 色を複数の受信機グループへ同報）。`topic`（単一）より優先。同一 payload・同一 `aid` を各 topic へ送るので、複数 topic を購読する受信機でも `aid` 抑制で 1 回のみ作用する。空/未指定は `topic` → センサ既定 root にフォールバック |
 
 - sensor は周期的にセンサを読み、`match` に最初に一致した `key` の payload を `<topic or topic_root>/play` に publish する。
 - 色センサの分類は chromaticity（clear 正規化 RGB）で行うことを推奨（明るさ変動に頑健）。実装詳細はファーム側。

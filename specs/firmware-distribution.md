@@ -46,6 +46,7 @@ ESP-NOW / MQTT の追加で、Hapbeat のファームは **複数 repo × 複数
       "transport": "udp",
       "transports": ["udp", "mqtt"],
       "board": "band_wl_v3",
+      "hapbeat": true,
       "label": "Band — Wi-Fi (UDP/MQTT)",
       "description": "標準の装着デバイス。Unity 等 SDK 連携 + センサ通知。",
       "fwVersion": "v0.2.0",
@@ -91,6 +92,7 @@ ESP-NOW / MQTT の追加で、Hapbeat のファームは **複数 repo × 複数
 | `transport` | ✅ | `udp` / `mqtt` / `espnow_stream` |
 | `transports` | ➖ | 複数 transport 対応時のリスト |
 | `board` | ➖ | 基板識別子（書込時の board mismatch 検証に使用）。v2 fragment では明示推奨。v1 からの推論で決まらない場合は省略可（mismatch 検証は board 未定なら skip） |
+| `hapbeat` | ➖ | `true` = 装着型 Hapbeat 本体（`duo_wl_*` / `band_wl_*`）、`false` = エコシステム周辺機器（broker / sensor / transmitter）。Studio はファームライブラリ/オンボーディングを**この値**でグループ分けする（`role` ではない: サードパーティ製ノードも `role=receiver` になり得るため、role は「Hapbeat か否か」の信頼できる判定にならない）。省略時は board 接頭辞（`duo_wl`/`band_wl`）から推論 |
 | `label` | ✅ | Studio 表示名（人間向け） |
 | `description` | ➖ | 補足説明 |
 | `fwVersion` | ✅ | **最新版**の FIRMWARE_VERSION（`versions[0]` のコピー） |
