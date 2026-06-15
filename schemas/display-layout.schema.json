@@ -75,7 +75,8 @@
             "app_name",
             "custom_text",
             "gain",
-            "group_id"
+            "group_id",
+            "mqtt_status"
           ]
         },
         "position": {
