@@ -16,6 +16,8 @@ Hapbeat システムの通信は以下の 3 層で構成される。
 
 SDK 開発者は Layer 1 のみを意識すればよい。Layer 2・Layer 3 は Bridge および Firmware が内部的に処理する。
 
+> エコシステム全体のポート一覧とホスト側 bind 方針は `ports.md`（ポート台帳）を正とする。
+
 本文書は **`udp` transport** の wire format を定義する。他の transport は別文書で定義する（`node-roles.md` の taxonomy 参照）:
 
 - **`mqtt` transport**（センサ起点の遠隔通知）→ `mqtt-transport.md`
