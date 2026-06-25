@@ -4,10 +4,10 @@
   "commands": [
     {
       "name": "play_immediate",
-      "description": "即時再生コマンド",
+      "description": "即時再生コマンド（疎通確認の既定イベント）",
       "command_type": "0x01",
       "fields": {
-        "event_id": "impact.hit",
+        "event_id": "sample-kit.sine_100hz",
         "target_time": 0,
         "target_group": 0,
         "gain": 1.0
