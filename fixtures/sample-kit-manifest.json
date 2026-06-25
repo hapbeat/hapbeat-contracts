@@ -1,86 +1,48 @@
 {
   "schema_version": "2.0.0",
   "version": "1.0.0",
-  "name": "basic-impacts",
-  "description": "基本的な衝撃系触覚パターン集 (command / stream / BOTH の代表例)",
+  "name": "sample-kit",
+  "description": "動作確認用の標準 Kit。sine 校正トーン (50/100/200 Hz)。各 SDK から sample-kit.sine_100hz を再生して疎通確認する。specs/sample-kit.md 参照",
   "author": "Hapbeat",
-  "created_at": "2026-05-25T00:00:00Z",
+  "created_at": "2026-06-01T00:00:00Z",
   "target_device": {
     "firmware_version_min": "0.1.0"
   },
   "events": {
-    "impact.hit": {
-      "clip": "hit_01.wav",
-      "description": "基本的な衝撃 (command-only — device で flash 焼き込み再生)",
-      "tags": ["impact", "basic"],
-      "parameters": {
-        "intensity": 1.0,
-        "device_wiper": 64,
-        "loop": false
-      }
+    "sample-kit.sine_50hz": {
+      "clip": "sine_50hz.wav",
+      "description": "50 Hz 純音 (低域)",
+      "tags": ["sample", "sine", "calibration"],
+      "parameters": { "intensity": 1.0, "loop": false }
     },
-    "impact.hit-light": {
-      "clip": "hit_light_01.wav",
-      "description": "軽い衝撃",
-      "tags": ["impact", "light"]
+    "sample-kit.sine_100hz": {
+      "clip": "sine_100hz.wav",
+      "description": "100 Hz 純音 (canonical — 疎通確認の既定イベント)",
+      "tags": ["sample", "sine", "calibration"],
+      "parameters": { "intensity": 1.0, "loop": false }
     },
-    "impact.explosion": {
-      "clip": "explosion_01.wav",
-      "description": "爆発衝撃 (BOTH — stream_events と同 ID を共有)",
-      "tags": ["impact", "heavy"],
-      "parameters": {
-        "intensity": 0.8,
-        "device_wiper": 64,
-        "loop": false
-      }
-    },
-    "ui.click": {
-      "clip": "click_01.wav",
-      "description": "UI クリックフィードバック",
-      "tags": ["ui", "feedback"]
-    }
-  },
-  "stream_events": {
-    "impact.explosion": {
-      "clip": "explosion_01.wav",
-      "description": "爆発衝撃 (SDK streaming variant — events と同 ID で BOTH を表現)",
-      "tags": ["impact", "heavy"],
-      "parameters": {
-        "intensity": 0.8,
-        "loop": false
-      }
-    },
-    "environment.rain": {
-      "clip": "rain_loop_01.wav",
-      "description": "雨の環境音触覚 (stream-only — host streaming)",
-      "tags": ["environment", "ambient"],
-      "parameters": {
-        "intensity": 0.3,
-        "loop": true
-      }
+    "sample-kit.sine_200hz": {
+      "clip": "sine_200hz.wav",
+      "description": "200 Hz 純音 (高域)",
+      "tags": ["sample", "sine", "calibration"],
+      "parameters": { "intensity": 1.0, "loop": false }
     }
   },
   "install_clips": {
-    "hit_01.wav": {
-      "duration_ms": 150,
+    "sine_50hz.wav": {
+      "duration_ms": 1000,
       "sample_rate": 16000,
       "channels": 1,
       "format": "pcm_s16le"
     },
-    "hit_light_01.wav": {
-      "duration_ms": 80,
+    "sine_100hz.wav": {
+      "duration_ms": 1000,
       "sample_rate": 16000,
       "channels": 1,
       "format": "pcm_s16le"
     },
-    "explosion_01.wav": {
-      "duration_ms": 500,
-      "sample_rate": 16000,
-      "channels": 1,
-      "format": "pcm_s16le"
-    },
-    "click_01.wav": {
-      "duration_ms": 30,
+    "sine_200hz.wav": {
+      "duration_ms": 1000,
       "sample_rate": 16000,
       "channels": 1,
       "format": "pcm_s16le"

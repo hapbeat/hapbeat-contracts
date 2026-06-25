@@ -1,109 +1,87 @@
 # Event ID 仕様
 
-バージョン: 0.1.0（ドラフト）
+バージョン: 1.0.0
+
+> **2026-06 改定 (DEC-040)**: 正準フォーマットを `<category>.<name>`（旧）から
+> **`<kit-name>.<file-name>`** に改めた。実装（Studio の event_id 自動合成・各 SDK）は
+> 早期にこの形へ移行済みで、本改定は spec を実態に合わせるもの。旧 `<category>.<name>`
+> 形式（`impact.hit` 等）と standard categories 表は **deprecated**。リリース前のため
+> 後方互換エイリアスは設けない。
 
 ## 概要
 
-Event ID は、Hapbeat エコシステム全体で触覚イベントを一意に識別するための文字列識別子である。
-SDK から Bridge へ再生指示を送る際、また Kit 内で clip と触覚パターンを紐づける際の共通キーとして機能する。
+Event ID は、Hapbeat エコシステム全体で触覚イベントを一意に識別する文字列識別子である。
+SDK からデバイスへ再生指示（PLAY）を送る際、また Kit 内で clip と触覚パターンを紐づける際の
+共通キーとして機能する。
 
-## 設計原則
-
-1. **人間可読性** — 開発者がコード内で直接読み書きできる文字列であること
-2. **プラットフォーム中立** — Unity / Unreal / TouchDesigner / Max のいずれでも同じ ID 体系を使える
-3. **階層的整理** — カテゴリ / サブカテゴリによる論理的グルーピングが可能
-4. **衝突回避** — Kit 間、コンテンツ間で ID が衝突しない仕組みを持つ
-5. **オフライン解決** — デバイス上でローカルに ID → clip の解決ができる
-
-## ID フォーマット
-
-### 基本形式
+## 正準フォーマット
 
 ```
-<category>.<name>
+<kit-name>.<file-name>
 ```
 
-### 拡張形式（サブカテゴリあり）
+- **`<kit-name>`** — その clip が属する Kit の `name`（= Kit ID, `kit-format.md` §4）。
+  on-disk のフォルダ名・`manifest.json` の `name`・wire の `kit_id` と同一値。
+- **`<file-name>`** — Kit 内の clip ファイル名から拡張子（`.wav`）を除いた basename。
+- 区切りは **`.`（ドット）1 個**。
 
-```
-<category>.<subcategory>.<name>
-```
+### 例
 
-### 名前空間付き形式（Kit 間衝突回避）
+| Event ID | Kit | clip ファイル |
+|---|---|---|
+| `sample-kit.sine_100hz` | `sample-kit` | `sine_100hz.wav` |
+| `showcase-kit.z1_pin_hit` | `showcase-kit` | `z1_pin_hit.wav` |
+| `my-game.sword_slash` | `my-game` | `sword_slash.wav` |
 
-```
-<namespace>/<category>.<name>
-<namespace>/<category>.<subcategory>.<name>
-```
+Event ID は **Studio が clip から自動合成**する（ユーザーが手で組み立てない）。`<kit-name>` が
+名前空間を兼ねるため、異なる Kit 間で ID が衝突しない。
 
 ### 構文規則
 
 | 要素 | 規則 |
 |------|------|
-| 区切り文字（カテゴリ内） | `.`（ドット） |
-| 区切り文字（名前空間） | `/`（スラッシュ） |
-| 使用可能文字 | 英小文字 `a-z`、数字 `0-9`、ハイフン `-`、アンダースコア `_` |
+| `<kit-name>` | `kit-format.md` §4 の Kit 命名規則と同一: `^[a-z][a-z0-9-]*$`（英小文字始まり、英数字・ハイフン。アンダースコア不可） |
+| `<file-name>` | 英小文字始まり、英数字・アンダースコア `_`・ハイフン `-`: `^[a-z][a-z0-9_-]*$` |
+| 区切り文字 | `.`（ドット）1 個のみ |
 | 大文字 | 使用不可（正規化のため小文字のみ） |
-| 先頭文字 | 英字で始まること（数字・記号始まり不可） |
-| 各セグメント最小長 | 1 文字 |
-| 各セグメント最大長 | 64 文字 |
-| 最大階層深度 | 名前空間を含めて 4 セグメントまで |
+| `<file-name>` 先頭 | **英字始まり**（数字始まり不可）。例: `100hz` ではなく `sine_100hz` のように letter 始まりにする |
 | ID 全体最大長 | 255 文字 |
 
 ### 正規表現
 
 ```
-^([a-z][a-z0-9_-]{0,63}/)?[a-z][a-z0-9_-]{0,63}(\.[a-z][a-z0-9_-]{0,63}){1,3}$
+^[a-z][a-z0-9-]*\.[a-z][a-z0-9_-]*$
 ```
 
-## カテゴリ体系
+## 予約 Kit 名
 
-### 標準カテゴリ
+以下の Kit 名は Hapbeat 公式用途に予約されている。コンテンツ開発者は使用しない。
 
-以下は Hapbeat が公式に定義する標準カテゴリである。コンテンツ開発者はこれらを利用するか、独自カテゴリを定義できる。
-
-| カテゴリ | 用途 | 例 |
-|----------|------|-----|
-| `impact` | 衝撃・打撃系 | `impact.hit`, `impact.explosion` |
-| `vibration` | 振動・持続系 | `vibration.engine`, `vibration.rumble` |
-| `texture` | テクスチャ・表面触感系 | `texture.rough`, `texture.smooth` |
-| `ambient` | 環境・雰囲気系 | `ambient.wind`, `ambient.rain` |
-| `ui` | UI フィードバック系 | `ui.click`, `ui.confirm` |
-| `custom` | 汎用カスタム | `custom.my-effect` |
-
-### 予約プレフィックス
-
-以下のプレフィックスは Hapbeat 公式用途に予約されている。コンテンツ開発者は使用してはならない。
-
-| プレフィックス | 用途 |
-|----------------|------|
-| `hapbeat/` | Hapbeat 公式 Kit の名前空間 |
-| `system.` | システム内部イベント（デバイス状態通知等） |
-| `test.` | テスト用イベント |
+| 予約 Kit 名 / プレフィックス | 用途 |
+|---|---|
+| `sample-kit` | 公式の **動作確認用 Kit**（`specs/sample-kit.md`）。`sample-kit.sine_100hz` が正準の疎通確認イベント |
+| `showcase-kit` | 公式の showcase Kit（SDK サンプル用） |
+| `hapbeat-*` | Hapbeat 公式 Kit の名前空間（予約） |
 
 ## Event ID の使用例
 
 ### SDK からの再生指示
 
 ```
-// Unity C# の場合（イメージ）
-HapbeatManager.Play("impact.hit");
-HapbeatManager.Play("vibration.engine", targetTime: 1500);
-HapbeatManager.Play("my-content/impact.sword-slash");
+HapbeatManager.Play("sample-kit.sine_100hz");   // Unity
+hb.play("showcase-kit.z2_door_slam")            // Python / JS
+Hapbeat.play("my-game.sword_slash", 0.6f);      // Arduino / Godot
 ```
 
-### Kit manifest 内での参照
+### Kit manifest 内での参照（schema 2.0.0）
 
 ```json
 {
+  "name": "sample-kit",
   "events": {
-    "impact.hit": {
-      "clip": "hit_01.wav",
-      "description": "基本的な衝撃"
-    },
-    "impact.explosion": {
-      "clip": "explosion_01.wav",
-      "description": "爆発衝撃"
+    "sample-kit.sine_100hz": {
+      "clip": "sine_100hz.wav",
+      "parameters": { "intensity": 1.0 }
     }
   }
 }
@@ -112,17 +90,16 @@ HapbeatManager.Play("my-content/impact.sword-slash");
 ### OSC メッセージでの使用
 
 ```
-/hapbeat/play impact.hit
-/hapbeat/play vibration.engine 1500
+/hapbeat/play sample-kit.sine_100hz
 ```
 
 ## Event ID のライフサイクル
 
 ### 定義
 
-- Event ID は Kit の manifest 内で定義される
-- 1つの Kit 内で同一 Event ID の重複定義は禁止
-- 名前空間を使うことで、異なる Kit 間の ID 衝突を回避する
+- Event ID は Kit の manifest 内で定義され、`<kit-name>.<file-name>` 規約に従う
+- 1 つの Kit 内で同一 Event ID の重複定義は禁止
+- `<kit-name>` が一意であることで、異なる Kit 間の ID 衝突を回避する
 
 ### 解決
 
@@ -133,13 +110,12 @@ HapbeatManager.Play("my-content/impact.sword-slash");
 ### 変更
 
 - **既存 Event ID の中身（紐づく clip）変更** — Kit 差し替えのみで可能。アプリ再ビルド不要
-- **Event ID の新規追加** — Kit manifest への追記で可能
-- **Event ID の名前変更 / 削除** — 公開インターフェースの破壊的変更となる。バージョニング方針に従うこと
+- **Event ID の新規追加** — Kit manifest への追記（= clip 追加）で可能
+- **Event ID の名前変更 / 削除** — clip ファイル名 or Kit 名の変更を伴う。公開インターフェースの破壊的変更となる
 
 ## 命名のベストプラクティス
 
-1. **具体的な名前を使う** — `effect1` ではなく `impact.sword-slash`
-2. **英語で命名する** — 多言語環境での一貫性のため
-3. **ハイフン区切りを推奨** — 複合語は `sword-slash`（ハイフン区切り）
-4. **動詞ではなく名詞で** — `hitting` ではなく `hit`
-5. **過度に深い階層を避ける** — 3 段階以内を推奨
+1. **clip ファイル名を意味のある名前に** — event id がそのまま `<kit-name>.<file-name>` になるので、`a1.wav` ではなく `sword_slash.wav`
+2. **英小文字 + `_` / `-`** — `sword_slash` / `door-slam`
+3. **数字始まりを避ける** — `100hz.wav` ではなく `sine_100hz.wav`（event id セグメントは英字始まり）
+4. **Kit 名は短く一意に** — `<kit-name>` が名前空間なので、プロジェクトを表す短い名前にする
