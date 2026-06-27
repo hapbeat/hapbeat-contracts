@@ -62,6 +62,7 @@
 | `set_espnow_channel` | ✅(espnow) | ➖ | ➖ | ✅ | ESP-NOW チャンネル（1/6/11） |
 | `set_gain` | ✅(espnow) | ➖ | ➖ | ➖ | espnow_stream 受信の既定ゲイン |
 | `set_input_level` | ➖ | ➖ | ➖ | ✅ | ライン入力レベル |
+| `set_relay_source` | ➖ | ➖ | ➖ | ✅ | リピータの中継元 source MAC（`espnow-stream.md` §7.2） |
 | `set_broker_config` | ➖ | ➖ | ✅ | ➖ | broker の static octet / port |
 | `set_sensor_mapping` / `get_sensor_mapping` | ➖ | ✅ | ➖ | ➖ | センサ値 → event の対応表（`mqtt-transport.md` §5） |
 | `get_sensor_reading` | ➖ | ✅ | ➖ | ➖ | センサ現在値（ライブ閾値チューニング用、`serial-config.md` §4.14） |

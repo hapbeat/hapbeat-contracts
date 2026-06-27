@@ -62,7 +62,7 @@ Desktop アプリ（hapbeat-desktop）から Hapbeat デバイスに USB serial 
 > 旧版の `data{}` ラッパー・`firmware` キーは廃止。
 
 `role` / `transport` / `board` は **全ノード必須**（`node-roles.md` §4）。
-`transports` は複数 transport 対応時のみ。役割固有フィールド（`broker_host` / `gain` / `input_level` / `static_octet` / `mqtt_port` / `mappings` 等）は当該役割でのみ含める。
+`transports` は複数 transport 対応時のみ。役割固有フィールド（`broker_host` / `gain` / `input_level` / `relay_source` / `static_octet` / `mqtt_port` / `mappings` 等）は当該役割でのみ含める。
 
 ### 4.2 set_wifi — Wi-Fi 認証情報設定
 
@@ -327,6 +327,47 @@ MQTT 受信機の **制限モード**（`mqtt-transport.md` §6.3）。ON のと
   参照するため、トグルは**次の受信から即時反映**（再起動不要）。
 - get_info の `alert_limit`（bool, receiver(mqtt) のみ）で現在値を読む。
 
+### 4.18 set_relay_source — リピータの中継元 source MAC（transmitter / repeater）
+
+ESP-NOW stream のリピータ機が中継する **1 つの source MAC** を設定する（`espnow-stream.md` §7.2）。
+設定するとそのデバイスはリピータとして動作し、当該 source の `0xAA` パケットのみを verbatim
+再ブロードキャストする（ループ防止のため他ソース・他リピータは中継しない = 最大 1 ホップ）。
+
+**Request:**
+```json
+{"cmd": "set_relay_source", "mac": "AA:BB:CC:DD:EE:FF"}
+```
+
+- `mac` (string): 中継する source 機の MAC（`""` でリピータ動作を無効化 = 通常の transmitter）。
+- NVS: `espnow/relay_src`（string）。一発勝負イベントでは flash-time 定数でも可。
+- get_info の `relay_source`（string, transmitter のみ）で現在値を読む。
+
+**Response:** `{"status": "ok", "cmd": "set_relay_source", "mac": "AA:BB:CC:DD:EE:FF"}`
+
+### 4.19 set_espnow_ui — 受信機の省電力 UI ポリシー（receiver(espnow_stream)）
+
+espnow_stream 受信機は Wi-Fi/UDP 機と挙動が大きく異なる（メニュー・Wi-Fi 設定なし、ただ受信して触覚を鳴らすだけ）。60 台 2 時間のウェアラブル運用に向け、OLED は**常時消灯**・LED は**常時 off**にし、**ボタン押下またはボリューム変更**で低輝度の音量オーバーレイ（全幅バー + レベル + 電池 + FW）を数秒だけ表示する。本コマンドはその挙動ポリシーを設定する（**全フィールド任意・部分更新**）。表示レイアウト自体はファーム固定（Studio の grid 編集対象外）。輝度は既存の `set_oled_brightness` を使う（本コマンドでは扱わない）。
+
+設定はすべて USB serial 経由（Wi-Fi 非接続のため）。受信機は純 ESP-NOW 運用で TCP 7701 を持たないので、Helper 経由 TCP では設定できない（Studio の Web Serial 経路を使う）。
+
+**Request:**
+```json
+{"cmd": "set_espnow_ui",
+ "auto_off_ms": 4000, "wake_on_button": true, "wake_on_volume": true,
+ "led_enabled": false, "low_batt_pct": 15}
+```
+
+- `auto_off_ms` (uint32): wake 後に OLED を表示し続ける時間（ms、既定 4000、500〜60000）。
+- `wake_on_button` (bool): ボタン押下で表示を起こす（既定 true）。
+- `wake_on_volume` (bool): ボリューム変更で表示を起こす（既定 true）。
+- `led_enabled` (bool): ステータス LED を使うか（既定 false = 省電力で常時消灯）。
+- `low_batt_pct` (uint8): この SOC 以下に落ちた瞬間に表示を起こして % を見せる（既定 15、0〜100）。
+- get_info の `espnow_ui`（object, receiver(espnow_stream) のみ）で現在値を読む（上記 5 フィールド）。
+
+**Response:** 適用後の全 5 フィールドをエコーする（`{"status": "ok", "auto_off_ms": …, …}`）。コマンド適用時に受信機は確認のため表示を一度起こす。
+
+**デバッグ readout（get_info の `stream` object, receiver(espnow_stream) のみ）:** 受信ストリームのライブ統計を返す（DEC-033 検証 / 現場での「強度」確認用）。`received`・`lost`・`recovered`（piggyback 復元）・`dropped`・`max_gap`（最大連続欠落）・`handoffs`・`sources`（生存 source 数）・`locked`（bool）・`locked_mac`（locked 時）・`delay_ms`（推定再生遅延）。RSSI は arduino-esp32 2.0.x の legacy callback では取得不可のため、損失率を強度の代理指標として使う。
+
 ## 5. NVS キー一覧
 
 | namespace | key | 型 | 説明 |
@@ -346,6 +387,12 @@ MQTT 受信機の **制限モード**（`mqtt-transport.md` §6.3）。ON のと
 | hapbeat | sens_map | blob/json | センサ → event 対応表（sensor）。各行は `oled`（受信機表示文言）・`topic`（送り先 root）を任意で含む |
 | espnow | channel | uint8 | ESP-NOW チャンネル（既存） |
 | espnow | gain | float | espnow_stream 受信の既定ゲイン（receiver(espnow_stream)） |
+| espnow | relay_src | string | リピータが中継する source MAC（transmitter/repeater）。空 = 中継無効 |
+| espnow_ui | auto_off_ms | uint32 | wake 後の OLED 表示時間（ms、既定 4000）。receiver(espnow_stream) |
+| espnow_ui | wake_btn | uint8 | ボタン押下で表示を起こす（1/0、既定 1）。receiver(espnow_stream) |
+| espnow_ui | wake_vol | uint8 | ボリューム変更で表示を起こす（1/0、既定 1）。receiver(espnow_stream) |
+| espnow_ui | led_en | uint8 | ステータス LED を使う（1/0、既定 0=常時消灯）。receiver(espnow_stream) |
+| espnow_ui | low_batt_pct | uint8 | この SOC 以下で表示を起こす（既定 15）。receiver(espnow_stream) |
 | broker | octet | uint8 | broker static host octet（broker） |
 | broker | port | uint16 | broker MQTT ポート（broker、既定 1883） |
 
