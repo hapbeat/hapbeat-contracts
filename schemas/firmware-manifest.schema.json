@@ -2,12 +2,12 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://hapbeat.dev/schemas/firmware-manifest.schema.json",
   "title": "Hapbeat Firmware Distribution Manifest",
-  "description": "Unified firmware manifest aggregating variants across multiple firmware repos. See specs/firmware-distribution.md (DEC-034).",
+  "description": "Unified firmware manifest aggregating variants across multiple firmware repos. Schema v3 adds per-env independent versioning metadata (contentHash / path / buildSha / publishedAt) — see specs/firmware-distribution.md (DEC-035). Readers MUST accept schema_version 2 and 3.",
   "type": "object",
   "required": ["schema_version", "variants"],
   "additionalProperties": false,
   "properties": {
-    "schema_version": { "const": 2 },
+    "schema_version": { "const": 3 },
     "generated_at": {
       "type": "integer",
       "description": "Unix epoch ms when this manifest was aggregated."
@@ -25,7 +25,16 @@
       "properties": {
         "filename": { "type": "string" },
         "size": { "type": "integer", "minimum": 0 },
-        "mtime": { "type": "integer", "minimum": 0 }
+        "mtime": { "type": "integer", "minimum": 0 },
+        "contentHash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "description": "sha256 of the published bytes (app-only for appOta; full image for serial-only envs). Identity / UI signal only — NOT an OTA gate (the device cannot report its own image hash)."
+        },
+        "path": {
+          "type": "string",
+          "description": "Absolute URL (same-origin asset proxy or CDN). When present, consumers fetch this verbatim instead of building <BASE>/<filename>. Required for private-repo distribution where filename alone is not reachable."
+        }
       }
     },
     "version": {
@@ -33,8 +42,14 @@
       "required": ["fwVersion"],
       "additionalProperties": false,
       "properties": {
-        "fwVersion": { "type": "string" },
-        "tag": { "type": "string", "description": "GitHub Release tag this version came from (e.g. v0.1.3)." },
+        "fwVersion": { "type": "string", "description": "Bare semver of this release (dev builds carry a dN suffix). No leading 'v'." },
+        "tag": { "type": "string", "description": "GitHub Release tag this version came from. Namespaced per env: <repoShort>/<env>/vX.Y.Z (e.g. dev/necklace_v3/v0.1.4)." },
+        "publishedAt": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Release-tag publish time (epoch ms). Distinct from artifact.mtime (CI write time ≈ deploy time). Absent for dev / hand-rolled manifests."
+        },
+        "buildSha": { "type": "string", "description": "Source commit the binary was built from (audit only)." },
         "appOta": { "$ref": "#/definitions/artifact" },
         "fullSerial": { "$ref": "#/definitions/artifact" }
       }
@@ -54,11 +69,23 @@
           "items": { "enum": ["udp", "mqtt", "espnow_stream"] }
         },
         "board": { "type": "string" },
+        "hapbeat": { "type": "boolean", "description": "true = wearable Hapbeat (duo_wl_* / band_wl_*); false = ecosystem peripheral (broker / sensor / transmitter)." },
         "label": { "type": "string" },
         "description": { "type": "string" },
-        "fwVersion": { "type": "string" },
+        "fwVersion": { "type": "string", "description": "Latest version's bare semver (mirror of versions[0].fwVersion)." },
+        "publishedAt": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Latest version's release-tag publish time (epoch ms). Mirror of versions[0].publishedAt."
+        },
+        "buildSha": { "type": "string", "description": "Latest version's source commit (audit only)." },
         "appOta": { "$ref": "#/definitions/artifact" },
-        "fullSerial": { "$ref": "#/definitions/artifact" }
+        "fullSerial": { "$ref": "#/definitions/artifact" },
+        "versions": {
+          "type": "array",
+          "description": "All published versions newest-first (archive / rollback). versions[0] mirrors the top-level fields.",
+          "items": { "$ref": "#/definitions/version" }
+        }
       }
     }
   }

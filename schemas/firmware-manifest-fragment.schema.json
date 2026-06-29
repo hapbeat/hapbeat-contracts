@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://hapbeat.dev/schemas/firmware-manifest-fragment.schema.json",
+  "title": "Hapbeat Firmware Manifest Fragment (per-release)",
+  "description": "Per-release fragment published by a single firmware repo as a Release asset (manifest.fragment.json) and/or fenced JSON in the Release body. The aggregator / Cloudflare Function merges fragments across repos+releases into the unified manifest (firmware-manifest.schema.json). A fragment describes ONE release of ONE repo, so it carries `tag` and may list multiple envs/variants built at that tag. See specs/firmware-distribution.md (DEC-035).",
+  "type": "object",
+  "additionalProperties": false,
+  "anyOf": [
+    { "required": ["variants"] },
+    { "required": ["envs"] }
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "description": "Fragment schema version emitted by the firmware repo (2 or 3)." },
+    "tag": { "type": "string", "description": "Namespaced release tag this fragment was built at: <repoShort>/<env>/vX.Y.Z." },
+    "repo": { "type": "string" },
+    "generated_at": { "type": "integer" },
+    "variants": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/fragmentVariant" }
+    },
+    "envs": {
+      "type": "array",
+      "description": "Legacy v1 shape — env list. New repos emit `variants`.",
+      "items": { "$ref": "#/definitions/fragmentEnv" }
+    }
+  },
+  "definitions": {
+    "fragmentArtifact": {
+      "type": "object",
+      "required": ["filename"],
+      "additionalProperties": false,
+      "properties": {
+        "filename": { "type": "string", "description": "Release-asset filename (relative). The aggregator/Function rewrites this to a reachable path." },
+        "size": { "type": "integer", "minimum": 0 },
+        "mtime": { "type": "integer", "minimum": 0 },
+        "contentHash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "description": "sha256 of the published bytes (app-only for appOta; full image for serial-only envs)."
+        }
+      }
+    },
+    "fragmentVariant": {
+      "type": "object",
+      "required": ["env", "fwVersion"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "repo": { "type": "string" },
+        "env": { "type": "string" },
+        "role": { "enum": ["receiver", "sensor", "broker", "transmitter"] },
+        "transport": { "enum": ["udp", "mqtt", "espnow_stream"] },
+        "transports": { "type": "array", "items": { "enum": ["udp", "mqtt", "espnow_stream"] } },
+        "board": { "type": "string" },
+        "hapbeat": { "type": "boolean" },
+        "label": { "type": "string" },
+        "description": { "type": "string" },
+        "fwVersion": { "type": "string", "description": "Bare semver baked into this build (no leading 'v'; dev builds carry dN)." },
+        "buildCommit": { "type": "string", "description": "Source commit sha (audit). Mapped to `buildSha` in the aggregated manifest." },
+        "appOta": { "$ref": "#/definitions/fragmentArtifact" },
+        "fullSerial": { "$ref": "#/definitions/fragmentArtifact" }
+      }
+    },
+    "fragmentEnv": {
+      "type": "object",
+      "required": ["env"],
+      "additionalProperties": false,
+      "properties": {
+        "env": { "type": "string" },
+        "fwVersion": { "type": "string" },
+        "appOta": { "$ref": "#/definitions/fragmentArtifact" },
+        "fullSerial": { "$ref": "#/definitions/fragmentArtifact" }
+      }
+    }
+  }
+}
