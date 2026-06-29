@@ -49,7 +49,7 @@ ESP-NOW / MQTT の追加で、Hapbeat のファームは **複数 repo × 複数
       "hapbeat": true,
       "label": "Band — Wi-Fi (UDP/MQTT)",
       "description": "標準の装着デバイス。Unity 等 SDK 連携 + センサ通知。",
-      "fwVersion": "v0.2.0",
+      "fwVersion": "0.2.0",
       "appOta":     { "filename": "dev_band_wl_v3_firmware_app_ota.bin",     "size": 1234567, "mtime": 1717400000000 },
       "fullSerial": { "filename": "dev_band_wl_v3_firmware_full_serial.bin", "size": 1556789, "mtime": 1717400000000 }
     },
@@ -62,7 +62,7 @@ ESP-NOW / MQTT の追加で、Hapbeat のファームは **複数 repo × 複数
       "board": "duo_wl_v3",
       "label": "Necklace — ESP-NOW Live (受信)",
       "description": "会場同報のライブ音声を受信して触覚再生。",
-      "fwVersion": "v0.3.0",
+      "fwVersion": "0.3.0",
       "fullSerial": { "filename": "wl_duo_wl_v3_stream_firmware_full_serial.bin", "size": 1100000, "mtime": 1717400000000 }
     },
     {
@@ -74,7 +74,7 @@ ESP-NOW / MQTT の追加で、Hapbeat のファームは **複数 repo × 複数
       "board": "m5stack_core",
       "label": "ESP-NOW 送信機（PA 入力）",
       "description": "PA ライン入力を ESP-NOW で同報する送信機。",
-      "fwVersion": "v0.1.0",
+      "fwVersion": "0.1.0",
       "fullSerial": { "filename": "snd_atom_audio_tx_firmware_full_serial.bin", "size": 900000, "mtime": 1717400000000 }
     }
   ]
@@ -95,10 +95,20 @@ ESP-NOW / MQTT の追加で、Hapbeat のファームは **複数 repo × 複数
 | `hapbeat` | ➖ | `true` = 装着型 Hapbeat 本体（`duo_wl_*` / `band_wl_*`）、`false` = エコシステム周辺機器（broker / sensor / transmitter）。Studio はファームライブラリ/オンボーディングを**この値**でグループ分けする（`role` ではない: サードパーティ製ノードも `role=receiver` になり得るため、role は「Hapbeat か否か」の信頼できる判定にならない）。省略時は board 接頭辞（`duo_wl`/`band_wl`）から推論 |
 | `label` | ✅ | Studio 表示名（人間向け） |
 | `description` | ➖ | 補足説明 |
-| `fwVersion` | ✅ | **最新版**の FIRMWARE_VERSION（`versions[0]` のコピー） |
+| `fwVersion` | ✅ | **最新版**の FIRMWARE_VERSION（`versions[0]` のコピー）。**先頭 `v` を含まない正準形**（例 `0.2.0`）。表示側が `v` を付与するため、集約時に旧ファームが焼き込んだ `v` 付き値（例 `v0.1.0`）は剥がす |
 | `appOta` | ➖ | **最新版**の Wi-Fi OTA 用 app-only イメージ（Wi-Fi ノードのみ） |
 | `fullSerial` | ✅ | **最新版**の USB serial download 用 merged イメージ |
-| `versions` | ➖ | **アーカイブを含む全バージョン**（新しい順）。各要素は `{fwVersion, tag?, appOta?, fullSerial?}`。省略時は最新のみ（dev 環境等） |
+| `versions` | ➖ | **アーカイブを含む全バージョン**（新しい順）。各要素は `{fwVersion, tag?, publishedAt?, appOta?, fullSerial?}`。省略時は最新のみ（dev 環境等） |
+
+#### `versions[]` 要素フィールド
+
+| フィールド | 必須 | 説明 |
+|---|:--:|---|
+| `fwVersion` | ✅ | その版の FIRMWARE_VERSION（正準形・先頭 `v` なし） |
+| `tag` | ➖ | 由来 GitHub Release タグ（例 `v0.1.3`） |
+| `publishedAt` | ➖ | **リリースタグの公開日時（epoch ms）**。artifact の `mtime`（CI が `.bin` を取得した時刻 ≒ デプロイ時刻）とは別物で、Studio は版の「リリース日」表示にこちらを使う。GitHub Release を経由しない dev/手書き manifest では省略 |
+| `appOta` | ➖ | その版の Wi-Fi OTA 用 app-only イメージ |
+| `fullSerial` | ➖ | その版の USB serial download 用 merged イメージ |
 
 - `appOta` は Wi-Fi 経路を持つノード（receiver(udp/mqtt) / broker / sensor）のみ。transmitter / espnow_stream 受信機は serial のみ。
 - `fullSerial` は全 variant 必須（Studio からの初回書込は USB serial が基本経路）。
