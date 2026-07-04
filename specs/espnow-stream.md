@@ -21,13 +21,19 @@
 
 ## 2. 音声パラメータ
 
-| 項目 | 値 |
-|---|---|
-| サンプルレート | 16000 Hz（送信機・受信機で一致必須） |
-| チャンネル | 2（stereo） |
-| コーデック | IMA-ADPCM 4:1（L=low nibble, R=high nibble の 1 byte/frame） |
-| frames/packet | 16（≒ 1 ms/packet） |
-| 無線プロファイル | 11b/g/n、6 Mbps、broadcast |
+既存の ADPCM 経路（`P-haptic`、type=0xAA）に加え、DEC-042（Opus 採用確定）により Opus profile（`P-audio-LD`、type=0xAB、§3.3）を追加する。両者は**別パケット type**で共存し、同一チャンネル上でも type バイトで区別できる。プロファイル定義の詳細は `docs/instructions-opus-streaming-plan-202607040323.md` §2 を正とする。
+
+| 項目 | P-haptic（既存、type=0xAA） | P-audio-LD（新設、type=0xAB） |
+|---|---|---|
+| サンプルレート | 16000 Hz（送信機・受信機で一致必須） | 48000 Hz（Opus デコード後 PCM。receiver は 16kHz へ直接デコードしてもよい、§3.3 参照） |
+| チャンネル | 2（stereo） | 2（stereo） |
+| コーデック | IMA-ADPCM 4:1（L=low nibble, R=high nibble の 1 byte/frame） | **Opus restricted low-delay（CELT-only）** |
+| フレーム長 | 16 frames/packet（≒ 1 ms/packet） | **5 ms/frame**（1 パケット = 1 フレームが基本、§3.3） |
+| ビットレート目安 | — | **64–96 kbps** |
+| ロス対策 | piggyback（単発ロス回復、§3.2） | piggyback（単発ロス回復、§3.3 で Opus フレーム全体を複製）。inband FEC は low-delay モードでは使用不可（CELT-only は LBRR 非対応のため） |
+| 無線プロファイル | 11b/g/n、6 Mbps、broadcast | 11b/g/n、6 Mbps、broadcast（P-haptic と共通） |
+
+> `P-audio-Q`（10–20ms フレーム・inband FEC・jitter buffer 60–120ms、遅延許容の音楽リスニング用）は **Wi-Fi UDP transport 側**（`message-format.md` §0x30 format=2）で提供する。ESP-NOW は 250B MTU 制約が厳しく、`P-audio-Q` のような長めフレーム + FEC 併用は本仕様の対象外とする（§3.3 の MTU 計算参照）。
 
 ## 3. パケット形式
 
@@ -60,6 +66,33 @@ ESP-NOW payload（最大 250 bytes）に以下を載せる。先頭バイト `ty
 | 10+N+7 | prev_data | uint8[N] | 前パケットの ADPCM データ |
 
 piggyback ありの総長 = 17 + 2N（N=16 → 49 bytes）。欠番が 2 個以上の場合は有界の無音で埋める。
+
+### 3.3 OPUS STREAM パケット（type = 0xAB, P-audio-LD / DEC-042）
+
+Opus restricted low-delay プロファイル用。**1 パケット = 1 Opus フレーム**（5 ms 基本）。ADPCM と違いデコーダ状態フィールドは持たない（Opus フレームはパケット単位で自己完結し、欠落は PLC / piggyback で吸収する）。
+
+| オフセット | フィールド | 型 | 説明 |
+|---|---|---|---|
+| 0 | type | uint8 | `0xAB`（ESP-NOW Opus streaming） |
+| 1 | seq | uint8 | シーケンス番号（ラップ） |
+| 2 | flags | uint8 | bit0: piggyback あり / bit1: restricted low-delay（=1 固定）/ bit2-7: reserved(0) |
+| 3 | frame_ms | uint8 | フレーム長 ms（5 基本。10 は piggyback なしのみ、下記 MTU 計算） |
+| 4 | frame_len | uint16 LE | Opus フレームのバイト長（1 以上。DTX 不使用） |
+| 6 | frame_data | uint8[frame_len] | 1 Opus フレーム（`opus_encode` 出力そのまま。48 kHz stereo CBR） |
+
+**piggyback（flags bit0=1 のとき、frame_data 直後）** — §3.2 と同じ単発ロス回復戦略を Opus フレームに適用:
+
+| オフセット | フィールド | 型 | 説明 |
+|---|---|---|---|
+| 6+N | prev_seq | uint8 | 前パケットの seq |
+| 7+N | prev_len | uint16 LE | 前フレームのバイト長 |
+| 9+N | prev_data | uint8[prev_len] | 前パケットの Opus フレーム複製 |
+
+**250B MTU 計算（CBR）**: 5ms@64k → frame 40B、総長 6+40+3+40 = **89B** ✓ / 5ms@96k → 60B、総長 **129B** ✓ / 10ms@96k → 120B、piggyback 込み **249B**（ギリギリのため **10ms は piggyback なし運用を推奨**）。
+
+**受信側の欠落処理**: seq 欠番 1 個 かつ piggyback の `prev_seq` 一致 → 前フレームを復元してデコード順を維持。それ以外の欠番 → 欠けたフレーム数ぶん `opus_decode(NULL, 0, …)`（PLC）で埋める（上限 2 フレーム ≈ 10ms、それ以上の連続欠落はデコーダを `OPUS_RESET_STATE` して再同期）。
+
+**16 kHz デコード**: 触覚のみの receiver（duo_v3 等）は同じ 0xAB ストリームを **fs=16000 のデコーダで直接デコード**してよい（libopus 標準機能。リサンプラ不要）。wire は常に 48 kHz stereo エンコード。
 
 ## 4. チャンネル（グループ）
 

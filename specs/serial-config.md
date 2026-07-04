@@ -53,9 +53,12 @@ Desktop アプリ（hapbeat-desktop）から Hapbeat デバイスに USB serial 
   "wifi_ssid": "",
   "wifi_ip": "",
   "espnow_channel": 1,
+  "stream_formats": ["pcm16", "adpcm", "opus"],
   "broker_host": "auto"
 }
 ```
+
+`stream_formats`（string 配列）: この receiver がデコード可能なストリーミング format の広告（DEC-042、`message-format.md` §11）。**フィールド不在 = pcm16/adpcm のみ対応**（Opus 未対応の旧 firmware）とみなす。
 
 > wire 上はフラット構造が source of truth（firmware `tcp_server.cpp cmdGetInfo` /
 > `serial_config.cpp` と Studio の読み出しが一致。2026-06-13 監査で確認）。
