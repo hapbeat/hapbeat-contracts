@@ -262,9 +262,9 @@ RSSI が取れない実装向けに、§7.1 の「最先着ロック + 途絶切
 
 不感地帯がリピータ配置でも埋まらない遠距離向けに、**送信機側トグルだけ**で LR（802.11 Long Range）へ切り替える。
 
-- 送信機は RANGE=LONG 時、protocol mask に `WIFI_PROTOCOL_LR` を追加し espnow rate を `WIFI_PHY_RATE_LORA_500K` にする。**パケット諸元は SMOOTH（mode_id 3）の wire を再利用**し、送信側だけ bitrate 60k→32k・pb2→pb1 に落とす（Opus は self-describing・pb は wire の `pb_count` で伝わる → **受信機・リピータの mode 対応変更ゼロ**）。
+- 送信機は RANGE=LONG 時、protocol mask に `WIFI_PROTOCOL_LR` を追加し espnow rate を `WIFI_PHY_RATE_LORA_500K` にする。**パケット諸元は SMOOTH（mode_id 3）の wire を借りた「LR プロファイル」に内部固定**する: **Opus 8k mono 10ms・bitrate 24k 初期値（現地で 24/32/48k を送信機 TUNE から可変）・pb1**（Opus は self-describing・pb は wire の `pb_count` で伝わる → **受信機・リピータの mode 対応変更ゼロ**。bitrate 変更も受信機影響なし）。実体は「BALANCED 相当の Opus 8k mono を 10ms フレーム化」で、**送信機 UI は「LR」と表示**する（id3 を借りるだけで音質設定は別物のため SMOOTH と混同させない）。
 - **受信機・リピータは protocol mask を常時 `bgn+LR` にする (SHOULD)**（LR フレームも復調可能に。bgn 受信は不変）。→ LONGRANGE 追加は**送信機の変更だけ**で受け止まる（受信機の事前 1 回 flash に mask を同梱する）。
-- **合計 airtime duty で運用上限を決める（台数でない）**: 6M=1 ソース ~3.9% → 4 ソース可 / LR500K=1 ソース ~20% → **2 ソース（~40%）が実用上限**。LR が要る遠距離ほど隠れ端末で CCA が効かず衝突が duty 以上に増える。RANGE=LONG は SMOOTH-id 調整版（32k/pb1）に内部固定し、LONG 中は他モードを選ばせない。
+- **合計 airtime duty で運用上限を決める（台数でない）**: 6M=1 ソース ~3.9% → 4 ソース可 / LR500K LR プロファイル=1 ソース ~17%（24k 既定）〜~20%（32k, 67B/87B payload）→ **2 ソース（~34-41%）が実用上限**。LR が要る遠距離ほど隠れ端末で CCA が効かず衝突が duty 以上に増える。**LR で 2 ソース冗長が成立する唯一の構成**である理由は 4 点セット: ①10ms フレーム化でヘッダ税（~40B/pkt）を半減（100pkt/s 化が最大のレバー）②Opus は送信側だけで bitrate を絞れる（ADPCM は固定で不可）③pb1 で冗長 airtime を削る（PLC が下支え）④深い RX バッファ（id3=28ms）が LR の長 airtime + CCA ジッタに耐える。RANGE=LONG は LR プロファイルに内部固定し、LONG 中は他モードを選ばせない。
 - **RANGE 判断フロー**: ① 6M 1 台で全域カバー → 非 LR・冗長 ≤4 ソース → ② 不感地帯 → まず 6M のままリピータを不感地帯側へ → ③ それでも届かない → LR×2 ソース。**多段直列中継（R→R）は bit7 ループ防止により構造的に不可（1 hop まで）**。距離延伸は「LR 化 + 1 hop リピータ」が上限。
 
 ### 7.4 fleet-tune（§3.5 の運用）
