@@ -36,6 +36,7 @@ Desktop アプリ（hapbeat-desktop）から Hapbeat デバイスに USB serial 
 ```
 
 **Response:** フィールドは**フラット**（`data{}` ラッパー無し）。バージョンは `fw`（`firmware` ではない）。
+`group` はアドレスの `group_{M}` セグメント由来の**導出値（表示用）**であり、source of truth は `address`（DEC-048、device-addressing.md §6.2）。
 ```json
 {
   "status": "ok",

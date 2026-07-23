@@ -439,7 +439,7 @@ TXT レコード:
 | キー | 値 | 例 |
 |------|-----|-----|
 | `name` | デバイス名 | `Hapbeat-LeftArm` |
-| `group` | グループ ID | `1` |
+| `group` | グループ ID（アドレスの `group_{M}` 由来の導出値・表示用。source of truth は address — DEC-048） | `1` |
 | `fw` | ファームウェアバージョン | `2.0.0` |
 | `mac` | MAC アドレス | `AA:BB:CC:DD:EE:FF` |
 | `role` | ノード役割 (specs/node-roles.md, DEC-034) | `receiver` / `sensor` / `broker` / `transmitter` |
