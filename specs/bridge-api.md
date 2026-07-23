@@ -432,7 +432,7 @@ Hapbeat デバイスは Wi-Fi STA モード接続後、mDNS でサービスを�
 |------|-----|
 | サービスタイプ | `_hapbeat._udp` |
 | ポート | 7700 |
-| ホスト名 | デバイス名（NVS の dev_name、デフォルト: `hapbeat-XXXX`、XXXX は MAC 末尾4桁） |
+| ホスト名 | デバイス名（NVS の dev_name、デフォルト: `<MAC4>-<board>`、MAC4 は MAC 末尾 2 バイトの hex 4 桁。例 `AB12-duo-wl-v3`） |
 
 TXT レコード:
 

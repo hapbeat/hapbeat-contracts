@@ -19,7 +19,7 @@
 |---|---|
 | 実体 | Hapbeat broker ノード（`role=broker`）上の組み込み MQTT broker |
 | ポート | 1883（既定。`set_broker_config.port` で変更可、plaintext、LAN 内前提） |
-| mDNS | サービス `_mqtt._tcp`（ポートを advertise）、ホスト名はデバイス名（既定 `<board>-<MAC4>`） |
+| mDNS | サービス `_mqtt._tcp`（ポートを advertise）、ホスト名はデバイス名（既定 `<MAC4>-<board>`） |
 | 認証 | LAN 内前提のため必須としない（将来 username/role 分類は任意拡張） |
 | QoS | **1（at-least-once）+ アプリ層の定期再送**（§2.1） |
 
@@ -120,7 +120,7 @@ broker・管理ツールは接続順に依存せず全ノードの素性を把�
 
 | フィールド | 型 | 説明 |
 |---|---|---|
-| `name` | string | デバイス名（NVS `dev_name`、未設定時は `<board>-<MAC4>` 既定名） |
+| `name` | string | デバイス名（NVS `dev_name`、未設定時は `<MAC4>-<board>` 既定名） |
 | `role` | string | `sensor` / `receiver`（node-roles.md taxonomy） |
 | `mac` | string | MAC アドレス |
 | `fw` | string | ファームウェアバージョン |
