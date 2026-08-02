@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://hapbeat.dev/schemas/release-feed.schema.json",
+  "title": "Hapbeat Release Feed",
+  "description": "Latest published version of each Hapbeat tool / SDK, aggregated from the actual distribution channels (PyPI / npm / PlatformIO registry / GitHub tags for UPM). Consumed by Studio, hapbeat-helper and the SDKs to surface update notices — see specs/release-feed.md (DEC-053). Device firmware is NOT listed here; it ships through the firmware distribution manifest.",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "products"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": 1 },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC timestamp of generation."
+    },
+    "products": {
+      "type": "object",
+      "description": "Product id (repo name without the `hapbeat-` prefix) → entry. Products whose channel lookup failed are omitted entirely rather than carrying a stale or placeholder version.",
+      "propertyNames": { "pattern": "^[a-z0-9][a-z0-9-]*$" },
+      "additionalProperties": { "$ref": "#/definitions/product" }
+    }
+  },
+  "definitions": {
+    "product": {
+      "type": "object",
+      "required": ["name", "channel", "latest", "severity"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Display name as it appears on the distribution channel (e.g. `hapbeat-helper`, `@hapbeat/sdk`)."
+        },
+        "channel": {
+          "enum": ["pypi", "npm", "upm-git", "platformio", "web"],
+          "description": "Where the user actually gets this product."
+        },
+        "latest": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+([-+.][0-9A-Za-z.-]+)?$",
+          "description": "Canonical semver WITHOUT a leading `v`."
+        },
+        "published_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Release timestamp. Omitted when the channel does not expose one."
+        },
+        "severity": {
+          "enum": ["info", "recommended"],
+          "description": "`info` = badge / one-line log only. `recommended` = a dismissible banner is allowed. Either way a given version is surfaced at most once per user (see specs/release-feed.md §5.1)."
+        },
+        "upgrade": {
+          "type": "string",
+          "description": "Upgrade command (e.g. `pipx upgrade hapbeat-helper`) or the URL to update to (UPM git URL)."
+        },
+        "notes": {
+          "type": "string",
+          "format": "uri",
+          "description": "Changelog page for this product."
+        }
+      }
+    }
+  }
+}

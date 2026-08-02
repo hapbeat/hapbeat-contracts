@@ -73,6 +73,7 @@ hapbeat-contracts 自体は他のどの repo にも依存しません。
 | `bridge-api.md` | hapbeat-bridge 公開 API 仕様 |
 | `internal-bridge-transmitter.md` | Bridge ↔ Transmitter 内部プロトコル（ESP-NOW 経路） |
 | `versioning.md` | 仕様バージョニング方針・互換性ルール |
+| `release-feed.md` | ツール / SDK の最新版フィードと更新通知ポリシー（DEC-053） |
 
 ### schemas/
 
