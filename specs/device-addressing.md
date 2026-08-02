@@ -100,7 +100,7 @@ SDK / Desktop が送信時に指定する。デバイスはこのターゲット
 
 1. **空文字列 `""`**: 全デバイスにマッチ
 2. **セグメント比較**: `/` で分割し、左から順に比較
-3. **`*` ワイルドカード**: 1セグメントの任意の値にマッチ
+3. **`*` ワイルドカード**: 1セグメントの任意の値にマッチ。**セグメント全体が `*` の場合のみ**有効で、`pos_*` のような部分ワイルドカードは通常の文字列として比較される（実装 `address_match.cpp` は `t_len == 1 && *tp == '*'` で判定）
 4. **前方一致**: ターゲットのセグメント数がアドレスより少ない場合、一致した部分までで合格
 
 ### 4.2 マッチング例
@@ -114,7 +114,7 @@ SDK / Desktop が送信時に指定する。デバイスはこのターゲット
 | `"player_1/pos_neck"` | `player_1/pos_r_wrist` | ✗ | position 不一致 |
 | `"*/pos_neck"` | `player_1/pos_neck` | ✓ | ワイルドカード |
 | `"*/pos_neck"` | `player_2/pos_neck` | ✓ | ワイルドカード |
-| `"player_1/pos_*"` | `player_1/pos_neck` | ✓ | 全部位ワイルドカード |
+| `"player_1/pos_*"` | `player_1/pos_neck` | ✗ | **部分ワイルドカードは非対応**（`pos_*` は文字列そのものとして比較される）。全 position を対象にするならセグメント全体を `*` にする → `"player_1/*"` |
 | `"red"` | `red/player_1/pos_neck` | ✓ | 前方一致 |
 | `"red/*/player_1"` | `red/alpha/player_1/pos_neck` | ✓ | ワイルドカード + 前方一致 |
 | `"player_1/pos_neck/group_1"` | `player_1/pos_neck/group_1` | ✓ | group まで完全一致 |
