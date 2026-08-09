@@ -122,11 +122,11 @@ mode_id テーブル:
 | 6 | **LITE** | IMA-ADPCM 8k **mono** | 5ms(40f) | ×3 | 256f=16ms | 25ms |
 | 7 | **TURBO** | IMA-ADPCM 8k **mono** | 5ms(40f) | ×3 | 64f=4ms | ~13ms(推定) |
 | 8 | **FINE** | Opus 16k **mono** (cplx5) | 10ms | ×2 | 448f=28ms | 未実測 |
-| 9 | **SOLID48**（AS-BUILT v2, DEC-046） | Opus 48k **stereo** (cplx**1**, RESTRICTED_LOWDELAY, 64kbps CBR) | 10ms | ×2 + **遅延リピート T-10**（v2, 2026-08-09） | 受信ステージング 120ms + HP 既定 120ms（`set_stream_buffer` 明示設定があれば HP 側はそちらを優先、実効上限 ~138ms） | v1 は実機動作確認済 / **v2（遅延リピート）はビルド済・実機未検証**（A1〜A4 未実施） |
+| 9 | **SOLID48**（AS-BUILT v2, DEC-046） | Opus 48k **stereo** (cplx**1**, RESTRICTED_LOWDELAY, 64kbps CBR) | 10ms | ×2 ＋ **遅延リピート T-10（任意・既定 OFF）** | HP 既定 120ms（`set_stream_buffer` 明示設定があればそちらを優先、実効上限 ~138ms）。**リピート ON のときのみ**受信ステージング +120ms が加算 | v1（リピート OFF）は実機動作確認済 / **リピート ON はビルド済・実機未検証**（A1〜A4 未実施） |
 
 > **AS-BUILT 注記（mode 9 SOLID48, DEC-046, 2026-08-09 v2 更新）**: 数百 ms の遅延を許容し通信頑健性を最優先する会場向けプロファイル（`docs/instructions-v4-solid-audio-202607112200.md` が原設計）。v1（2026-07-14, pb2 + 深バッファのみ）に対し、**v2 で遅延リピート（時間分散冗長）を実装した**:
-> 1. **遅延リピートは T-10（≈100ms 前、原設計の T-12 から変更）**。既定 HP バッファ 120ms の内側に 20ms のマージンを置くため。TX は毎フレーム、primary に加えて seq-10 のフレームを独立 mode-9 パケット（pb=0）で再送する。**受信は「前方専用 SPSC リングに充填できない」という v1 の制約を、下流エンジンの手前に seq インデックスの
->    ステージングリング（32 スロット・drain は arrival head の 12 フレーム＝120ms 後方）を挟んで解決**した。primary / piggyback / 遅延リピートはすべて同じ窓に格納され、drain 時点で揃っていれば seq 順に `audioStreamFeedData(format=2)` へ流れる。ステージングは受信スレッド（Wi-Fi task）では**格納のみ**を行い、給送は loop タスク（`espnowStreamTick` → `hp48StageDrainTick`、無到着時は 10ms/枚のストールドレインつき）が単一プロデューサとして行う。**遅延は現行比 +約 120ms**（合計 ≈ ステージング 120ms + HP 120ms ≈ 240ms。プロファイルの数百 ms 許容の枠内）。
+> 1. **遅延リピートは T-10（≈100ms 前、原設計の T-12 から変更）の任意機能（既定 OFF）**。既定 HP バッファ 120ms の内側に 20ms のマージンを置くための T-10。TX は `set_stream_repeat` が ON のときのみ、毎フレーム、primary に加えて seq-10 のフレームを独立 mode-9 パケット（pb=0）で再送する。**OFF のときの wire・遅延は v1 と完全に同一**（低遅延と頑健性はトレードオフのため、モードを分けずに 1 つのスイッチで共存させる）。**受信は「前方専用 SPSC リングに充填できない」という v1 の制約を、下流エンジンの手前に seq インデックスの
+>    ステージングリング（32 スロット・drain は arrival head の 12 フレーム＝120ms 後方）を挟んで解決**した。**受信機に設定は持たせず、リピートの到着で自動的に切り替える**（艦隊 60 台を個別設定させないため）: expected より 9〜14 手前の seq を 200ms 窓で 3 回観測したら arm（空窓で開くので二重給送なし）、リピートが 2 秒途絶えたら lag 0 で吐き切って un-arm（送信側を OFF に戻せば艦隊は再起動なしで低遅延へ戻る。吐き切りは 1 tick 1 枚にペーシングし、HP リングの hard-trim を避ける）。relock / mode 再進入でも un-arm し検出し直す。primary / piggyback / 遅延リピートはすべて同じ窓に格納され、drain 時点で揃っていれば seq 順に `audioStreamFeedData(format=2)` へ流れる。ステージングは受信スレッド（Wi-Fi task）では**格納のみ**を行い、給送は loop タスク（`espnowStreamTick` → `hp48StageDrainTick`、無到着時は 10ms/枚のストールドレインつき）が単一プロデューサとして行う。**遅延は現行比 +約 120ms**（合計 ≈ ステージング 120ms + HP 120ms ≈ 240ms。プロファイルの数百 ms 許容の枠内）。
 > 1b. **後方 seq（stale）の扱いを全 Opus 受信経路に規定**: expected より後ろの seq は**トラッカーを巻き戻さずに破棄**し（巻き戻すと古いフレームの再給送 + 偽のロスバーストになる）、後方 seq が **12 連続**した場合のみ「小さい seq への接合（origin 再起動）」として採用する。**互換性注意: v2 の TX（遅延リピート送信）を旧受信機（この stale 処理を持たない v1 以前）と混用してはならない** — 旧受信機は repeat のたびに巻き戻り、可聴の乱れになる。mode 9 を使う会場では受信機（v3 系 graceful-degrade 機含む）を先に更新すること。
 > 2. **受信の 48k decode / HP / 触覚 fan-out は自前実装せず、Wi-Fi/UDP の format=2 経路（`message-format.md` §0x31, d214 で実績）に委譲**。v4 ESP-NOW 受信機 env `duowl_v4_stream_espnow`（`-DESPNOW_HP48`）で `DUOWL_V4_DUAL_CODEC` を有効化し、mode 9 パケットの Opus フレームを length-prefix で `audioStreamFeedData(format=2)` に渡す。HP ring は現行 8192f（~138ms cap）を流用（PSRAM 415ms 深リングは将来課題）。**当初は 16k-only の plain env と 48k HP の `_hp48` env に分けていたが、mode 0-8 も 16k 触覚ミックスを HP へ 3:1 アップサンプルミラーして hp48 が superset になったため、plain env を廃止し `duowl_v4_stream_espnow`（＝`-DESPNOW_HP48` を持つ唯一の v4 ESP-NOW env）へ一本化した（2026-07）**。v3 艦隊（`necklace_v3_stream_espnow`）は無関係で不変。
 >
@@ -160,7 +160,7 @@ mode_id テーブル:
 | 6+N | pb_prev_len | uint16 LE | 直前(T-1)フレームの長さ |
 | 8+N | pb_prev_data | uint8[pb_prev_len] | 直前(T-1)フレームの複製 |
 
-**(b) 遅延リピートパケット** — 毎フレーム追加送信。**T-10（≈100ms 前）のフレームを、独立した mode_id=9 パケットとして単独再送**する（原設計 T-12 から変更 — 既定 HP バッファ 120ms の内側に 20ms のマージンを確保するため）。pb は付けない（このパケット自体が「別フレームの遅延コピー」であり、受信ステージングの seq 窓に自然に充填される。**新規 wire フィールド不要**）:
+**(b) 遅延リピートパケット**（`set_stream_repeat`=ON のときのみ。既定 OFF） — 毎フレーム追加送信。**T-10（≈100ms 前）のフレームを、独立した mode_id=9 パケットとして単独再送**する（原設計 T-12 から変更 — 既定 HP バッファ 120ms の内側に 20ms のマージンを確保するため）。pb は付けない（このパケット自体が「別フレームの遅延コピー」であり、受信ステージングの seq 窓に自然に充填される。**新規 wire フィールド不要**）:
 
 | オフセット | フィールド | 型 | 説明 |
 |---|---|---|---|
