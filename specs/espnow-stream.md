@@ -122,10 +122,12 @@ mode_id テーブル:
 | 6 | **LITE** | IMA-ADPCM 8k **mono** | 5ms(40f) | ×3 | 256f=16ms | 25ms |
 | 7 | **TURBO** | IMA-ADPCM 8k **mono** | 5ms(40f) | ×3 | 64f=4ms | ~13ms(推定) |
 | 8 | **FINE** | Opus 16k **mono** (cplx5) | 10ms | ×2 | 448f=28ms | 未実測 |
-| 9 | **SOLID48**（AS-BUILT v1, DEC-046） | Opus 48k **stereo** (cplx**1**, RESTRICTED_LOWDELAY, 64kbps CBR) | 10ms | ×2（隣接pb のみ） | HP 既定 120ms（Studio の `set_stream_buffer` 明示設定があればそちらを優先、実効上限 ~138ms） | ビルド済・**実機未検証**（G-A1〜G-A4 未実施） |
+| 9 | **SOLID48**（AS-BUILT v2, DEC-046） | Opus 48k **stereo** (cplx**1**, RESTRICTED_LOWDELAY, 64kbps CBR) | 10ms | ×2 + **遅延リピート T-10**（v2, 2026-08-09） | 受信ステージング 120ms + HP 既定 120ms（`set_stream_buffer` 明示設定があれば HP 側はそちらを優先、実効上限 ~138ms） | v1 は実機動作確認済 / **v2（遅延リピート）はビルド済・実機未検証**（A1〜A4 未実施） |
 
-> **AS-BUILT 注記（mode 9 SOLID48, DEC-046, 2026-07-14 更新）**: mode 9 は**実装済み（両側ビルド SUCCESS）・実機未検証**。数百 ms の遅延を許容し通信頑健性を最優先する会場向けプロファイル（`docs/instructions-v4-solid-audio-202607112200.md` が原設計）。**v1 の実装は原設計から2点簡略化した**（下記）:
-> 1. **遅延リピート（T-12 時間分散冗長）は不採用**。実装調査で受信機の seq 回復が**前方専用 SPSC リング**と判明し、12 パケット遅れて届くフレームは「過ぎたスロット」に充填できず drop/resync するため、原設計の「既存 seq 回復で自然充填」は成立しない（reorder バッファ再設計が別途必要＝将来課題）。v1 は **隣接 piggyback ×2（pb2）+ 深い HP バッファ**で頑健性を確保する。
+> **AS-BUILT 注記（mode 9 SOLID48, DEC-046, 2026-08-09 v2 更新）**: 数百 ms の遅延を許容し通信頑健性を最優先する会場向けプロファイル（`docs/instructions-v4-solid-audio-202607112200.md` が原設計）。v1（2026-07-14, pb2 + 深バッファのみ）に対し、**v2 で遅延リピート（時間分散冗長）を実装した**:
+> 1. **遅延リピートは T-10（≈100ms 前、原設計の T-12 から変更）**。既定 HP バッファ 120ms の内側に 20ms のマージンを置くため。TX は毎フレーム、primary に加えて seq-10 のフレームを独立 mode-9 パケット（pb=0）で再送する。**受信は「前方専用 SPSC リングに充填できない」という v1 の制約を、下流エンジンの手前に seq インデックスの
+>    ステージングリング（32 スロット・drain は arrival head の 12 フレーム＝120ms 後方）を挟んで解決**した。primary / piggyback / 遅延リピートはすべて同じ窓に格納され、drain 時点で揃っていれば seq 順に `audioStreamFeedData(format=2)` へ流れる。ステージングは受信スレッド（Wi-Fi task）では**格納のみ**を行い、給送は loop タスク（`espnowStreamTick` → `hp48StageDrainTick`、無到着時は 10ms/枚のストールドレインつき）が単一プロデューサとして行う。**遅延は現行比 +約 120ms**（合計 ≈ ステージング 120ms + HP 120ms ≈ 240ms。プロファイルの数百 ms 許容の枠内）。
+> 1b. **後方 seq（stale）の扱いを全 Opus 受信経路に規定**: expected より後ろの seq は**トラッカーを巻き戻さずに破棄**し（巻き戻すと古いフレームの再給送 + 偽のロスバーストになる）、後方 seq が **12 連続**した場合のみ「小さい seq への接合（origin 再起動）」として採用する。**互換性注意: v2 の TX（遅延リピート送信）を旧受信機（この stale 処理を持たない v1 以前）と混用してはならない** — 旧受信機は repeat のたびに巻き戻り、可聴の乱れになる。mode 9 を使う会場では受信機（v3 系 graceful-degrade 機含む）を先に更新すること。
 > 2. **受信の 48k decode / HP / 触覚 fan-out は自前実装せず、Wi-Fi/UDP の format=2 経路（`message-format.md` §0x31, d214 で実績）に委譲**。v4 ESP-NOW 受信機 env `duowl_v4_stream_espnow`（`-DESPNOW_HP48`）で `DUOWL_V4_DUAL_CODEC` を有効化し、mode 9 パケットの Opus フレームを length-prefix で `audioStreamFeedData(format=2)` に渡す。HP ring は現行 8192f（~138ms cap）を流用（PSRAM 415ms 深リングは将来課題）。**当初は 16k-only の plain env と 48k HP の `_hp48` env に分けていたが、mode 0-8 も 16k 触覚ミックスを HP へ 3:1 アップサンプルミラーして hp48 が superset になったため、plain env を廃止し `duowl_v4_stream_espnow`（＝`-DESPNOW_HP48` を持つ唯一の v4 ESP-NOW env）へ一本化した（2026-07）**。v3 艦隊（`necklace_v3_stream_espnow`）は無関係で不変。
 >
 > wire は既存 Opus mode（1-5, 8）と**完全に同一**（§3.3 の opus_len + frame + piggyback）。64kbps/pb2 で総長 ~249B ≤250（HIFI 234B と同じ regime・マージンほぼゼロ＝bitrate を上げると全 packet が 250B 超で skip される点に注意）。
@@ -142,11 +144,11 @@ mode_id テーブル:
 - **mode 7（TURBO）は mode 6（LITE）と wire が完全に同一**（同じ codec/fs/ch/frame/pb、同じ §3.4 mode 6 body 定義をそのまま使う）。**唯一の違いは受信機のジッタバッファ深さ**（LITE ≒16ms 相当 vs TURBO=64f=4ms）— 最小レイテンシ優先・途切れ増を許容する設定。送信側の encode/pack ロジックは mode 6 と共有し、パケットの `mode_id` のみ 7 を積む。
 - **mode 9（SOLID48, DRAFT）の body は下記**（mode 1-5/8 の Opus body 慣習 + 遅延リピート用の第 2 パケット）。
 
-#### mode 9（SOLID48）body — AS-BUILT v1（primary のみ実装）+ 将来設計（遅延リピート）
+#### mode 9（SOLID48）body — AS-BUILT v2（primary + 遅延リピート、2026-08-09）
 
-> **v1 実装 = 下記 (a) primary パケットのみ**（既存 Opus mode と同一 wire、pb2）。**(b) 遅延リピートは未実装（将来課題）** — 受信機が前方専用リングのため現状では効かない（上記 AS-BUILT 注記参照）。(b) を有効化するには受信側に seq-indexed reorder バッファを追加する必要がある。
+> **v2 実装 = (a) primary（pb2）+ (b) 遅延リピート T-10** の 2 種類。受信側は seq インデックスのステージングリング（上記 AS-BUILT 注記）で両者を同じ窓に統合する。
 
-数百 ms のバッファ許容を前提に、**バースト全滅への耐性を「時間分散した exact copy」で稼ぐ**プロファイル。将来のフル版は 1 フレーム(10ms)ごとに **2 種類のパケット**を送る:
+数百 ms のバッファ許容を前提に、**バースト全滅への耐性を「時間分散した exact copy」で稼ぐ**プロファイル。1 フレーム(10ms)ごとに **2 種類のパケット**を送る:
 
 **(a) primary パケット** — mode 1-5/8 と同じ Opus body 慣習（§3.3 準拠）+ pb=1（直前フレームの隣接 piggyback、単発ロス即回復用）:
 
@@ -158,20 +160,20 @@ mode_id テーブル:
 | 6+N | pb_prev_len | uint16 LE | 直前(T-1)フレームの長さ |
 | 8+N | pb_prev_data | uint8[pb_prev_len] | 直前(T-1)フレームの複製 |
 
-**(b) 遅延リピートパケット** — 毎フレーム追加送信。**T-12（≈120ms 前）のフレームを、独立した mode_id=9 パケットとして単独再送**する。pb は付けない（このパケット自体が「別フレームの遅延コピー」であり、既存の seq 一致リカバリで自然に充填される。**新規 wire フィールド不要**）:
+**(b) 遅延リピートパケット** — 毎フレーム追加送信。**T-10（≈100ms 前）のフレームを、独立した mode_id=9 パケットとして単独再送**する（原設計 T-12 から変更 — 既定 HP バッファ 120ms の内側に 20ms のマージンを確保するため）。pb は付けない（このパケット自体が「別フレームの遅延コピー」であり、受信ステージングの seq 窓に自然に充填される。**新規 wire フィールド不要**）:
 
 | オフセット | フィールド | 型 | 説明 |
 |---|---|---|---|
-| 0-3 | 共通ヘッダ | — | type=0xAA / mode_id=9+RELAYED / **seq = T-12 時点の seq**（現在の seq ではない） / pb_count(=0) |
-| 4 | frame_len | uint16 LE | T-12 フレームの長さ |
-| 6 | frame_data | uint8[frame_len] | T-12 フレーム本体（再送データそのまま、re-encode しない） |
+| 0-3 | 共通ヘッダ | — | type=0xAA / mode_id=9+RELAYED / **seq = T-10 時点の seq**（現在の seq ではない） / pb_count(=0) |
+| 4 | frame_len | uint16 LE | T-10 フレームの長さ |
+| 6 | frame_data | uint8[frame_len] | T-10 フレーム本体（再送データそのまま、re-encode しない） |
 
-- 受信機は primary と遅延リピートを**同じ seq 空間・同じ受信処理**（欠番検出→充填）で扱う。primary で欠落した seq が後から遅延リピートで埋まれば、その時点で ring の該当スロットへ格納する（後付けスプライスではなく seq 順の ring 供給）。
-- **≤120ms のバースト全滅**（primary + 隣接pb の両方が同一バーストで消える最悪ケース）を、120ms 遅れて届く独立コピーで回復する。G-A3 で不足が判明した場合、**T-12 + T-25 の 2 段時間分散**へ拡張可能（wire 構造は変わらず、追加の遅延リピートパケットをもう 1 種類送るだけ）。
+- 受信機は primary と遅延リピートを**同じ seq 空間・同じ受信処理**（ステージング窓への格納 → drain 時に seq 順給送）で扱う。primary で欠落した seq が後から遅延リピートで埋まれば、drain がそのスロットに到達する前に充填される（後付けスプライスではなく seq 順の供給）。重複（primary 到着済みスロットへの repeat）は破棄。
+- **≤100ms のバースト全滅**（primary + 隣接pb の両方が同一バーストで消える最悪ケース）を、100ms 遅れて届く独立コピーで回復する。A3 で不足が判明した場合、**2 段時間分散（例 T-10 + T-25）**へ拡張可能（wire 構造は変わらず、追加の遅延リピートパケットをもう 1 種類送るだけ。その場合はステージング深さと HP バッファの拡大が前提）。
 - **airtime 目安（6M, 96kbps）**: primary(pb1込み) ~383µs + 遅延リピート ~220µs ≈ 1 ソースあたり **~6%**（実測は G-A3）。
 - **受信機バッファ**: prebuf/target **300ms**・max **450ms**（HP ring を PSRAM 化して ~20000f=415ms に拡張、既存 8192f=170ms から増量。Opus decoder state は internal RAM 維持 — PSRAM 配置は decode 速度 2 倍化の副作用が既知のため避ける）。
-- **RESYNC_GAP**: mode 9 選択時は受信機側で **64** へ拡大（既定 20 のままだと遅延リピートの seq 差 12 を「別ストリーム接合」と誤認し resync してしまう。§7.1.1 の一般原則の mode 9 向け override）。`OPUS_RECOVER_CAP`（PLC 連発の上限）も同窓へ拡大。
-- 実装確定は G-A1（送信側 48kHz stereo encode 実時間ベンチ、CoreS3）通過後。NG（duty ≥60%）の場合は 24kHz stereo への縮退を検討（wire の frame_len は可変長のため fallback してもフィールド構造は変わらない）。
+- **RESYNC_GAP**: mode 9 のステージング経路は受信機ローカル定数 **64**（`HP48_RESYNC_GAP`）で判定する（既定 20 のままだと遅延リピートの seq 差 10 を「別ストリーム接合」と誤認し resync してしまう。§7.1.1 の一般原則の mode 9 向け override。0xAC param 3 の RESYNC_GAP チューニングは mode 0-8 にのみ効く）。
+- 実装確定は A1（送信側 48kHz stereo encode + repeat 込み実時間ベンチ、CoreS3）〜A4 の実機確認後。NG（duty ≥60%）の場合は 24kHz stereo への縮退を検討（wire の frame_len は可変長のため fallback してもフィールド構造は変わらない）。
 
 #### mode 6（LITE = ADPCM 8k mono）body（mode 7 TURBO も同一 body を使用）
 
@@ -283,7 +285,7 @@ DEC-033 の「送信元多重化 + 独立ソース選択」を本仕様の確定
 
 - **ロック中ソースからの forward seq gap が `RESYNC_GAP`（=20）以上の場合、受信機はこれをロスとして計上してはならず・補間/無音挿入してはならず (MUST NOT)、seq を再同期して短フェードで再開しなければならない (MUST)**。
 - 根拠: リピータが上流 origin を切り替える／origin 送信機が再起動すると、**送信元 MAC は同一のまま seq が不連続**になる。これをロスとして扱うと最大 127 パケットのロス誤計上 + PLC 連発が起きる。実測 RF バーストの最大 gap は 4–18・OPUS_RECOVER_CAP=12 なので、20 以上は「別ストリームの接合」とみなせる。
-- **mode 別 override（DEC-046・将来）**: mode 9 のフル版（遅延リピート採用時）は **T-12（seq 差 12）の遅延リピートパケット**を正規経路に使うため `RESYNC_GAP=64` への拡大が要る。**v1 は遅延リピート未採用のため override せず既定 20 のまま**（§3.4 mode 9 AS-BUILT 注記参照）。遅延リピートを実装する際にセットで導入する。
+- **mode 別 override（DEC-046 v2, 2026-08-09 実装済）**: mode 9 は **T-10（seq 差 10）の遅延リピートパケット**を正規経路に使うため、受信機はローカル定数 `HP48_RESYNC_GAP=64` で判定する（0xAC の RESYNC_GAP は mode 0-8 用のまま）。あわせて**後方 seq（stale）はトラッカーを巻き戻さず破棄し、12 連続で「小さい seq への接合」として採用**する（全 Opus 受信経路共通。§3.4 mode 9 AS-BUILT 注記 1b 参照）。
 
 #### 7.1.2 配信レートベース切替（DEC-043・値は実装調整可）
 
