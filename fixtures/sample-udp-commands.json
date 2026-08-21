@@ -10,7 +10,8 @@
         "event_id": "sample-kit.sine_100hz",
         "target_time": 0,
         "target_group": 0,
-        "gain": 1.0
+        "gain": 1.0,
+        "pan": 0.0
       }
     },
     {
@@ -21,7 +22,8 @@
         "event_id": "vibration.rumble",
         "target_time": 1679500000000,
         "target_group": 1,
-        "gain": 0.6
+        "gain": 0.6,
+        "pan": 0.0
       }
     },
     {
@@ -32,7 +34,8 @@
         "event_id": "my-content/impact.sword-slash",
         "target_time": 0,
         "target_group": 0,
-        "gain": 0.9
+        "gain": 0.9,
+        "pan": 0.0
       }
     },
     {
