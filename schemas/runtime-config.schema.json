@@ -1,0 +1,206 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://hapbeat.com/schemas/runtime-config.schema.json",
+  "title": "Hapbeat Web Runtime Configuration",
+  "description": "Web Runtime v1 がアプリイベント名を触覚再生へ解決する設定。PCM/Kit/asset bytes は含めず、clipAsset は事前配置済み HTTPS 資産を指す。",
+  "type": "object",
+  "required": ["revision", "master", "events"],
+  "additionalProperties": false,
+  "properties": {
+    "revision": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991,
+      "description": "Runtime config の safe-integer revision。Console import の入力値は管理値に採用せず、現在値+1を割り当てる。session 内で strictly increasing とし、envelope の configRevision と一致させる。現在値が Number.MAX_SAFE_INTEGER に到達した import は拒否する。"
+    },
+    "master": {
+      "$ref": "#/definitions/master"
+    },
+    "events": {
+      "type": "object",
+      "maxProperties": 256,
+      "description": "アプリが emit するイベント名から解決エントリへの map。イベント名は最大 128 文字。未登録名は無効イベントとして扱う。",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/event"
+      }
+    }
+  },
+  "definitions": {
+    "target": {
+      "type": "object",
+      "required": ["player", "position", "group"],
+      "additionalProperties": false,
+      "properties": {
+        "player": {
+          "oneOf": [
+            {
+              "const": -1
+            },
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 99
+            }
+          ],
+          "description": "Player。-1 は All、それ以外は 1..99。"
+        },
+        "position": {
+          "type": "string",
+          "enum": [
+            "all",
+            "pos_neck",
+            "pos_chest",
+            "pos_abd",
+            "pos_l_arm",
+            "pos_r_arm",
+            "pos_l_wrist",
+            "pos_r_wrist",
+            "pos_hip",
+            "pos_l_thigh",
+            "pos_r_thigh",
+            "pos_l_ankle",
+            "pos_r_ankle"
+          ]
+        },
+        "group": {
+          "oneOf": [
+            {
+              "const": -1
+            },
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 99
+            }
+          ],
+          "description": "Group。-1 は All、それ以外は 1..99。"
+        }
+      }
+    },
+    "master": {
+      "type": "object",
+      "required": ["gain", "target"],
+      "additionalProperties": false,
+      "properties": {
+        "gain": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Enabled event に適用する master gain。"
+        },
+        "target": {
+          "$ref": "#/definitions/target"
+        }
+      }
+    },
+    "target-override": {
+      "type": "object",
+      "required": ["enabled"],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "true の場合だけ event 個別 target を master target の代わりに使う。省略時は override off。"
+        },
+        "target": {
+          "$ref": "#/definitions/target"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "enabled": {
+                "const": true
+              }
+            },
+            "required": ["enabled"]
+          },
+          "then": {
+            "required": ["target"]
+          }
+        }
+      ]
+    },
+    "event": {
+      "type": "object",
+      "required": ["enabled", "mode", "gain", "delayMs"],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "false の場合はこのイベントを触覚へ解決しない。"
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["fire", "clip"],
+          "description": "fire は eventId、clip は clipAsset を使う。"
+        },
+        "eventId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192,
+          "description": "fire モードで Runtime が送る Hapbeat Event ID。enabled=true の fire entry では必須。"
+        },
+        "clipAsset": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192,
+          "pattern": "^https://[^\\s]+$",
+          "format": "uri",
+          "description": "clip モードで使う、事前に HTTPS で配置・取得するクリップ資産 URL。WebSocket で bytes を運ばない。"
+        },
+        "gain": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Runtime が再生へ適用するゲイン。"
+        },
+        "delayMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647,
+          "description": "Runtime-PC scheduler に渡すミリ秒単位の遅延。"
+        },
+        "targetOverride": {
+          "$ref": "#/definitions/target-override",
+          "description": "省略時は master target を使う（個別 target override off）。"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "fire"
+              }
+            },
+            "required": ["mode"]
+          },
+          "then": {
+            "required": ["eventId"]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "clip"
+              }
+            },
+            "required": ["mode"]
+          },
+          "then": {
+            "required": ["clipAsset"]
+          }
+        }
+      ]
+    }
+  }
+}

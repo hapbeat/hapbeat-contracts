@@ -1,0 +1,363 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://hapbeat.com/schemas/session-envelope.schema.json",
+  "title": "Hapbeat Web Runtime Session Envelope",
+  "description": "Web Runtime v1 の Session Relay 用 JSON envelope。serverSeq は relay が付与するため、relay 前の client envelope では省略する。sessionId と clientId は connection bound、config snapshot の body.revision は configRevision と一致させる。",
+  "type": "object",
+  "required": [
+    "v",
+    "type",
+    "sessionId",
+    "clientId",
+    "messageId",
+    "clientSeq",
+    "configRevision",
+    "body"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "v": {
+      "const": 1,
+      "description": "Session envelope version。Web Runtime v1 は 1。"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["emit", "state", "catalog", "config"],
+      "description": "一過性 event または復旧対象 snapshot の種別。"
+    },
+    "sessionId": {
+      "type": "string",
+      "minLength": 36,
+      "maxLength": 36,
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
+      "description": "外部 API と WebSocket route に使う UUID。ticket に束縛され、接続後に変更できない。"
+    },
+    "clientId": {
+      "type": "string",
+      "minLength": 36,
+      "maxLength": 36,
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
+      "description": "ticket に束縛された UUID。接続後に変更できない。"
+    },
+    "messageId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "clientId と組み合わせて冪等性キーになる。"
+    },
+    "clientSeq": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "client ごとの単調増加シーケンス。"
+    },
+    "configRevision": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991,
+      "description": "この envelope が参照する runtime config の safe-integer revision。config body の revision と一致させ、session 内で strictly increasing にする。"
+    },
+    "serverSeq": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 8192,
+      "pattern": "^[0-9]+$",
+      "description": "relay が付与する単調増加値。JSON number ではなく 10 進文字列で表す。client は送信してはならない。"
+    },
+    "body": {
+      "$ref": "#/definitions/json-object",
+      "description": "type ごとの JSON body。WebSocket で PCM/Kit/asset bytes を運ばない。"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "emit"
+          }
+        },
+        "required": ["type"]
+      },
+      "then": {
+        "properties": {
+          "body": {
+            "$ref": "#/definitions/emit-body"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "config"
+          }
+        },
+        "required": ["type"]
+      },
+      "then": {
+        "properties": {
+          "body": {
+            "$ref": "#/definitions/config-body"
+          }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "json-value": {
+      "description": "JSON value。client-side/relay は depth 16、総 node 数 4096、string 8192 文字の上限を検査する。PCM/Kit/asset bytes や forbidden-byte field/value は受理しない。",
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string",
+          "maxLength": 8192
+        },
+        {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "$ref": "#/definitions/json-value"
+          }
+        },
+        {
+          "$ref": "#/definitions/json-object"
+        }
+      ]
+    },
+    "json-object": {
+      "description": "JSON object。client-side/relay は depth 16、総 node 数 4096、string 8192 文字の上限を検査する。",
+      "type": "object",
+      "maxProperties": 4096,
+      "propertyNames": {
+        "type": "string",
+        "maxLength": 8192
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/json-value"
+      }
+    },
+    "target": {
+      "type": "object",
+      "required": ["player", "position", "group"],
+      "additionalProperties": false,
+      "properties": {
+        "player": {
+          "oneOf": [
+            {
+              "const": -1
+            },
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 99
+            }
+          ]
+        },
+        "position": {
+          "type": "string",
+          "enum": [
+            "all",
+            "pos_neck",
+            "pos_chest",
+            "pos_abd",
+            "pos_l_arm",
+            "pos_r_arm",
+            "pos_l_wrist",
+            "pos_r_wrist",
+            "pos_hip",
+            "pos_l_thigh",
+            "pos_r_thigh",
+            "pos_l_ankle",
+            "pos_r_ankle"
+          ]
+        },
+        "group": {
+          "oneOf": [
+            {
+              "const": -1
+            },
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 99
+            }
+          ]
+        }
+      }
+    },
+    "target-override": {
+      "type": "object",
+      "required": ["enabled"],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "target": {
+          "$ref": "#/definitions/target"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "enabled": {
+                "const": true
+              }
+            },
+            "required": ["enabled"]
+          },
+          "then": {
+            "required": ["target"]
+          }
+        }
+      ]
+    },
+    "config-event": {
+      "type": "object",
+      "required": ["enabled", "mode", "gain", "delayMs"],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["fire", "clip"]
+        },
+        "eventId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192
+        },
+        "clipAsset": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192,
+          "pattern": "^https://[^\\s]+$",
+          "format": "uri"
+        },
+        "gain": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "delayMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "targetOverride": {
+          "$ref": "#/definitions/target-override"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "fire"
+              }
+            },
+            "required": ["mode"]
+          },
+          "then": {
+            "required": ["eventId"]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "clip"
+              }
+            },
+            "required": ["mode"]
+          },
+          "then": {
+            "required": ["clipAsset"]
+          }
+        }
+      ]
+    },
+    "config-body": {
+      "type": "object",
+      "required": ["revision", "master", "events"],
+      "additionalProperties": false,
+      "properties": {
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "master": {
+          "type": "object",
+          "required": ["gain", "target"],
+          "additionalProperties": false,
+          "properties": {
+            "gain": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "target": {
+              "$ref": "#/definitions/target"
+            }
+          }
+        },
+        "events": {
+          "type": "object",
+          "maxProperties": 256,
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "additionalProperties": {
+            "$ref": "#/definitions/config-event"
+          }
+        }
+      }
+    },
+    "emit-body": {
+      "type": "object",
+      "required": ["event"],
+      "additionalProperties": false,
+      "description": "Client は WebSocket 送信前に event/targetTime/JSON limits/forbidden-byte fields を検証し、invalid なら throw して送信しない。",
+      "properties": {
+        "event": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "アプリが指定する意味イベント名。"
+        },
+        "payload": {
+          "$ref": "#/definitions/json-value",
+          "description": "アプリ payload。JSON 値であり、未指定でもよい。"
+        },
+        "options": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "targetTime": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "description": "Runtime-PC scheduler の基準で解決する時刻。device end-to-end の時刻保証ではない。"
+            }
+          }
+        }
+      }
+    }
+  }
+}

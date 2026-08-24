@@ -1,0 +1,19 @@
+{
+  "v": 1,
+  "type": "emit",
+  "sessionId": "550e8400-e29b-41d4-a716-446655440000",
+  "clientId": "6ba7b810-9dad-41d1-80b4-00c04fd430c8",
+  "messageId": "message-0001",
+  "clientSeq": 1,
+  "configRevision": 3,
+  "serverSeq": "17",
+  "body": {
+    "event": "menu.open",
+    "payload": {
+      "source": "demo"
+    },
+    "options": {
+      "targetTime": 1710000000000
+    }
+  }
+}
