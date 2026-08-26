@@ -59,7 +59,7 @@ Kit の `name` は Kit を一意に識別する文字列であり、以下すべ
 
 - on-disk のディレクトリ名（OS Explorer で見える）
 - `manifest.json` の `name` フィールド
-- wire-protocol（kit-install-protocol、bridge-api 等）の `kit_id` payload field
+- wire-protocol（kit-install-protocol 等）の `kit_id` payload field
 
 旧仕様では `manifest.kit_id` と `manifest.name` の 2 フィールドに分かれていたが、両者が常に同じ値を持っており冗長だったため `name` 1 つに統合した（2026-04-28）。kit_id は wire-protocol の field 名としては引き続き使用される — manifest 内に重複して書かないだけ。
 

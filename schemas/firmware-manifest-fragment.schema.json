@@ -5,10 +5,7 @@
   "description": "Per-release fragment published by a single firmware repo as a Release asset (manifest.fragment.json) and/or fenced JSON in the Release body. The aggregator / Cloudflare Function merges fragments across repos+releases into the unified manifest (firmware-manifest.schema.json). A fragment describes ONE release of ONE repo, so it carries `tag` and may list multiple envs/variants built at that tag. See specs/firmware-distribution.md (DEC-035).",
   "type": "object",
   "additionalProperties": false,
-  "anyOf": [
-    { "required": ["variants"] },
-    { "required": ["envs"] }
-  ],
+  "required": ["variants"],
   "properties": {
     "schema_version": { "type": "integer", "description": "Fragment schema version emitted by the firmware repo (2 or 3)." },
     "tag": { "type": "string", "description": "Namespaced release tag this fragment was built at: <repoShort>/<env>/vX.Y.Z." },
@@ -17,11 +14,6 @@
     "variants": {
       "type": "array",
       "items": { "$ref": "#/definitions/fragmentVariant" }
-    },
-    "envs": {
-      "type": "array",
-      "description": "Legacy v1 shape — env list. New repos emit `variants`.",
-      "items": { "$ref": "#/definitions/fragmentEnv" }
     }
   },
   "definitions": {
@@ -49,25 +41,14 @@
         "repo": { "type": "string" },
         "env": { "type": "string" },
         "role": { "enum": ["receiver", "sensor", "broker", "transmitter"] },
-        "transport": { "enum": ["udp", "mqtt", "espnow_stream"] },
-        "transports": { "type": "array", "items": { "enum": ["udp", "mqtt", "espnow_stream"] } },
+        "transport": { "enum": ["wifi_udp", "mqtt", "espnow_stream"] },
+        "transports": { "type": "array", "items": { "enum": ["wifi_udp", "mqtt", "espnow_stream"] } },
         "board": { "type": "string" },
         "hapbeat": { "type": "boolean" },
         "label": { "type": "string" },
         "description": { "type": "string" },
         "fwVersion": { "type": "string", "description": "Bare semver baked into this build (no leading 'v'; dev builds carry dN)." },
         "buildCommit": { "type": "string", "description": "Source commit sha (audit). Mapped to `buildSha` in the aggregated manifest." },
-        "appOta": { "$ref": "#/definitions/fragmentArtifact" },
-        "fullSerial": { "$ref": "#/definitions/fragmentArtifact" }
-      }
-    },
-    "fragmentEnv": {
-      "type": "object",
-      "required": ["env"],
-      "additionalProperties": false,
-      "properties": {
-        "env": { "type": "string" },
-        "fwVersion": { "type": "string" },
         "appOta": { "$ref": "#/definitions/fragmentArtifact" },
         "fullSerial": { "$ref": "#/definitions/fragmentArtifact" }
       }

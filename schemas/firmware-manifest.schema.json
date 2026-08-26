@@ -63,10 +63,10 @@
         "repo": { "type": "string" },
         "env": { "type": "string", "description": "PlatformIO environment name." },
         "role": { "enum": ["receiver", "sensor", "broker", "transmitter"] },
-        "transport": { "enum": ["udp", "mqtt", "espnow_stream"] },
+        "transport": { "enum": ["wifi_udp", "mqtt", "espnow_stream"] },
         "transports": {
           "type": "array",
-          "items": { "enum": ["udp", "mqtt", "espnow_stream"] }
+          "items": { "enum": ["wifi_udp", "mqtt", "espnow_stream"] }
         },
         "board": { "type": "string" },
         "hapbeat": { "type": "boolean", "description": "true = wearable Hapbeat (duo_wl_* / band_wl_*); false = ecosystem peripheral (broker / sensor / transmitter)." },

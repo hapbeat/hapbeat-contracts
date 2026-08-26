@@ -13,7 +13,6 @@ Hapbeat SDK エコシステム全体の**中核仕様リポジトリ**です。
 - **デバイスアドレッシング仕様** -- グループ・ターゲット指定の方式
 - **display-layout 仕様** -- OLED 表示レイアウトの JSON スキーマ
 - **シリアル設定コマンド仕様** -- USB シリアル経由の設定コマンド体系
-- **Bridge API 仕様** -- hapbeat-bridge が公開する API エンドポイントの定義
 - **バージョニング方針** -- 仕様のバージョン管理と互換性の維持ルール
 
 ## 全体の中での位置づけ
@@ -24,7 +23,6 @@ hapbeat-contracts は**依存関係の起点**です。
 hapbeat-contracts (ここ)
  ├── hapbeat-kit-tools
  ├── hapbeat-device-firmware
- ├── hapbeat-bridge
  ├── hapbeat-transmitter-firmware
  ├── hapbeat-unity-sdk
  ├── hapbeat-unreal-sdk
@@ -49,7 +47,7 @@ hapbeat-contracts 自体は他のどの repo にも依存しません。
 | 方向 | 内容 |
 |------|------|
 | **この repo が依存するもの** | なし |
-| **この repo に依存する repo** | hapbeat-kit-tools, hapbeat-device-firmware, hapbeat-bridge, hapbeat-transmitter-firmware, hapbeat-unity-sdk, hapbeat-unreal-sdk, hapbeat-creative-kit |
+| **この repo に依存する repo** | hapbeat-kit-tools, hapbeat-device-firmware, hapbeat-transmitter-firmware, hapbeat-helper, hapbeat-unity-sdk, hapbeat-unreal-sdk, hapbeat-creative-kit |
 
 ## 現在の状態
 
@@ -61,8 +59,8 @@ hapbeat-contracts 自体は他のどの repo にも依存しません。
 |---|---|
 | `kit-format.md` | Kit マニフェスト形式・ディレクトリ構造・フィールド定義 |
 | `event-id.md` | Event ID 命名規則（`<kit-name>.<clip-name>` 形式） |
-| `message-format.md` | UDP/TCP メッセージプロトコル（PLAY/STOP/STOP_ALL/CONNECT_STATUS 他、`udp` transport） |
-| `node-roles.md` | ノード役割 / 通信モード taxonomy（receiver/sensor/broker/transmitter × udp/mqtt/espnow_stream、DEC-034） |
+| `message-format.md` | Wi-Fi UDP/OSC メッセージプロトコル（PLAY/STOP/STOP_ALL/CONNECT_STATUS 他、`wifi_udp` transport） |
+| `node-roles.md` | ノード役割 / 通信モード taxonomy（receiver/sensor/broker/transmitter × wifi_udp/mqtt/espnow_stream、DEC-034） |
 | `mqtt-transport.md` | MQTT transport（センサ起点の遠隔通知。topic/payload/broker 発見） |
 | `espnow-stream.md` | ESP-NOW streaming transport（会場同報のライブ音声。packet 形式、DEC-033） |
 | `firmware-distribution.md` | ファーム配布 manifest（複数 repo × role/transport/board の集約） |
@@ -70,8 +68,6 @@ hapbeat-contracts 自体は他のどの repo にも依存しません。
 | `display-layout.md` | OLED display_layout.json スキーマ |
 | `serial-config.md` | シリアルコマンド仕様（全ノード共通の設定プロトコル + 役割固有コマンド） |
 | `kit-install-protocol.md` | Kit インストールプロトコル（TCP 経由の転送手順） |
-| `bridge-api.md` | hapbeat-bridge 公開 API 仕様 |
-| `internal-bridge-transmitter.md` | Bridge ↔ Transmitter 内部プロトコル（ESP-NOW 経路） |
 | `versioning.md` | 仕様バージョニング方針・互換性ルール |
 | `release-feed.md` | ツール / SDK の最新版フィードと更新通知ポリシー（DEC-053） |
 | `demo-switch-control.md` | 独立 demo runtime 切替用 UDP 7710 control plane（logical demo ID、sequence、optional HMAC、ACK/READY/FAILED） |
@@ -83,3 +79,7 @@ JSON Schema ファイル（manifest 検証用）。
 ### fixtures/
 
 テスト・検証用サンプルデータ。
+
+## 廃止済み経路
+
+legacy `hapbeat-bridge` は現行契約に対応せず、再利用しない。SDK は `wifi_udp` でデバイスの UDP 7700 へ直接送信する。

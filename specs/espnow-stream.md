@@ -1,36 +1,39 @@
-# [INTERNAL] ESP-NOW streaming transport 仕様書
+# [INTERNAL] EspNowStream transport 仕様書
 
-> **[INTERNAL] 本文書は ESP-NOW transport 上のパケット形式・受信戦略を定義する内部仕様（Layer 3 相当）。SDK からは直接参照されない。**
+> **[INTERNAL] 本文書は `NodeTransport.EspNowStream`（wire/config 値 `espnow_stream`）の ESP-NOW パケット形式・受信戦略を定義する内部仕様。SDK からは直接参照されない。**
 
 ## 1. 概要
 
-`espnow_stream` transport は、**会場同報**ユースケース（PA のライブ音声を ESP-NOW で同報し、会場の全観客が装着する Hapbeat が同時に音声ベースの触覚を体験する。LE Audio Auracast 的）のための通信モード。
+`EspNowStream` transport は、**会場同報**ユースケース（PA のライブ音声を ESP-NOW で同報し、会場の全観客が装着する Hapbeat が同時に音声ベースの触覚を体験する。LE Audio Auracast 的）のための通信モード。
 
 ```
-[PA / mixer] --analog line-in--> [transmitter] --ESP-NOW broadcast--> [receiver ×N (観客)]
-                                   role=transmitter                      role=receiver, transport=espnow_stream
+[PA / mixer] --analog line-in--> [audio source] --ESP-NOW broadcast--> [receiver ×N (観客)]
+                                  role=transmitter                         role=receiver, transport=espnow_stream
+                                      │
+                                      └── [repeater] --verbatim relay--> dead-zone receivers
+                                          role=transmitter
 ```
 
 - **broadcast（peer `FF:FF:FF:FF:FF:FF`）**による真の one-to-many。ペアリング不要、ACK なし、台数は RF のみが上限。
 - **「グループ」= Wi-Fi チャンネル**（1/6/11）。送信機と受信機を同一チャンネルに合わせる。別チャンネルなら混信しない。
 - 低遅延優先（LR モードは使わず 11b/g/n）。詳細な無線方式選定・多重化戦略は **DEC-033** を参照。
-- **送信元多重化**: カバレッジ確保のため複数 transmitter（音声ソース機 + リピータ機）を分散配置できる。受信機は送信元 MAC で 1 台を選択する（§7）。
+- **役割**: audio source は PA 入力を `0xAA` にエンコードする transmitter、repeater は audio source の `0xAA` を 1 hop だけ verbatim 中継する transmitter、receiver は 1 つの送信元 MAC を選んで再生する装着デバイスである（§7）。
 
-> 本仕様は ESP-NOW 上の **パケット形式**を定義する（Layer 3 相当の internal spec）。
+> 本仕様は EspNowStream の **パケット形式**を定義する internal spec。
 > 移植元の実装は `hapbeat-wireless-firmware` / `wireless-sender-firmware`（`lib/ima_adpcm`）。
 
 ## 2. 音声パラメータ
 
-既存の ADPCM 経路（`P-haptic`、type=0xAA）に加え、DEC-042（Opus 採用確定）により Opus profile（`P-audio-LD`、type=0xAB、§3.3）を追加する。両者は**別パケット type**で共存し、同一チャンネル上でも type バイトで区別できる。プロファイル定義の詳細は `docs/instructions-opus-streaming-plan-202607040323.md` §2 を正とする。
+現行の EspNowStream は `0xAA` の mode_id に ADPCM/Opus profiles を載せる。`0xAB` は shipping firmware には未実装の将来設計であり、現行経路に使用してはならない。
 
-| 項目 | P-haptic（既存、type=0xAA） | P-audio-LD（新設、type=0xAB） |
+| 項目 | P-haptic（現行、type=0xAA mode 0） | P-audio-LD（現行、type=0xAA Opus mode） |
 |---|---|---|
-| サンプルレート | 16000 Hz（送信機・受信機で一致必須） | 48000 Hz（Opus デコード後 PCM。receiver は 16kHz へ直接デコードしてもよい、§3.3 参照） |
+| サンプルレート | 16000 Hz（送信機・受信機で一致必須） | 48000 Hz（Opus デコード後 PCM。receiver は 16kHz へ直接デコードしてもよい、§3.4 参照） |
 | チャンネル | 2（stereo） | 2（stereo） |
 | コーデック | IMA-ADPCM 4:1（L=low nibble, R=high nibble の 1 byte/frame） | **Opus restricted low-delay（CELT-only）** |
-| フレーム長 | 16 frames/packet（≒ 1 ms/packet） | **5 ms/frame**（1 パケット = 1 フレームが基本、§3.3） |
+| フレーム長 | 64 frames/packet（4 ms/packet） | profile ごとに異なる（§3.4） |
 | ビットレート目安 | — | **64–96 kbps** |
-| ロス対策 | piggyback（単発ロス回復、§3.2） | piggyback（単発ロス回復、§3.3 で Opus フレーム全体を複製）。inband FEC は low-delay モードでは使用不可（CELT-only は LBRR 非対応のため） |
+| ロス対策 | piggyback（単発ロス回復、§3.2） | piggyback（単発ロス回復、§3.4 で Opus フレーム全体を複製） |
 | 無線プロファイル | 11b/g/n、6 Mbps、broadcast | 11b/g/n、6 Mbps、broadcast（P-haptic と共通） |
 
 > `P-audio-Q`（10–20ms フレーム・inband FEC・jitter buffer 60–120ms、遅延許容の音楽リスニング用）は **Wi-Fi UDP transport 側**（`message-format.md` §0x30 format=2）で提供する。ESP-NOW は 250B MTU 制約が厳しく、`P-audio-Q` のような長めフレーム + FEC 併用は本仕様の対象外とする（§3.3 の MTU 計算参照）。
@@ -39,13 +42,15 @@
 
 ESP-NOW payload（最大 250 bytes）に以下を載せる。先頭バイト `type` で識別する。
 
-### 3.1 STREAM パケット（type = 0xAA）
+### 3.1 歴史的 STREAM パケット（type = 0xAA）
+
+§3.4 の mode-aware ヘッダが現行 AS-BUILT であり、本節は mode_id 導入前の記述である。historical body の `num_frames` は AS-BUILT の送信機 `audio_source.cpp:77`（`FRAMES_PKT = 64`）に合わせて 64 とする。
 
 | オフセット | フィールド | 型 | 説明 |
 |---|---|---|---|
 | 0 | type | uint8 | `0xAA`（ESP-NOW streaming） |
 | 1 | seq | uint8 | シーケンス番号（ラップ） |
-| 2 | num_frames | uint16 LE | フレーム数（=16） |
+| 2 | num_frames | uint16 LE | フレーム数（=64） |
 | 4 | predictor_L | int16 LE | ADPCM デコーダ状態 L |
 | 6 | step_index_L | uint8 | ADPCM step index L |
 | 7 | predictor_R | int16 LE | ADPCM デコーダ状態 R |
@@ -53,7 +58,7 @@ ESP-NOW payload（最大 250 bytes）に以下を載せる。先頭バイト `ty
 | 10 | data | uint8[num_frames] | ADPCM データ（1 byte = L nibble \| R nibble<<4） |
 | 10+N | piggyback | optional | 前パケットの複製（§3.2） |
 
-ヘッダサイズ = 10 bytes。piggyback なしの総長 = 10 + N（N=16 → 26 bytes）。
+ヘッダサイズ = 10 bytes。piggyback なしの総長 = 10 + N（N=64 → 74 bytes）。
 
 ### 3.2 piggyback（単発ロス回復）
 
@@ -65,11 +70,11 @@ ESP-NOW payload（最大 250 bytes）に以下を載せる。先頭バイト `ty
 | 10+N+1 | prev_state | uint8[6] | 前パケットの L/R predictor+step_index |
 | 10+N+7 | prev_data | uint8[N] | 前パケットの ADPCM データ |
 
-piggyback ありの総長 = 17 + 2N（N=16 → 49 bytes）。欠番が 2 個以上の場合は有界の無音で埋める。
+piggyback ありの総長 = 17 + 2N（N=64 → 145 bytes）。欠番が 2 個以上の場合は有界の無音で埋める。
 
-### 3.3 OPUS STREAM パケット（type = 0xAB, P-audio-LD / DEC-042）
+### 3.3 将来設計: standalone OPUS STREAM パケット（type = 0xAB）
 
-Opus restricted low-delay プロファイル用。**1 パケット = 1 Opus フレーム**（5 ms 基本）。ADPCM と違いデコーダ状態フィールドは持たない（Opus フレームはパケット単位で自己完結し、欠落は PLC / piggyback で吸収する）。
+`0xAB` は shipping firmware に実装されていない。現行の Opus は §3.4 の `0xAA` + mode_id を使用する。この将来設計の body も、AS-BUILT parser (`espnow_stream.cpp:505-506, 515`) と同じ 1 byte 長フィールドを用いる。
 
 | オフセット | フィールド | 型 | 説明 |
 |---|---|---|---|
@@ -77,22 +82,22 @@ Opus restricted low-delay プロファイル用。**1 パケット = 1 Opus フ�
 | 1 | seq | uint8 | シーケンス番号（ラップ） |
 | 2 | flags | uint8 | bit0: piggyback あり / bit1: restricted low-delay（=1 固定）/ bit2-7: reserved(0) |
 | 3 | frame_ms | uint8 | フレーム長 ms（5 基本。10 は piggyback なしのみ、下記 MTU 計算） |
-| 4 | frame_len | uint16 LE | Opus フレームのバイト長（1 以上。DTX 不使用） |
-| 6 | frame_data | uint8[frame_len] | 1 Opus フレーム（`opus_encode` 出力そのまま。48 kHz stereo CBR） |
+| 4 | frame_len | uint8 | Opus フレームのバイト長（1 以上。DTX 不使用） |
+| 5 | frame_data | uint8[frame_len] | 1 Opus フレーム（`opus_encode` 出力そのまま。48 kHz stereo CBR） |
 
 **piggyback（flags bit0=1 のとき、frame_data 直後）** — §3.2 と同じ単発ロス回復戦略を Opus フレームに適用:
 
 | オフセット | フィールド | 型 | 説明 |
 |---|---|---|---|
-| 6+N | prev_seq | uint8 | 前パケットの seq |
-| 7+N | prev_len | uint16 LE | 前フレームのバイト長 |
-| 9+N | prev_data | uint8[prev_len] | 前パケットの Opus フレーム複製 |
+| 5+N | prev_seq | uint8 | 前パケットの seq |
+| 6+N | prev_len | uint8 | 前フレームのバイト長 |
+| 7+N | prev_data | uint8[prev_len] | 前パケットの Opus フレーム複製 |
 
-**250B MTU 計算（CBR）**: 5ms@64k → frame 40B、総長 6+40+3+40 = **89B** ✓ / 5ms@96k → 60B、総長 **129B** ✓ / 10ms@96k → 120B、piggyback 込み **249B**（ギリギリのため **10ms は piggyback なし運用を推奨**）。
+**250B MTU 計算（CBR）**: 5ms@64k → frame 40B、総長 5+40+2+40 = **87B** ✓ / 5ms@96k → 60B、総長 **127B** ✓ / 10ms@96k → 120B、piggyback 込み **247B**。
 
 **受信側の欠落処理**: seq 欠番 1 個 かつ piggyback の `prev_seq` 一致 → 前フレームを復元してデコード順を維持。それ以外の欠番 → 欠けたフレーム数ぶん `opus_decode(NULL, 0, …)`（PLC）で埋める（上限 2 フレーム ≈ 10ms、それ以上の連続欠落はデコーダを `OPUS_RESET_STATE` して再同期）。
 
-**16 kHz デコード**: 触覚のみの receiver（duo_v3 等）は同じ 0xAB ストリームを **fs=16000 のデコーダで直接デコード**してよい（libopus 標準機能。リサンプラ不要）。wire は常に 48 kHz stereo エンコード。
+**16 kHz デコード**: 将来この形式を実装する触覚のみの receiver（duo_v3 等）は **fs=16000 のデコーダで直接デコード**してよい。wire は常に 48 kHz stereo エンコード。
 
 ### 3.4 mode_id とモード別 body（AS-BUILT, 2026-07-08／mode 6・mode 7・mode 8 は 2026-07-09 追加）
 
@@ -125,7 +130,7 @@ mode_id テーブル:
 | 9 | **SOLID48**（AS-BUILT v2, DEC-046） | Opus 48k **stereo** (cplx**1**, RESTRICTED_LOWDELAY, 64kbps CBR) | 10ms | ×2 ＋ **遅延リピート T-10（任意・既定 OFF）** | HP 既定 120ms（`set_stream_buffer` 明示設定があればそちらを優先、実効上限 ~138ms）。**リピート ON のときのみ**受信ステージング +120ms が加算 | v1（リピート OFF）は実機動作確認済 / **リピート ON はビルド済・実機未検証**（A1〜A4 未実施） |
 
 > **AS-BUILT 注記（mode 9 SOLID48, DEC-046, 2026-08-09 v2 更新）**: 数百 ms の遅延を許容し通信頑健性を最優先する会場向けプロファイル（`docs/instructions-v4-solid-audio-202607112200.md` が原設計）。v1（2026-07-14, pb2 + 深バッファのみ）に対し、**v2 で遅延リピート（時間分散冗長）を実装した**:
-> 1. **遅延リピートは T-10（≈100ms 前、原設計の T-12 から変更）の任意機能（既定 OFF）**。既定 HP バッファ 120ms の内側に 20ms のマージンを置くための T-10。TX は `set_stream_repeat` が ON のときのみ、毎フレーム、primary に加えて seq-10 のフレームを独立 mode-9 パケット（pb=0）で再送する。**OFF のときの wire・遅延は v1 と完全に同一**（低遅延と頑健性はトレードオフのため、モードを分けずに 1 つのスイッチで共存させる）。**受信は「前方専用 SPSC リングに充填できない」という v1 の制約を、下流エンジンの手前に seq インデックスの
+> 1. **遅延リピートは T-10（≈100ms 前、原設計の T-12 から変更）の任意機能（既定 OFF）**。既定 HP バッファ 120ms の内側に 20ms のマージンを置くための T-10。TX は `set_espnow_stream_repeat` が ON のときのみ、毎フレーム、primary に加えて seq-10 のフレームを独立 mode-9 パケット（pb=0）で再送する。**OFF のときの wire・遅延は v1 と完全に同一**（低遅延と頑健性はトレードオフのため、モードを分けずに 1 つのスイッチで共存させる）。**受信は「前方専用 SPSC リングに充填できない」という v1 の制約を、下流エンジンの手前に seq インデックスの
 >    ステージングリング（32 スロット・drain は arrival head の 12 フレーム＝120ms 後方）を挟んで解決**した。**受信機に設定は持たせず、リピートの到着で自動的に切り替える**（艦隊 60 台を個別設定させないため）: expected より 9〜14 手前の seq を 200ms 窓で 3 回観測したら arm（空窓で開くので二重給送なし）、リピートが 2 秒途絶えたら lag 0 で吐き切って un-arm（送信側を OFF に戻せば艦隊は再起動なしで低遅延へ戻る。吐き切りは 1 tick 1 枚にペーシングし、HP リングの hard-trim を避ける）。relock / mode 再進入でも un-arm し検出し直す。primary / piggyback / 遅延リピートはすべて同じ窓に格納され、drain 時点で揃っていれば seq 順に `audioStreamFeedData(format=2)` へ流れる。ステージングは受信スレッド（Wi-Fi task）では**格納のみ**を行い、給送は loop タスク（`espnowStreamTick` → `hp48StageDrainTick`、無到着時は 10ms/枚のストールドレインつき）が単一プロデューサとして行う。**遅延は現行比 +約 120ms**（合計 ≈ ステージング 120ms + HP 120ms ≈ 240ms。プロファイルの数百 ms 許容の枠内）。
 > 1b. **後方 seq（stale）の扱いを全 Opus 受信経路に規定**: expected より後ろの seq は**トラッカーを巻き戻さずに破棄**し（巻き戻すと古いフレームの再給送 + 偽のロスバーストになる）、後方 seq が **12 連続**した場合のみ「小さい seq への接合（origin 再起動）」として採用する。**互換性注意: v2 の TX（遅延リピート送信）を旧受信機（この stale 処理を持たない v1 以前）と混用してはならない** — 旧受信機は repeat のたびに巻き戻り、可聴の乱れになる。mode 9 を使う会場では受信機（v3 系 graceful-degrade 機含む）を先に更新すること。
 > 2. **受信の 48k decode / HP / 触覚 fan-out は自前実装せず、Wi-Fi/UDP の format=2 経路（`message-format.md` §0x31, d214 で実績）に委譲**。v4 ESP-NOW 受信機 env `duowl_v4_stream_espnow`（`-DESPNOW_HP48`）で `DUOWL_V4_DUAL_CODEC` を有効化し、mode 9 パケットの Opus フレームを length-prefix で `audioStreamFeedData(format=2)` に渡す。HP ring は現行 8192f（~138ms cap）を流用（PSRAM 415ms 深リングは将来課題）。**当初は 16k-only の plain env と 48k HP の `_hp48` env に分けていたが、mode 0-8 も 16k 触覚ミックスを HP へ 3:1 アップサンプルミラーして hp48 が superset になったため、plain env を廃止し `duowl_v4_stream_espnow`（＝`-DESPNOW_HP48` を持つ唯一の v4 ESP-NOW env）へ一本化した（2026-07）**。v3 艦隊（`necklace_v3_stream_espnow`）は無関係で不変。
@@ -133,16 +138,16 @@ mode_id テーブル:
 > wire は既存 Opus mode（1-5, 8）と**完全に同一**（§3.3 の opus_len + frame + piggyback）。64kbps/pb2 で総長 ~249B ≤250（HIFI 234B と同じ regime・マージンほぼゼロ＝bitrate を上げると全 packet が 250B 超で skip される点に注意）。
 > - **complexity = 1**（実時間安全側デフォルト）: 48k stereo は HIFI の 3× のサンプル/フレームで、c5 は 10ms encode 予算の ~210%（推定）＝ I2S RX を starve させる。**G-A1 = CoreS3 の `[AUDIO-SRC]` heartbeat で enc-max us を実測**し、余裕があれば quality のため complexity を上げる（未測定なら c1 のまま）。NG なら 48/56kbps へ縮退（wire 不変）。
 > - **HP バッファは mode-9 進入（初回選択・ソースハンドオフ／再選択含む）のたびに再適用される**（実効上限 ~138ms＝現行 8192-frame HP ring）。**Studio の `set_stream_buffer` が明示的に永続化されている値（0 = 低遅延を含む）があればそれを優先し、一度も設定されていなければ 120ms 既定にフォールバックする**（2026-07-18 修正 — 従来は mode-9 進入のたびに無条件で 120ms を再適用しており、ユーザーが縮小設定してもソースハンドオフ等で毎回サイレントに 120ms へ巻き戻っていた）。**§3.5 param 6（0xAC fleet-tune ビーコン）は引き続き mode==9 の間、この値を上書きできる**（艦隊一括意図は不変）。数百 ms の「サイレントフェス」耐性には PSRAM 深リングが必要（将来課題）。
-> - **§3.5 param 6（mode-9 HP buffer override）は AS-BUILT で両側配線済み**（TX `set_stream_hp_buffer` serial → 0xAC 同報、RX が mode 9 時に適用）。Opus complexity は TX-local の `set_opus_complexity` serial コマンドで runtime 調整（fleet param ではない＝送信機のみエンコード）。どちらも Studio → TX(Web Serial) から操作。
+> - **§3.5 param 6（mode-9 HP buffer override）は AS-BUILT で両側配線済み**（TX `set_espnow_stream_hp_buffer` serial → 0xAC 同報、RX が mode 9 時に適用）。Opus complexity は TX-local の `set_espnow_stream_opus_complexity` serial コマンドで runtime 調整（fleet param ではない＝送信機のみエンコード）。どちらも Studio → TX(Web Serial) から操作。
 > - v3/旧受信機への影響なし（未知 mode_id は範囲チェックで無視、v3 艦隊 `necklace_v3_stream_espnow` は mode 9 を 16k stereo 触覚として graceful degrade＝HP 無し・触覚のみ）。**v4 受信機（`duowl_v4_stream_espnow`）は全 mode（0-8 と 9）で HP から音声が出る**（mode 9 は native 48k、mode 0-8 は 16k 触覚ミックスを 48k HP ring へ 3:1 アップサンプルミラー＝audio_player.cpp。※初期 hp48 では mode 0-8 の HP は無音だったが本ミラーで解消、2026-07）。
 >
 > **AS-BUILT (2026-07-09)**: pb は per-mode の piggyback 深さ（送受一致必須。受信は wire `pb_count` を最大 3 までパース）。RX buffer は `RX_MODE[mode].buf_frames`（モード切替で適用）。FAST/LITE は当初 128f=8ms だったが RF バースト(maxgap≈4)で under-run したため 256f=16ms に深化。**FAST はその後 192f=12ms に再調整**し、BALANCED（288f=18ms）より確実に低遅延な Opus モードとして差別化した。実測 E2E 遅延は tx アナログ入力→rx アナログ出力の包絡クロス相関（≈ frame蓄積 + RX buffer + codec分。codec分は ADPCM ~2-4ms / Opus ~15-17ms、差 ~13ms が LITE/TURBO の低遅延要因）。**mode 8（FINE）は Opus 16kHz mono**（16k stereo の HIFI と 8k mono の SMOOTH の中間 — フルバンドだがモノラル）。wire body は他の Opus mode（1-5）と同一構造（§3.3-style: opus_len + frame + piggyback）で、送受とも既存の Opus コードパスをそのまま再利用する（新規 codec パス追加なし）。
 
 - mode 0（SOLID、旧称 RAW）の body は §3.1（ただし mode-aware ヘッダでは offset 1=mode_id, offset 2=seq, offset 3=pb_count に読み替え。§3.1 の offset 1=seq/offset 2=num_frames は mode-id 導入前の記述）。
-- mode 1-5, 8（Opus）の body は §3.3 参照。
+- mode 1-5, 8（Opus）の body は、§3.3 と同じ `frame_len` / `frame_data` / piggyback 構造を共通ヘッダ直後（offset 4）に置く。type は常に `0xAA` である。
 - mode 6（LITE）の body は下記。
 - **mode 7（TURBO）は mode 6（LITE）と wire が完全に同一**（同じ codec/fs/ch/frame/pb、同じ §3.4 mode 6 body 定義をそのまま使う）。**唯一の違いは受信機のジッタバッファ深さ**（LITE ≒16ms 相当 vs TURBO=64f=4ms）— 最小レイテンシ優先・途切れ増を許容する設定。送信側の encode/pack ロジックは mode 6 と共有し、パケットの `mode_id` のみ 7 を積む。
-- **mode 9（SOLID48, DRAFT）の body は下記**（mode 1-5/8 の Opus body 慣習 + 遅延リピート用の第 2 パケット）。
+- **mode 9（SOLID48）の body は下記**（mode 1-5/8 と同じ `0xAA` Opus body 構造 + 遅延リピート用の第 2 パケット）。
 
 #### mode 9（SOLID48）body — AS-BUILT v2（primary + 遅延リピート、2026-08-09）
 
@@ -155,18 +160,18 @@ mode_id テーブル:
 | オフセット | フィールド | 型 | 説明 |
 |---|---|---|---|
 | 0-3 | 共通ヘッダ | — | type=0xAA / mode_id=9+RELAYED / seq / pb_count(=1) |
-| 4 | frame_len | uint16 LE | Opus フレームのバイト長（48kHz stereo, 10ms, 64-96kbps CBR 目安） |
-| 6 | frame_data | uint8[frame_len] | Opus フレーム本体 |
-| 6+N | pb_prev_len | uint16 LE | 直前(T-1)フレームの長さ |
-| 8+N | pb_prev_data | uint8[pb_prev_len] | 直前(T-1)フレームの複製 |
+| 4 | frame_len | uint8 | Opus フレームのバイト長（48kHz stereo, 10ms, 64-96kbps CBR 目安） |
+| 5 | frame_data | uint8[frame_len] | Opus フレーム本体 |
+| 5+N | pb_prev_len | uint8 | 直前(T-1)フレームの長さ |
+| 6+N | pb_prev_data | uint8[pb_prev_len] | 直前(T-1)フレームの複製 |
 
-**(b) 遅延リピートパケット**（`set_stream_repeat`=ON のときのみ。既定 OFF） — 毎フレーム追加送信。**T-10（≈100ms 前）のフレームを、独立した mode_id=9 パケットとして単独再送**する（原設計 T-12 から変更 — 既定 HP バッファ 120ms の内側に 20ms のマージンを確保するため）。pb は付けない（このパケット自体が「別フレームの遅延コピー」であり、受信ステージングの seq 窓に自然に充填される。**新規 wire フィールド不要**）:
+**(b) 遅延リピートパケット**（`set_espnow_stream_repeat`=ON のときのみ。既定 OFF） — 毎フレーム追加送信。**T-10（≈100ms 前）のフレームを、独立した mode_id=9 パケットとして単独再送**する（原設計 T-12 から変更 — 既定 HP バッファ 120ms の内側に 20ms のマージンを確保するため）。pb は付けない（このパケット自体が「別フレームの遅延コピー」であり、受信ステージングの seq 窓に自然に充填される。**新規 wire フィールド不要**）:
 
 | オフセット | フィールド | 型 | 説明 |
 |---|---|---|---|
 | 0-3 | 共通ヘッダ | — | type=0xAA / mode_id=9+RELAYED / **seq = T-10 時点の seq**（現在の seq ではない） / pb_count(=0) |
-| 4 | frame_len | uint16 LE | T-10 フレームの長さ |
-| 6 | frame_data | uint8[frame_len] | T-10 フレーム本体（再送データそのまま、re-encode しない） |
+| 4 | frame_len | uint8 | T-10 フレームの長さ |
+| 5 | frame_data | uint8[frame_len] | T-10 フレーム本体（再送データそのまま、re-encode しない） |
 
 - 受信機は primary と遅延リピートを**同じ seq 空間・同じ受信処理**（ステージング窓への格納 → drain 時に seq 順給送）で扱う。primary で欠落した seq が後から遅延リピートで埋まれば、drain がそのスロットに到達する前に充填される（後付けスプライスではなく seq 順の供給）。重複（primary 到着済みスロットへの repeat）は破棄。
 - **≤100ms のバースト全滅**（primary + 隣接pb の両方が同一バーストで消える最悪ケース）を、100ms 遅れて届く独立コピーで回復する。A3 で不足が判明した場合、**2 段時間分散（例 T-10 + T-25）**へ拡張可能（wire 構造は変わらず、追加の遅延リピートパケットをもう 1 種類送るだけ。その場合はステージング深さと HP バッファの拡大が前提）。
@@ -224,7 +229,7 @@ N=40（D=20 bytes）のとき、piggyback ブロック = 1+1+1+1+20 = 24 bytes�
 | 3 | lock_timeout | ×10ms（5..50） | LOCK_TIMEOUT（§7.1） | runtime |
 | 4 | resync_gap | 4..64 | RESYNC_GAP（§7.1.1） | runtime |
 | 5 | volume_max override | 10..100（%・UI は 10/20/40/60/80/100 の 6 段） | 受信機ボリューム上限（ボリューム全域を wiper 0..ceiling へ再マップ＝分解能↑。% は wiper 0..127 に対する割合。下限は常に 0=mute で固定） | **NVS** |
-| 6 | HP buffer_ms override（AS-BUILT, DEC-046） | ×10ms（4..50 = 40..500ms、実効上限 ~138ms） | mode 9（SOLID48）専用のジッタバッファ深さ override。**送信側**: TX の serial コマンド `set_stream_hp_buffer` で値を設定 + fleetTick 0xAC ビーコンに param 6 として同報。**受信側**: 0xAC param 6 受信で `audioStreamSetBufferMs()` を適用（mode 9 のときのみ、他 mode は無視）。Studio → TX(Web Serial) → 0xAC → 艦隊一括で HP レイテンシ調整可。mode-9 進入時の起点は Studio `set_stream_buffer` の永続化値（未設定なら 120ms 既定）— このビーコンは進入後も引き続きその値を上書きできる | runtime |
+| 6 | HP buffer_ms override（AS-BUILT, DEC-046） | ×10ms（4..50 = 40..500ms、実効上限 ~138ms） | mode 9（SOLID48）専用のジッタバッファ深さ override。**送信側**: TX の serial コマンド `set_espnow_stream_hp_buffer` で値を設定 + fleetTick 0xAC ビーコンに param 6 として同報。**受信側**: 0xAC param 6 受信で `audioStreamSetBufferMs()` を適用（mode 9 のときのみ、他 mode は無視）。Studio → TX(Web Serial) → 0xAC → 艦隊一括で HP レイテンシ調整可。mode-9 進入時の起点は Studio `set_stream_buffer` の永続化値（未設定なら 120ms 既定）— このビーコンは進入後も引き続きその値を上書きできる | runtime |
 
 - **未知の param_id / version は無視しなければならない (MUST)**（前方互換 — 新 param 追加時に旧受信機が誤動作しない）。
 - 受信機は**ロック中ソースからの 0xAC のみ適用しなければならない (MUST)**。RELAYED=1（リピータ中継）でも、そのリピータがロック中ソースなら適用対象。
@@ -238,7 +243,7 @@ N=40（D=20 bytes）のとき、piggyback ブロック = 1+1+1+1+20 = 24 bytes�
   - **同一 epoch の 5s 再送は必ず再適用しなければならない (MUST)**（初回導入時の `<= 0` 拒否は誤り — 撤回済み）。全 param の適用処理はべき等（同値なら状態不変）なので同値再適用は無害。旧仕様（同 epoch も拒否）は、無効値ビーコン・TX-TX 収束前の一時的な旧値ビーコン・ロック先が配信元でない状態からの handoff のいずれかで epoch が「消費済み」になると、以後の正しい値の再送が送信機側の値変更（epoch 進行）まで永遠に届かなくなる欠陥があった（2026-07-11/12 field report、DEC-045 epoch 同期の建付け根治）。
   - **epoch の latch は param の value がその param の許容範囲を通過した後にのみ行わなければならない (MUST)**。範囲外の value で epoch を消費すると、直後に届く正しい値のビーコン（同 epoch）が「新しくない」として拒否されてしまう。
   - 目的（変更なし）: ある送信機の 0xAC を受信機がロック中ソース経由で一度適用した後、**別の（値が古い）送信機**に handoff した際、その送信機からの遅れて届いた/重複した同一 param のビーコンで**新しい値が古い値へ巻き戻されない**ようにするため。
-- **送信機（複数 TX 運用）**: 自身の操作（RX VOL タッチ / `set_fleet_param`）で値を変える**たび epoch を単調増加**させ、NVS（`tx` namespace）に値と epoch を保存（**再起動後も同じ値・epoch で配信を再開しなければならない (MUST)**）。加えて**他の送信機からの 0xAC を受信して TX 間で自動収束しなければならない (MUST)**: 受信した epoch が自分の epoch より新しければ**値+epoch を採用**し以後その値を配信、自分の epoch の方が新しければ無視（相手が追って収束する）。**同一 epoch・異なる値**（同時変更の希少ケース）は、**送信元 MAC が自分より大きい方が採用される**（両者で対称に評価するため決定的に収束する）。**RELAYED=1（リピータ中継）の 0xAC は TX 間同期の対象外**（origin 同士のみで同期し、リピータ経由の遅延コピーで発振しないため）。
+- **送信機（複数 TX 運用）**: 自身の操作（RX VOL タッチ / `set_espnow_stream_fleet_param`）で値を変える**たび epoch を単調増加**させ、NVS（`tx` namespace）に値と epoch を保存（**再起動後も同じ値・epoch で配信を再開しなければならない (MUST)**）。加えて**他の送信機からの 0xAC を受信して TX 間で自動収束しなければならない (MUST)**: 受信した epoch が自分の epoch より新しければ**値+epoch を採用**し以後その値を配信、自分の epoch の方が新しければ無視（相手が追って収束する）。**同一 epoch・異なる値**（同時変更の希少ケース）は、**送信元 MAC が自分より大きい方が採用される**（両者で対称に評価するため決定的に収束する）。**RELAYED=1（リピータ中継）の 0xAC は TX 間同期の対象外**（origin 同士のみで同期し、リピータ経由の遅延コピーで発振しないため）。
 - **リアルタイム性**: TX-TX 収束・受信機への適用ともに 0xAC の recv コールバック（Wi-Fi タスク）で epoch 判定・値の RAM 更新のみ行い、**NVS 書き込み・Serial ログ等のブロッキング I/O は loop タスクへ遅延させなければならない (MUST)**（ESP-NOW RX のスタベーション防止。受信機側の volume_max 適用が UI/loop タスクへ遅延される既存ルールと同じ理由）。
 
 ## 4. チャンネル（グループ）
@@ -255,7 +260,7 @@ N=40（D=20 bytes）のとき、piggyback ブロック = 1+1+1+1+20 = 24 bytes�
 
 - `transport=espnow_stream` の receiver は ESP-NOW broadcast を受信し、ADPCM デコード → リングバッファ → I2S DAC → 触覚出力。
 - レイテンシはリングバッファ上限超過分を破棄して累積させない（実装詳細はファーム側、移植元の低遅延化に準拠）。
-- 既定ゲインは `set_gain`、物理ボリュームノブと併用。
+- 既定ゲインは `set_espnow_stream_gain`、物理ボリュームノブと併用。
 - Wi-Fi STA には接続しない（純 ESP-NOW 運用、固定チャンネル）。設定は USB serial 経由。
 - 複数 transmitter（ソース機 / リピータ機）を同時受信しうる場合、**送信元 MAC で 1 台にロックして再生**する（§7）。**複数ソースをミキシングしない**。
 
@@ -299,7 +304,7 @@ RSSI が取れない実装向けに、§7.1 の「最先着ロック + 途絶切
 #### 7.1.3 リピータテストモード（設営確認用・MAY）
 
 - 受信機は「**RELAYED=1 のパケットのみをソース候補とする**」揮発的なテストモードを持ってよい (MAY)。設営時に「リピータ経由でロックできるか」を受信機 1 台で確認するための機能。
-- トグルは設定チャネル（serial `set_espnow_relay_test`）経由。**再起動で必ず解除される (MUST)**（NVS 保存しない → テスト置き忘れの構造的防止）。
+- トグルは設定チャネル（serial `set_espnow_stream_relay_test`）経由。**再起動で必ず解除される (MUST)**（NVS 保存しない → テスト置き忘れの構造的防止）。
 
 ### 7.2 リピータ
 
@@ -309,7 +314,7 @@ RSSI が取れない実装向けに、§7.1 の「最先着ロック + 途絶切
 - **ループ防止（構造的）**: **RELAYED=1（bit7 セット）のパケットは中継してはならない (MUST NOT)**。「中継されたパケットは二度と中継されない」＝任意台数のリピータを並べても中継は**最大 1 ホップ**（origin → repeater → receiver）に構造的に有界化される。台数無制限・現地設定ゼロでループ不可能。
 - **origin 自動追従（SHOULD, DEC-043）**: リピータは **RELAYED=0 の先着 MAC にロック**し、その MAC のパケットのみ中継する。ロック origin が `R_TIMEOUT`（=250ms）沈黙したらロックを解放し、次に届いた RELAYED=0 の origin に再ロックする。これによりソース 2 機のうち 1 機が死んでも、リピータは自動で生存 origin に追従する（TX2 が真のホットスタンバイになる）。
 - **`R_TIMEOUT` は受信機のロック喪失タイムアウト（`LOCK_TIMEOUT`, §7.1）より長くなければならない (MUST)**。重複圏の受信機がリピータの再ロックより先に直波 origin へ移り、seq 不連続（§7.1.1 resync）を確実に発火させるため（現行 LOCK_TIMEOUT=150ms < R_TIMEOUT=250ms）。
-- **手動ピン（NVS `relay_src`）**: `set_relay_source`（`serial-config.md`）で source MAC を設定した場合は**厳格な手動ピン**として振る舞い、auto 追従は無効になる。**ピン先の origin が死ねば中継は停止する**（他 origin に移らない）。空 MAC を設定すると auto 追従に戻る。
+- **手動ピン（NVS `relay_src`）**: `set_espnow_stream_relay_source`（`serial-config.md`）で source MAC を設定した場合は**厳格な手動ピン**として振る舞い、auto 追従は無効になる。**ピン先の origin が死ねば中継は停止する**（他 origin に移らない）。空 MAC を設定すると auto 追従に戻る。
 - **混在艦隊ルール (MUST NOT)**: bit7 導入前の旧リピータファームと auto-relay 世代（本 DEC-043 世代）を**併用してはならない**。旧機は中継時に bit7 を立てないため、その出力が新リピータからは「偽 origin（RELAYED=0）」に見え、2 ホップ連鎖して 1 ホップ保証が破れる。
 - **展開順序 (MUST)**: **受信機（bit7 マスク対応, §3.4）を先に全台 flash してから、リピータを配備する**。旧受信機は bit7 セットのパケットを mode 範囲チェックで黙って捨てるため、逆順だとリピータ経由のカバレッジが無言で消える。
 - リピータは音声取込を行わない（I2S 不要、RX→TX 中継のみ）。
@@ -335,7 +340,7 @@ RSSI が取れない実装向けに、§7.1 の「最先着ロック + 途絶切
 ## 8. 関連文書
 
 - `node-roles.md` — role/transport taxonomy
-- `serial-config.md` — `set_espnow_channel` / `set_gain` / `set_input_level` / `set_relay_source`
+- `serial-config.md` — `set_espnow_channel` / `set_espnow_stream_gain` / `set_espnow_stream_input_level` / `set_espnow_stream_relay_source`
 - `message-format.md` §0x30 — UDP 経路の streaming（別経路）
-- `../docs/decision-log.md` DEC-033（無線方式選定 + 送信元多重化 + 独立ソース選択）/ DEC-034（ツールチェーン）/ DEC-043（RELAYED bit7 + auto-relay + seq-resync + 配信レートベース選択）/ DEC-046（mode 9 SOLID48・数百 ms バッファ許容の耐障害プロファイル、DRAFT）
+- `../docs/decision-log.md` DEC-033（無線方式選定 + 送信元多重化 + 独立ソース選択）/ DEC-034（ツールチェーン）/ DEC-043（RELAYED bit7 + auto-relay + seq-resync + 配信レートベース選択）/ DEC-046（mode 9 SOLID48・数百 ms バッファ許容の耐障害プロファイル）
 - `../docs/instructions-v4-solid-audio-202607112200.md` — mode 9 SOLID48 の原設計（時間分散冗長・バッファ vs handoff の質的転換・送信側実時間ゲートの考え方）

@@ -3,9 +3,8 @@
 Hapbeat エコシステム全体で使用するネットワークポートの**単一の正**。
 新しいサービス／ツールを追加するときは、まずここに登録してから実装する。
 
-> 由来: DEC-036。旧 `bridge-api.md` のポート表は **deprecated の Bridge 設計**
-> （DEC-026 で廃止）に基づくため、現行アーキテクチャ（device + hapbeat-helper +
-> Studio）のポートは本文書を正とする。
+> legacy `hapbeat-bridge` は現行非対応で再利用しない。現行アーキテクチャ
+> （device + hapbeat-helper + Studio）のポートは本文書を正とする。
 
 ## 1. 一覧
 

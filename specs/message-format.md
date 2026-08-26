@@ -1,31 +1,28 @@
-# UDP/OSC メッセージフォーマット仕様書
+# WifiUdp/OSC メッセージフォーマット仕様書
 
 ## 1. 概要
 
-本文書は、Hapbeat エコシステムで使用される全メッセージフォーマットを定義する。SDK から Bridge への通信（Layer 1）を公開仕様として詳細に規定し、内部層については概要のみ記載する。
+本文書は、`NodeTransport.WifiUdp`（wire/config 値 `wifi_udp`）の SDK → デバイス UDP 通信と OSC 変換を定義する。UDP wire bytes は変更しない。
 
 ## 2. メッセージ層の整理
 
-Hapbeat システムの通信は以下の 3 層で構成される。
+| 区間 | プロトコル | 公開範囲 |
+|---|---|---|
+| SDK → デバイス | Wi-Fi UDP 7700 | 公開仕様（本文書） |
+| OSC ツール → デバイス | OSC UDP 7702 → Wi-Fi UDP 7700 | ツールの変換経路 |
 
-| 層 | 区間 | プロトコル | 公開範囲 |
-|---|---|---|---|
-| Layer 1 | SDK → Bridge | UDP / OSC（ポート 7700 / 7702） | 公開仕様（本文書） |
-| Layer 2 | Bridge → Transmitter | USB シリアル（内部） | 内部仕様（`internal-bridge-transmitter.md` で定義） |
-| Layer 3 | Transmitter → Device | ESP-NOW | 内部仕様（device-firmware 側で定義） |
-
-SDK 開発者は Layer 1 のみを意識すればよい。Layer 2・Layer 3 は Bridge および Firmware が内部的に処理する。
+SDK は既知デバイスへ unicast し、既知デバイスが 0 台のときだけ broadcast する。legacy `hapbeat-bridge` は現行非対応で再利用しない。
 
 > エコシステム全体のポート一覧とホスト側 bind 方針は `ports.md`（ポート台帳）を正とする。
 
-本文書は **`udp` transport** の wire format を定義する。他の transport は別文書で定義する（`node-roles.md` の taxonomy 参照）:
+本文書は **`wifi_udp` transport** の wire format を定義する。他の transport は別文書で定義する（`node-roles.md` の taxonomy 参照）:
 
 - **`mqtt` transport**（センサ起点の遠隔通知）→ `mqtt-transport.md`
 - **`espnow_stream` transport**（会場同報のライブ音声）→ `espnow-stream.md`
 
 触覚資産（Kit / event_id）と再生意味論は transport 非依存で共通。各 transport はその搬送方法だけが異なる。
 
-## 3. 共通ヘッダ構造（Layer 1 UDP パケット）
+## 3. 共通ヘッダ構造（WifiUdp パケット）
 
 すべての UDP パケットは以下の共通ヘッダで始まる。
 
@@ -40,7 +37,7 @@ SDK 開発者は Layer 1 のみを意識すればよい。Layer 2・Layer 3 は 
 
 ヘッダサイズは固定 8 bytes である。
 
-## 4. コマンド定義（Layer 1）
+## 4. コマンド定義（WifiUdp）
 
 ### 0x01 PLAY
 
@@ -50,7 +47,7 @@ SDK 開発者は Layer 1 のみを意識すればよい。Layer 2・Layer 3 は 
 |---|---|---|
 | event_id | null-terminated string | 再生するイベントの識別子。Kit manifest の `events` (command-mode) のキーと一致する必要がある。`stream_events` のキーは SDK 内部ラベルでありここには乗らない |
 | target | null-terminated string | ターゲットアドレス（空文字 = 全台）。詳細は `device-addressing.md` 参照 |
-| target_time | int64 | 再生開始時刻（マイクロ秒、Bridge 基準時刻） |
+| target_time | int64 | 再生開始時刻（マイクロ秒）。`0` は即時再生 |
 | gain | float32 | 再生ゲイン（0.0 〜 1.0） |
 | pan | float32 | 左右バランス（-1.0 = 左のみ / 0.0 = 中央 / +1.0 = 右のみ）。**末尾の省略可能フィールド**: 受信側は存在しなければ 0.0（中央）として扱う。送信側は常に付与すること。適用則は下記 (DEC-055) |
 
@@ -88,7 +85,7 @@ gain_r = gain × (pan >= 0 ? 1.0 : 1.0 + pan)
 
 ### 0x10 PING
 
-Bridge との接続確認および時刻同期に使用する。
+デバイスの接続確認に使用する。
 
 | フィールド | 型 | 説明 |
 |---|---|---|
@@ -96,16 +93,16 @@ Bridge との接続確認および時刻同期に使用する。
 
 ### 0x11 PONG
 
-PING に対する応答。Bridge から SDK に返送される。
+PING に対するデバイスの応答。
 
 | フィールド | 型 | 説明 |
 |---|---|---|
 | timestamp | int64 | 元の PING のタイムスタンプ（マイクロ秒） |
-| server_time | int64 | Bridge が PONG を送信した時刻（マイクロ秒） |
+| server_time | int64 | デバイスが PONG を送信した時刻（マイクロ秒） |
 
-### 0x11 PONG（デバイス応答時の拡張）
+### 0x11 PONG 拡張
 
-デバイスが直接 PONG を返す場合（Wi-Fi UDP 直接通信時）、標準フィールドに加えて以下の拡張フィールドを含む。
+デバイスは標準フィールドに加えて以下の拡張フィールドを含む。
 
 | フィールド | 型 | 説明 |
 |-----------|-----|------|
@@ -115,7 +112,7 @@ PING に対する応答。Bridge から SDK に返送される。
 | address | null-terminated string | デバイスアドレス（例: `player_1/chest`）。詳細は `device-addressing.md` 参照 |
 | firmware_version | null-terminated string | ファームウェアバージョン |
 
-受信側は `payload_length` を確認することで、Bridge 標準 PONG（16 bytes）とデバイス拡張 PONG（16 bytes + 可変長）を区別できる。
+受信側は `payload_length` を確認して、基本 PONG（16 bytes）と拡張 PONG（16 bytes + 可変長）を区別する。
 
 ### 0x20 CONNECT_STATUS
 
@@ -193,7 +190,7 @@ STREAM_BEGIN/DATA/END には **event_id フィールドを含まない**。strea
 
 ### 0xFF ERROR
 
-エラー通知。Bridge から SDK に送信される。
+エラー通知。デバイスから SDK に送信される。
 
 | フィールド | 型 | 説明 |
 |---|---|---|
@@ -253,10 +250,10 @@ OSC メッセージの引数は、対応する UDP コマンドの payload フ�
 ## 8. targetTime の扱い
 
 - 単位: マイクロ秒
-- 基準: Bridge のローカル時刻
+- 基準: 送信側とデバイスで合意した時刻
 - `0` を指定した場合: 即時再生
 - 過去の時刻を指定した場合: 即時再生にフォールバック
-- SDK は PING/PONG を用いて Bridge との時刻差を推定し、targetTime を補正することが推奨される
+- SDK は PING/PONG を用いてデバイスとの時刻差を推定し、targetTime を補正することが推奨される
 
 ## 9. デバイスアドレッシング
 

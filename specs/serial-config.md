@@ -47,8 +47,8 @@ Desktop アプリ（hapbeat-desktop）から Hapbeat デバイスに USB serial 
   "build": "a1b2c3d",
   "mac": "AA:BB:CC:DD:EE:FF",
   "role": "receiver",
-  "transport": "udp",
-  "transports": ["udp"],
+  "transport": "wifi_udp",
+  "transports": ["wifi_udp"],
   "board": "band_wl_v3",
   "wifi_connected": false,
   "wifi_ssid": "",
@@ -196,27 +196,27 @@ NVS: `hapbeat/broker_host` / `hapbeat/broker_port` (u16) / `hapbeat/mq_root`。�
 
 **Response:** `{"status": "ok", "cmd": "set_espnow_channel", "channel": 6}`
 
-### 4.10 set_gain — espnow_stream 受信の既定ゲイン（receiver(espnow_stream)）
+### 4.10 set_espnow_stream_gain — EspNowStream 受信の既定ゲイン（receiver(espnow_stream)）
 
 **Request:**
 ```json
-{"cmd": "set_gain", "gain": 0.8}
+{"cmd": "set_espnow_stream_gain", "gain": 0.8}
 ```
 
 `gain` ∈ [0.0, 1.0]。本体のアナログボリュームとは独立した、ストリーミング再生のソフトウェア既定ゲイン。
 
-**Response:** `{"status": "ok", "cmd": "set_gain", "gain": 0.8}`
+**Response:** `{"status": "ok", "cmd": "set_espnow_stream_gain", "gain": 0.8}`
 
-### 4.11 set_input_level — ライン入力レベル（transmitter）
+### 4.11 set_espnow_stream_input_level — EspNowStream ライン入力レベル（transmitter）
 
 **Request:**
 ```json
-{"cmd": "set_input_level", "level": 50}
+{"cmd": "set_espnow_stream_input_level", "level": 50}
 ```
 
 `level` ∈ [0, 100]（codec の ADC/ライン入力ゲインを正規化した値）。
 
-**Response:** `{"status": "ok", "cmd": "set_input_level", "level": 50}`
+**Response:** `{"status": "ok", "cmd": "set_espnow_stream_input_level", "level": 50}`
 
 ### 4.12 set_broker_config — 組み込み broker 設定（broker）
 
@@ -331,7 +331,7 @@ MQTT 受信機の **制限モード**（`mqtt-transport.md` §6.3）。ON のと
   参照するため、トグルは**次の受信から即時反映**（再起動不要）。
 - get_info の `alert_limit`（bool, receiver(mqtt) のみ）で現在値を読む。
 
-### 4.18 set_relay_source — リピータの中継元 source MAC（transmitter / repeater）
+### 4.18 set_espnow_stream_relay_source — EspNowStream リピータの中継元 source MAC（transmitter / repeater）
 
 ESP-NOW stream のリピータ機が中継する **1 つの source MAC** を設定する（`espnow-stream.md` §7.2）。
 設定するとそのデバイスはリピータとして動作し、当該 source の `0xAA` パケットのみを verbatim
@@ -339,16 +339,16 @@ ESP-NOW stream のリピータ機が中継する **1 つの source MAC** を設�
 
 **Request:**
 ```json
-{"cmd": "set_relay_source", "mac": "AA:BB:CC:DD:EE:FF"}
+{"cmd": "set_espnow_stream_relay_source", "mac": "AA:BB:CC:DD:EE:FF"}
 ```
 
 - `mac` (string): 中継する source 機の MAC（`""` でリピータ動作を無効化 = 通常の transmitter）。
 - NVS: `espnow/relay_src`（string）。一発勝負イベントでは flash-time 定数でも可。
 - get_info の `relay_source`（string, transmitter のみ）で現在値を読む。
 
-**Response:** `{"status": "ok", "cmd": "set_relay_source", "mac": "AA:BB:CC:DD:EE:FF"}`
+**Response:** `{"status": "ok", "cmd": "set_espnow_stream_relay_source", "mac": "AA:BB:CC:DD:EE:FF"}`
 
-### 4.19 set_espnow_ui — 受信機の省電力 UI ポリシー（receiver(espnow_stream)）
+### 4.19 set_espnow_stream_ui — EspNowStream 受信機の省電力 UI ポリシー（receiver(espnow_stream)）
 
 espnow_stream 受信機は Wi-Fi/UDP 機と挙動が大きく異なる（メニュー・Wi-Fi 設定なし、ただ受信して触覚を鳴らすだけ）。60 台 2 時間のウェアラブル運用に向け、OLED は**常時消灯**・LED は**常時 off**にし、**ボタン押下またはボリューム変更**で低輝度の音量オーバーレイを数秒だけ表示する。本コマンドはその挙動ポリシーを設定する（**全フィールド任意・部分更新**）。表示レイアウト自体はファーム固定（Studio の grid 編集対象外）。輝度は既存の `set_oled_brightness` を使う（本コマンドでは扱わない）。
 
@@ -359,7 +359,7 @@ espnow_stream 受信機は Wi-Fi/UDP 機と挙動が大きく異なる（メニ�
 
 **Request:**
 ```json
-{"cmd": "set_espnow_ui",
+{"cmd": "set_espnow_stream_ui",
  "auto_off_ms": 8000, "wake_on_button": true, "wake_on_volume": true,
  "led_enabled": false, "low_batt_pct": 15, "vol_wake_step": 1, "volume_steps": 16}
 ```

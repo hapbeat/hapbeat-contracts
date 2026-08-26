@@ -164,7 +164,7 @@ mapping エントリ:
   まで継続表示（§6.1）。
 - 複数 root を購読しても、play/stop の判定は topic の末尾（`/play` / `/stop`）で行う
   （自分が購読した topic のみ届くため）。
-- 再生経路・Kit・event table は `udp` と完全共通（transport だけが差し替わる）。
+- 再生経路・Kit・event table は `wifi_udp` と完全共通（transport だけが差し替わる）。
 
 ### 6.1 alert-loop モード（受信機設定）
 

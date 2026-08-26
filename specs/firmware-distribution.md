@@ -45,8 +45,8 @@ ESP-NOW / MQTT の追加で、Hapbeat のファームは **複数 repo × 複数
       "repo": "hapbeat-device-firmware",
       "env": "band_v3",
       "role": "receiver",
-      "transport": "udp",
-      "transports": ["udp", "mqtt"],
+      "transport": "wifi_udp",
+      "transports": ["wifi_udp", "mqtt"],
       "board": "band_wl_v3",
       "hapbeat": true,
       "label": "Band — Wi-Fi (UDP/MQTT)",
@@ -109,7 +109,7 @@ ESP-NOW / MQTT の追加で、Hapbeat のファームは **複数 repo × 複数
 | `repo` | ✅ | 由来 repo 名 |
 | `env` | ✅ | PlatformIO env 名 |
 | `role` | ✅ | `receiver` / `sensor` / `broker` / `transmitter`（`node-roles.md`） |
-| `transport` | ✅ | `udp` / `mqtt` / `espnow_stream` |
+| `transport` | ✅ | `wifi_udp` / `mqtt` / `espnow_stream` |
 | `transports` | ➖ | 複数 transport 対応時のリスト |
 | `board` | ➖ | 基板識別子（書込時の board mismatch 検証に使用）。v2 fragment では明示推奨。v1 からの推論で決まらない場合は省略可（mismatch 検証は board 未定なら skip） |
 | `hapbeat` | ➖ | `true` = 装着型 Hapbeat 本体（`duo_wl_*` / `band_wl_*`）、`false` = エコシステム周辺機器（broker / sensor / transmitter）。Studio はファームライブラリ/オンボーディングを**この値**でグループ分けする（`role` ではない: サードパーティ製ノードも `role=receiver` になり得るため、role は「Hapbeat か否か」の信頼できる判定にならない）。省略時は board 接頭辞（`duo_wl`/`band_wl`）から推論 |
@@ -142,7 +142,7 @@ ESP-NOW / MQTT の追加で、Hapbeat のファームは **複数 repo × 複数
 | `contentHash` | ➖ | **公開バイトの sha256**（`sha256:<64hex>`。appOta は app-only / serial 専用 env は full）。**advisory** — 「バイトは変わったのに版据え置き」を検出する識別子であって **OTA gate ではない**（デバイスは自イメージの hash を報告できない） |
 | `path` | ➖ | 成果物の**絶対 URL**（same-origin proxy or CDN）。存在時は consumer が `<BASE>/<filename>` を組み立てず**この URL をそのまま fetch**。private repo 配布で必須（filename だけでは到達不可） |
 
-- `appOta` は Wi-Fi 経路を持つノード（receiver(udp/mqtt) / broker / sensor）のみ。transmitter / espnow_stream 受信機は serial のみ。
+- `appOta` は Wi-Fi 経路を持つノード（receiver(wifi_udp/mqtt) / broker / sensor）のみ。transmitter / espnow_stream 受信機は serial のみ。
 - `fullSerial` は全 variant 必須（Studio からの初回書込は USB serial が基本経路）。
 
 ### アーカイブ（過去バージョンへのロールバック）
@@ -152,10 +152,10 @@ GitHub Releases は過去リリースを保持し続ける（新リリースで�
 - 成果物ファイル名はバージョンを含めて衝突回避する: **`<repo-short>_<env>_<fwVersion>_<stem>.bin`**
 - variant のトップレベル `fwVersion`/`appOta`/`fullSerial` は常に `versions[0]`（最新）のコピー（versions 非対応の reader 互換）。
 
-## 5. 後方互換（移行）
+## 5. 破壊的変更
 
-- Hapbeat はリリース前のため後方互換レイヤは作らない。manifest は v2 に一本化する。
-- ただし Studio 側 reader は、`variants` 不在で `envs` のみの旧 manifest（dev plugin 等）を受け取った場合、各 env を `role:"receiver", transport:"udp"` の variant として解釈してよい（dev 環境の暫定動作）。これは互換目的ではなく **dev plugin がまだ v1 を返すための glue**。
+- Hapbeat はリリース前のため後方互換レイヤは作らない。manifest は v2 に一本化し、`transport` は `wifi_udp` / `mqtt` / `espnow_stream` のみを受け付ける。
+- `envs` のみを持つ旧 manifest と `transport:"udp"` は無効であり、reader は解釈・fallback してはならない。
 
 ## 6. 関連文書
 

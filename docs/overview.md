@@ -84,11 +84,11 @@ Kit は **Studio で作成・編集** し、Helper 経由で Hapbeat にデプ�
 
 ## 通信プロトコル
 
-標準の通信経路は **Wi-Fi UDP broadcast** です。SDK がブロードキャストを送信し、Hapbeat が自身の Group ID に一致するパケットだけを処理します。
+標準の通信経路は **WifiUdp（`wifi_udp`）** です。SDK は既知デバイスへ unicast し、既知デバイスが 0 台のときだけ Wi-Fi UDP broadcast を送信します。Hapbeat は自身の Group ID に一致するパケットだけを処理します。
 
 ```
 SDK（PC / Quest / スマートフォン）
-  └─ Wi-Fi UDP broadcast ─→ Hapbeat デバイス（Group ID でフィルタ）
+  └─ Wi-Fi UDP unicast（既知 0 台時は broadcast）─→ Hapbeat デバイス（Group ID でフィルタ）
 ```
 
-Bridge や USB 接続は不要です。同じ Wi-Fi ネットワークに繋がっていれば動作します。
+Bridge や USB 接続は不要です。同じ Wi-Fi ネットワークに繋がっていれば動作します。legacy `hapbeat-bridge` は現行非対応で、再利用しません。

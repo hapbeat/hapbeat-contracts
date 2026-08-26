@@ -6,7 +6,7 @@
 ツールチェーン（Studio / Helper）はこの 2 軸を「デバイス属性」として扱い、UI を出し分ける（DEC-034）。
 
 > **設計原則:** 通信モードは *アプリのページ/タブ* ではなく *デバイス（ノード）の属性*。
-> 型を名乗らないノードは従来どおりの UDP 受信機として扱われ、UDP 利用者の体験は変わらない。
+> `NodeTransport` の wire/config 値は `wifi_udp` / `mqtt` / `espnow_stream` のみである。旧 `udp` は無効であり、alias・fallback は持たない。
 
 すべてのノードは **同一の ESP32 系 SoC** で動作し、**共通の設定プロトコル**（`serial-config.md`）を喋る。
 これにより Studio は「どの役割のノードでも、同じ作法でファーム書込 → 設定」ができる。
@@ -15,7 +15,7 @@
 
 | role | 役割 | 代表ハードウェア | 主な transport | 設定経路 |
 |---|---|---|---|---|
-| `receiver` | 触覚を再生する装着デバイス（不変の中核） | Hapbeat band / necklace (ESP32-S3) | `udp` / `mqtt` / `espnow_stream` | Wi-Fi 系は Helper(TCP 7701)、それ以外は USB serial |
+| `receiver` | 触覚を再生する装着デバイス（不変の中核） | Hapbeat band / necklace (ESP32-S3) | `wifi_udp` / `mqtt` / `espnow_stream` | Wi-Fi 系は Helper(TCP 7701)、それ以外は USB serial |
 | `sensor` | センサ値をトリガに event を発火する送信元 | M5 ATOM 系 + センサ（例: 色センサ） | `mqtt` | Wi-Fi（Helper or USB serial） |
 | `broker` | MQTT メッセージを中継する組み込みブローカー | M5 AtomS3（組み込み broker） | `mqtt`（インフラ） | Wi-Fi（Helper or USB serial） |
 | `transmitter` | ライブ音声を ESP-NOW で同報する送信元 | M5 / XIAO + 音声 codec | `espnow_stream`（インフラ） | USB serial（Wi-Fi STA 非接続のため） |
@@ -26,13 +26,13 @@
 
 | transport | 用途 | 経路 | 関連仕様 |
 |---|---|---|---|
-| `udp` | リアルタイム（Unity 等 SDK 連携） | SDK → Wi-Fi UDP broadcast → receiver（group/address フィルタ） | `message-format.md` |
+| `wifi_udp` | リアルタイム（Unity 等 SDK 連携） | SDK → Wi-Fi UDP unicast（既知 0 台時は broadcast）→ receiver（group/address フィルタ） | `message-format.md` |
 | `mqtt` | センサ起点の遠隔通知（施設 Wi-Fi 経由） | sensor → broker(MQTT) → receiver | `mqtt-transport.md` |
 | `espnow_stream` | 会場同報（PA ライブ音声 → 全観客が同時に触覚） | transmitter → ESP-NOW broadcast → receiver | `espnow-stream.md` |
 
 - `transport` は **ファームのビルドで確定**し、`get_info` で報告される（実行時スイッチではない）。
   「正しいファームを焼く」モデルに統一することで、Studio はノードを発見した時点で適切な設定面を出せる。
-- `receiver` は将来的に複数 transport を同時サポートしうる（例: udp + mqtt）。その場合 `get_info.transports`（配列）で報告してよい（§4）。
+- `receiver` は将来的に複数 transport を同時サポートしうる（例: wifi_udp + mqtt）。その場合 `get_info.transports`（配列）で報告してよい（§4）。
 
 ## 4. get_info の必須報告フィールド
 
@@ -42,7 +42,7 @@
 |---|---|---|
 | `role` | string | §2 の役割（`receiver` / `sensor` / `broker` / `transmitter`） |
 | `transport` | string | §3 の主 transport。複数対応時は代表値（詳細は `transports`） |
-| `transports` | string[] | optional。複数 transport 対応時の全リスト（例: `["udp","mqtt"]`） |
+| `transports` | string[] | optional。複数 transport 対応時の全リスト（例: `["wifi_udp","mqtt"]`） |
 | `board` | string | 基板識別子（例: `band_wl_v3` / `duo_wl_v3` / `atom_lite` / `atom_s3` / `xiao_c6`）。ファーム書込の board mismatch 検証に使う |
 
 `role` / `transport` / `board` の **3 つは全ノード必須**。これが Studio/Helper の mode-aware 化の唯一の前提となる。
@@ -60,9 +60,9 @@
 | `reboot` | ✅ | ✅ | ✅ | ✅ | 再起動 |
 | `set_broker_host` | ✅(mqtt) | ✅ | ➖ | ➖ | MQTT broker アドレス（`"auto"` = mDNS 発見） |
 | `set_espnow_channel` | ✅(espnow) | ➖ | ➖ | ✅ | ESP-NOW チャンネル（1/6/11） |
-| `set_gain` | ✅(espnow) | ➖ | ➖ | ➖ | espnow_stream 受信の既定ゲイン |
-| `set_input_level` | ➖ | ➖ | ➖ | ✅ | ライン入力レベル |
-| `set_relay_source` | ➖ | ➖ | ➖ | ✅ | リピータの中継元 source MAC（`espnow-stream.md` §7.2） |
+| `set_espnow_stream_gain` | ✅(espnow) | ➖ | ➖ | ➖ | EspNowStream 受信の既定ゲイン |
+| `set_espnow_stream_input_level` | ➖ | ➖ | ➖ | ✅ | ライン入力レベル |
+| `set_espnow_stream_relay_source` | ➖ | ➖ | ➖ | ✅ | リピータの中継元 source MAC（`espnow-stream.md` §7.2） |
 | `set_broker_config` | ➖ | ➖ | ✅ | ➖ | broker の static octet / port |
 | `set_sensor_mapping` / `get_sensor_mapping` | ➖ | ✅ | ➖ | ➖ | センサ値 → event の対応表（`mqtt-transport.md` §5） |
 | `get_sensor_reading` | ➖ | ✅ | ➖ | ➖ | センサ現在値（ライブ閾値チューニング用、`serial-config.md` §4.14） |
@@ -78,7 +78,7 @@
 ## 7. 関連文書
 
 - `serial-config.md` — 共通設定プロトコル（本仕様のコマンド実体）
-- `message-format.md` — UDP transport の wire format
+- `message-format.md` — WifiUdp transport の wire format
 - `mqtt-transport.md` — MQTT transport（topic / payload / broker 発見）
 - `espnow-stream.md` — ESP-NOW streaming transport（packet 形式）
 - `firmware-distribution.md` — ファーム配布 manifest（role/transport/board 分類）
