@@ -53,7 +53,6 @@ Desktop アプリ（hapbeat-desktop）から Hapbeat デバイスに USB serial 
   "wifi_connected": false,
   "wifi_ssid": "",
   "wifi_ip": "",
-  "espnow_channel": 1,
   "stream_formats": ["pcm16", "adpcm", "opus"],
   "broker_host": "auto"
 }
@@ -66,7 +65,7 @@ Desktop アプリ（hapbeat-desktop）から Hapbeat デバイスに USB serial 
 > 旧版の `data{}` ラッパー・`firmware` キーは廃止。
 
 `role` / `transport` / `board` は **全ノード必須**（`node-roles.md` §4）。
-`transports` は複数 transport 対応時のみ。役割固有フィールド（`broker_host` / `gain` / `input_level` / `relay_source` / `static_octet` / `mqtt_port` / `mappings` 等）は当該役割でのみ含める。
+`transports` は複数 transport 対応時のみ。役割固有フィールド（`broker_host` / `espnow_channel` / `espnow_stream_gain` / `espnow_stream_input_level` / `espnow_stream_relay_source` / `espnow_stream_ui` / `espnow_stream` / `static_octet` / `mqtt_port` / `mappings` 等）は当該役割でのみ含める。
 
 ### 4.2 set_wifi — Wi-Fi 認証情報設定
 
@@ -204,6 +203,7 @@ NVS: `hapbeat/broker_host` / `hapbeat/broker_port` (u16) / `hapbeat/mq_root`。�
 ```
 
 `gain` ∈ [0.0, 1.0]。本体のアナログボリュームとは独立した、ストリーミング再生のソフトウェア既定ゲイン。
+get_info では現在値を `espnow_stream_gain`（number, receiver(espnow_stream) のみ）として返す。
 
 **Response:** `{"status": "ok", "cmd": "set_espnow_stream_gain", "gain": 0.8}`
 
@@ -344,7 +344,7 @@ ESP-NOW stream のリピータ機が中継する **1 つの source MAC** を設�
 
 - `mac` (string): 中継する source 機の MAC（`""` でリピータ動作を無効化 = 通常の transmitter）。
 - NVS: `espnow/relay_src`（string）。一発勝負イベントでは flash-time 定数でも可。
-- get_info の `relay_source`（string, transmitter のみ）で現在値を読む。
+- get_info の `espnow_stream_relay_source`（string, transmitter のみ）で現在値を読む。
 
 **Response:** `{"status": "ok", "cmd": "set_espnow_stream_relay_source", "mac": "AA:BB:CC:DD:EE:FF"}`
 
@@ -371,11 +371,25 @@ espnow_stream 受信機は Wi-Fi/UDP 機と挙動が大きく異なる（メニ�
 - `led_enabled` (bool): ステータス LED を使うか（既定 false = 省電力で常時消灯）。
 - `low_batt_pct` (uint8): この SOC 以下に落ちた瞬間に表示を起こして % を見せる（既定 15、0〜100）。
 - `volume_steps` (uint8): ボリュームの段数（1〜64）。NVS 永続（`volume_control` 自体は永続しないため espnow_ui が保持・起動時に適用）。
-- get_info の `espnow_ui`（object, receiver(espnow_stream) のみ）で現在値を読む（上記 7 フィールド）。
+- get_info の `espnow_stream_ui`（object, receiver(espnow_stream) のみ）で現在値を読む（上記 7 フィールド）。
 
 **Response:** 適用後の全 7 フィールドをエコーする（`{"status": "ok", "auto_off_ms": …, …}`）。コマンド適用時に受信機は確認のため表示を一度起こす。
 
-**デバッグ readout（get_info の `stream` object, receiver(espnow_stream) のみ）:** 受信ストリームのライブ統計を返す（DEC-033 検証 / 現場での「強度」確認用）。`received`・`lost`・`recovered`（piggyback 復元）・`dropped`・`max_gap`（最大連続欠落）・`handoffs`・`sources`（生存 source 数）・`locked`（bool）・`locked_mac`（locked 時）・`delay_ms`（推定再生遅延）。RSSI は arduino-esp32 2.0.x の legacy callback では取得不可のため、損失率を強度の代理指標として使う。
+**デバッグ readout（get_info の `espnow_stream` object, receiver(espnow_stream) のみ）:** 受信ストリームのライブ統計を返す（DEC-033 検証 / 現場での「強度」確認用）。`received`・`lost`・`recovered`（piggyback 復元）・`dropped`・`max_gap`（最大連続欠落）・`handoffs`・`sources`（生存 source 数）・`locked`（bool）・`locked_mac`（locked 時）・`delay_ms`（推定再生遅延）・`resyncs`・`relay_test`。RSSI は arduino-esp32 2.0.x の legacy callback では取得不可のため、損失率を強度の代理指標として使う。
+
+### 4.19a set_espnow_stream_relay_test — EspNowStreamRepeater 経路の確認（receiver(espnow_stream)）
+
+受信機を一時的に relayed packet のみへ lock させ、1 台の受信機で repeater 経路を確認する。設定は揮発性であり、再起動時は必ず `false` に戻す。
+
+**Request:**
+```json
+{"cmd": "set_espnow_stream_relay_test", "on": true}
+```
+
+**Response:**
+```json
+{"status": "ok", "cmd": "set_espnow_stream_relay_test", "relay_test": true}
+```
 
 ### 4.20-pre set_stream_buffer — UDP ストリーム ジッタバッファ（全受信機共通）
 
