@@ -1,0 +1,29 @@
+{
+  "unsigned_command": {
+    "version": 1,
+    "type": "SWITCH",
+    "controller_id": "m5-main",
+    "seq": 42,
+    "demo_id": "gloveball"
+  },
+  "ready": {
+    "version": 1,
+    "type": "READY",
+    "controller_id": "m5-main",
+    "seq": 42,
+    "demo_id": "gloveball",
+    "current_demo_id": "gloveball",
+    "code": "ok",
+    "message": ""
+  },
+  "utf8_boundary_status": {
+    "version": 1,
+    "type": "FAILED",
+    "controller_id": "m5-main",
+    "seq": 43,
+    "demo_id": "gloveball",
+    "current_demo_id": "gloveball",
+    "code": "launch_failed",
+    "message": "🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂🙂"
+  }
+}

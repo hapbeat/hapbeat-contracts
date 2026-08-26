@@ -15,12 +15,16 @@ Hapbeat エコシステム全体で使用するネットワークポートの**�
 | **7701** | TCP | **デバイス**（ファーム） | 設定面: `get_info` / Kit 配布 / OTA / `log_stream` / Wi-Fi / display-layout | デバイス固定・共有 |
 | **7702** | UDP (OSC) | ツール（例: `hapbeat osc-bridge`） | OSC 入口 `/hapbeat/*` を受け、7700 へ中継 | ツールサービス |
 | **7703** | WebSocket (TCP) | **hapbeat-helper** | ブラウザ↔helper の JSON `{type,payload}` リレー（Studio / web-sdk browser transport） | ツールサービス |
+| **7710** | UDP | 前面で実行中の demo runtime | Demo Switch control: logical demo ID によるアプリ切替と `ACK` / `READY` / `FAILED` status | デモ制御専用 |
 | **7100** | HTTP (TCP) | **hapbeat-python-sdk** `hapbeat launchpad` | ブラウザ↔launchpad の UI/API | ツールサービス |
 | **5353** | UDP (mDNS) | デバイスが `_hapbeat._udp` を advertise | ゼロコンフィグ発見（TXT: `name`/`group`/`fw`/`mac`/`role`/`transport`） | 標準 mDNS |
 | **1883** | TCP (MQTT) | broker（DEC-034、M5 組み込み） | 施設アラートの MQTT transport | 別 transport（`mqtt-transport.md`） |
 
 「デバイス固定・共有」= デバイスが待ち受ける唯一のエンドポイント。**全送信側がここへ送る**（番号をツール別に分けられない、§3 参照）。
 「ツールサービス」= 各ツールが自分で立てるサーバーポート。別番号で衝突回避する。
+
+7710 は [`demo-switch-control.md`](demo-switch-control.md) の control plane 専用であり、
+触覚コマンドの 7700、SDK の device discovery、Kit 配布には使用しない。
 
 ## 2. ホスト側の受信 bind 方針（最重要）
 

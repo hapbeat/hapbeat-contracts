@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hapbeat.com/schemas/demo-switch-message.schema.json",
+  "title": "Hapbeat Demo Switch message",
+  "oneOf": [
+    { "$ref": "#/$defs/command" },
+    { "$ref": "#/$defs/status" }
+  ],
+  "$defs": {
+    "identifier": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
+    "auth": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "base": {
+      "type": "object",
+      "required": ["version", "type", "controller_id", "seq", "demo_id"],
+      "properties": {
+        "version": { "const": 1 },
+        "controller_id": { "$ref": "#/$defs/identifier" },
+        "seq": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "demo_id": { "$ref": "#/$defs/identifier" },
+        "auth": { "$ref": "#/$defs/auth" }
+      }
+    },
+    "command": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "properties": { "type": { "const": "SWITCH" } },
+          "unevaluatedProperties": false
+        }
+      ]
+    },
+    "status": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "required": ["current_demo_id", "code", "message"],
+          "properties": {
+            "type": { "enum": ["ACK", "READY", "FAILED"] },
+            "current_demo_id": { "$ref": "#/$defs/identifier" },
+            "code": { "enum": ["ok", "invalid_payload", "unsupported_version", "invalid_auth", "unsigned_disabled", "not_allowed", "replay", "launch_failed", "listener_failed"] },
+            "message": {
+              "type": "string",
+              "maxLength": 256,
+              "x-maxUtf8Bytes": 256,
+              "description": "Diagnostic message. Implementations MUST enforce the 256-byte limit after UTF-8 encoding; maxLength alone cannot express this constraint."
+            }
+          },
+          "unevaluatedProperties": false
+        }
+      ]
+    }
+  }
+}

@@ -74,6 +74,7 @@ hapbeat-contracts 自体は他のどの repo にも依存しません。
 | `internal-bridge-transmitter.md` | Bridge ↔ Transmitter 内部プロトコル（ESP-NOW 経路） |
 | `versioning.md` | 仕様バージョニング方針・互換性ルール |
 | `release-feed.md` | ツール / SDK の最新版フィードと更新通知ポリシー（DEC-053） |
+| `demo-switch-control.md` | 独立 demo runtime 切替用 UDP 7710 control plane（logical demo ID、sequence、optional HMAC、ACK/READY/FAILED） |
 
 ### schemas/
 
