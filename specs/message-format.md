@@ -139,7 +139,14 @@ UDP オーディオストリーミングの開始を通知する。**ADPCM デ�
 
 したがって**連続変調**を続ける場合は、STREAM_END を挟まず STREAM_DATA を流し続ければ STREAM_BEGIN は最初の 1 回のみとなり、リングが枯渇しない限り 1 本のストリームとして途切れず再生される。ストリーミングは voice ミキサーと並行して動作し、ローカルクリップの再生を停止しない。
 
-STREAM_BEGIN/DATA/END には **event_id フィールドを含まない**。stream イベントは session レベル（送信元 SDK が 1 session = 1 stream を管理）で識別され、device は eventId を認識しない。Kit manifest の `stream_events` のキーは SDK 内部で AudioClip / binding を紐付けるラベルとしてのみ使用される。
+STREAM_BEGIN/DATA/END には **event_id フィールドを含まない**。device が管理するのは送信側の論理 source ではなく、device endpoint ごとの wire session である。複数 source の分離・mixing・endpoint への割当は SDK の責務とし、共通契約は `sdk-multi-stream.md` に定める。Kit manifest の `stream_events` のキーは SDK 内部で AudioClip / binding を紐付けるラベルとしてのみ使用される。
+
+#### STREAM_END / STREAM_BEGIN の順序制約
+
+- STREAM_END と STREAM_BEGIN を、broadcast / unicast または異なる宛先集合をまたいで連続送信してはならない。broadcast がアクセスポイントの DTIM バッファで遅延すると、device には BEGIN の後に古い END が到着し、新しい session を停止させる。
+- 経路だけを変える場合、END / BEGIN の再送は不要である。device は STREAM_DATA の送信元経路を session 識別に使わないため、送信先を切り替えた後も DATA を継続できる。
+- session を再アームする場合は BEGIN 単体を送る。BEGIN は decoder state を初期化し、残差がしきい値を超える場合だけリングバッファを flush する。
+- END の後に BEGIN が不可避な場合は、両方を同一経路・同一宛先集合へ送り、1 beacon 間隔（300 ms）以上空ける。
 
 | フィールド | 型 | 説明 |
 |---|---|---|
@@ -187,6 +194,8 @@ STREAM_BEGIN/DATA/END には **event_id フィールドを含まない**。strea
 ### 0x32 STREAM_END
 
 ストリーミング終了のヒント。ペイロードなし。リングバッファは自然にドレインされる。ACK は返さない。
+
+送信側は上記「STREAM_END / STREAM_BEGIN の順序制約」を守る。特に endpoint discovery の更新だけを理由に旧経路へ END、新経路へ BEGIN を連続送信してはならない。
 
 ### 0xFF ERROR
 

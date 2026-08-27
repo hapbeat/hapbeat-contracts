@@ -1,0 +1,53 @@
+{
+  "devices": [
+    {
+      "id": "left",
+      "ip": "192.0.2.10",
+      "port": 7700,
+      "address": "player_1/left"
+    },
+    {
+      "id": "right",
+      "ip": "192.0.2.11",
+      "port": 7700,
+      "address": "player_1/right"
+    }
+  ],
+  "sources": [
+    {
+      "id": "left_only",
+      "target": "player_1/left",
+      "expected_endpoint_ids": ["left"],
+      "expected_status": "Active"
+    },
+    {
+      "id": "both",
+      "target": "player_1/*",
+      "expected_endpoint_ids": ["left", "right"],
+      "expected_status": "Active"
+    },
+    {
+      "id": "missing",
+      "target": "player_2/*",
+      "expected_endpoint_ids": [],
+      "expected_status": "Deferred",
+      "expected_deferred_reason": "NoResolvedEndpoint"
+    }
+  ],
+  "expected_sessions": [
+    {
+      "endpoint_id": "left",
+      "source_ids": ["left_only", "both"],
+      "stream_begin_target": "player_1/left"
+    },
+    {
+      "endpoint_id": "right",
+      "source_ids": ["both"],
+      "stream_begin_target": "player_1/right"
+    }
+  ],
+  "forbidden": [
+    "broadcast_stream_packet",
+    "cross_route_end_then_begin"
+  ]
+}

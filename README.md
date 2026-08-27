@@ -60,6 +60,7 @@ hapbeat-contracts 自体は他のどの repo にも依存しません。
 | `kit-format.md` | Kit マニフェスト形式・ディレクトリ構造・フィールド定義 |
 | `event-id.md` | Event ID 命名規則（`<kit-name>.<clip-name>` 形式） |
 | `message-format.md` | Wi-Fi UDP/OSC メッセージプロトコル（PLAY/STOP/STOP_ALL/CONNECT_STATUS 他、`wifi_udp` transport） |
+| `sdk-multi-stream.md` | SDK 共通の論理 source・device endpoint・endpoint session・mixing 契約 |
 | `node-roles.md` | ノード役割 / 通信モード taxonomy（receiver/sensor/broker/transmitter × wifi_udp/mqtt/espnow_stream、DEC-034） |
 | `mqtt-transport.md` | MQTT transport（センサ起点の遠隔通知。topic/payload/broker 発見） |
 | `espnow-stream.md` | ESP-NOW streaming transport（会場同報のライブ音声。packet 形式、DEC-033） |
