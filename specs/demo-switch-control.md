@@ -5,6 +5,7 @@
 ## Transport and lifecycle
 
 - UDP 7710。payload は UTF-8 JSON object 1 個、最大 **1024 bytes**。断片化、連結、末尾の非 JSON byte は禁止。
+- controller は切替先 IPv4 が未設定のとき、`DISCOVER` だけを LAN broadcast で 7710 へ送ってよい。前面 runtime は送信元 endpoint へ `HERE` を unicast で返す。controller は同じ nonce に対する有効な応答元が 1 IPv4 だけの場合に限り、その address を最大 30 秒 cache して以後の `SWITCH` を unicast する。0 台または複数台なら `SWITCH` を送ってはならない。
 - 前面の demo runtime だけが 7710 を bind する。切替順序は `ACK` 送信、listener 停止、切替前通知、local allowlist に解決した runtime 起動の順。
 - 次 runtime は controller endpoint と sequence を platform-specific launch context で引き継ぎ、初期化後にその endpoint へ `READY` を返す。起動できなければ現在 runtime が `FAILED` を返す。
 - launch context の搬送方法、process/application 起動 API は platform adapter の責務であり、この規範プロトコルには含めない。
@@ -62,3 +63,21 @@ demo_id=9:gloveball
 ```
 
 JSON Schema は [`demo-switch-message.schema.json`](../schemas/demo-switch-message.schema.json)、例は [`sample-demo-switch-messages.json`](../fixtures/sample-demo-switch-messages.json) を正とする。
+
+## Discovery
+
+Quest の IPv4 手入力は必須ではない。controller は切替先が明示設定されていない場合、次の request を LAN broadcast で UDP 7710 へ送る。`nonce` は discovery round ごとに新しく生成する 16 文字の lowercase hex とし、再利用しない。
+
+```json
+{"version":1,"type":"DISCOVER","controller_id":"m5-main","nonce":"0123456789abcdef","auth":"..."}
+```
+
+前面 runtime は authentication と設定を検証した後、受信元 endpoint へ次を unicast する。
+
+```json
+{"version":1,"type":"HERE","controller_id":"m5-main","nonce":"0123456789abcdef","current_demo_id":"gloveball","auth":"..."}
+```
+
+`DISCOVER` の必須 field は `version`, `type`, `controller_id`, `nonce`、`HERE` はそれらに `current_demo_id` を加える。未知 field は拒否する。shared secret 設定時は `auth` が必須で、未設定時は receiver と controller の双方が isolated-LAN unsigned mode を明示している場合だけ受理する。
+
+HMAC canonical bytes は command/status と同じ field encoding を使う。request は header `HAPBEAT-DEMO-SWITCH/1\nDISCOVER\n` に `version`, `type`, `controller_id`, `nonce`、response は header `HAPBEAT-DEMO-SWITCH/1\nHERE\n` に `version`, `type`, `controller_id`, `nonce`, `current_demo_id` の順で連結する。controller は nonce、controller ID、HMAC、送信元 IPv4 を検証し、600 ms 以上の収集 window 内で応答元が 1 IPv4 の場合だけ採用する。複数の Quest が応答した場合、最初の応答を勝手に選んではならない。

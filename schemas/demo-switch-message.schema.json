@@ -4,11 +4,14 @@
   "title": "Hapbeat Demo Switch message",
   "oneOf": [
     { "$ref": "#/$defs/command" },
-    { "$ref": "#/$defs/status" }
+    { "$ref": "#/$defs/status" },
+    { "$ref": "#/$defs/discover" },
+    { "$ref": "#/$defs/here" }
   ],
   "$defs": {
     "identifier": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
     "auth": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "nonce": { "type": "string", "pattern": "^[0-9a-f]{16}$" },
     "base": {
       "type": "object",
       "required": ["version", "type", "controller_id", "seq", "demo_id"],
@@ -48,6 +51,31 @@
           "unevaluatedProperties": false
         }
       ]
+    },
+    "discover": {
+      "type": "object",
+      "required": ["version", "type", "controller_id", "nonce"],
+      "additionalProperties": false,
+      "properties": {
+        "version": { "const": 1 },
+        "type": { "const": "DISCOVER" },
+        "controller_id": { "$ref": "#/$defs/identifier" },
+        "nonce": { "$ref": "#/$defs/nonce" },
+        "auth": { "$ref": "#/$defs/auth" }
+      }
+    },
+    "here": {
+      "type": "object",
+      "required": ["version", "type", "controller_id", "nonce", "current_demo_id"],
+      "additionalProperties": false,
+      "properties": {
+        "version": { "const": 1 },
+        "type": { "const": "HERE" },
+        "controller_id": { "$ref": "#/$defs/identifier" },
+        "nonce": { "$ref": "#/$defs/nonce" },
+        "current_demo_id": { "$ref": "#/$defs/identifier" },
+        "auth": { "$ref": "#/$defs/auth" }
+      }
     }
   }
 }

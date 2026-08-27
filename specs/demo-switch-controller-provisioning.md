@@ -1,6 +1,6 @@
 # Demo Switch controller USB provisioning protocol
 
-Demo Switch controller 専用の USB provisioning 契約。既存の Hapbeat device serial-config と共有せず、Demo Switch controller の USB CDC serial endpoint だけに適用する。Demo Switch UDP control（7710）と Hapbeat UDP command（7700）の wire format は変更しない。
+Demo Switch controller 専用の USB provisioning 契約。既存の Hapbeat device serial-config と共有せず、Demo Switch controller の USB CDC serial endpoint だけに適用する。Demo Switch UDP control（7710）は [`demo-switch-control.md`](demo-switch-control.md)、Hapbeat UDP command（7700）は既存の command 契約を正とする。
 
 ## Transport
 
@@ -50,6 +50,8 @@ request の `type` は `get_config`、`set_config`、`factory_reset`、`reboot` 
 | `target_b_demo_id` | `clear_target_b_demo_id` |
 | `target_c_demo_id` | `clear_target_c_demo_id` |
 | `shared_secret` | `clear_shared_secret` |
+
+`hmd_ip` は任意の manual override である。未設定または `clear_hmd_ip:true` のとき、controller は [`demo-switch-control.md`](demo-switch-control.md) の `DISCOVER` / `HERE` で前面 Quest を自動検出する。複数の Quest が応答した場合に自動選択してはならず、固定 `hmd_ip` を設定するか LAN を分離する。
 
 `wifi_password` と `shared_secret` は set request でのみ書込み可能で、空文字は許可しない。clear は値を消す唯一の方法である。`controller_id` の clear は新しいランダム controller ID を生成することを意味し、`null` を保存してはならない。
 

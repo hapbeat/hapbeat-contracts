@@ -6,6 +6,19 @@
     "seq": 42,
     "demo_id": "gloveball"
   },
+  "unsigned_discover": {
+    "version": 1,
+    "type": "DISCOVER",
+    "controller_id": "m5-main",
+    "nonce": "0123456789abcdef"
+  },
+  "unsigned_here": {
+    "version": 1,
+    "type": "HERE",
+    "controller_id": "m5-main",
+    "nonce": "0123456789abcdef",
+    "current_demo_id": "gloveball"
+  },
   "ready": {
     "version": 1,
     "type": "READY",
