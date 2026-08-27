@@ -10,9 +10,9 @@ Demo Switch controller 専用の USB provisioning 契約。既存の Hapbeat dev
 | Baud rate | 115200 |
 | Encoding | UTF-8 |
 | Framing | newline-delimited JSON (NDJSON)。1 line = 1 JSON object、LF (`0x0A`) 終端。CRLF を受ける実装は LF 前の CR だけを除去してよい。 |
-| Line limit | LF を含めて 1024 UTF-8 bytes。超過 line は破棄し、後続 line を正常に処理できるよう resynchronize する。 |
+| Line limit | LF を含めて 3072 UTF-8 bytes。超過 line は破棄し、後続 line を正常に処理できるよう resynchronize する。 |
 
-JSON object 以外、空 line、複数 object を 1 line に連結した入力、1024 bytes を超える入力は無効である。controller は解析できる `id` がある無効 request には `error` response を返す。`id` を取得できない JSON 構文エラーまたは長過ぎる line では、`id:null` の `error` response を返してよい。
+JSON object 以外、空 line、複数 object を 1 line に連結した入力、3072 bytes を超える入力は無効である。controller は解析できる `id` がある無効 request には `error` response を返す。`id` を取得できない JSON 構文エラーまたは長過ぎる line では、`id:null` の `error` response を返してよい。
 
 ## Frames
 

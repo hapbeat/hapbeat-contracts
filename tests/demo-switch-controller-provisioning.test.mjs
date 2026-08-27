@@ -59,7 +59,7 @@ function frame(value) {
   if (value.response === 'error') { id(value.id, 'id', true); return; }
   fail('response is invalid');
 }
-test('valid fixtures conform and fit one serial line', () => { for (const { name, frame: value } of valid) { assert.doesNotThrow(() => frame(value), name); assert.ok(Buffer.byteLength(`${JSON.stringify(value)}\n`, 'utf8') <= 1024, `${name} exceeds the serial line limit`); } });
+test('valid fixtures conform and fit one serial line', () => { for (const { name, frame: value } of valid) { assert.doesNotThrow(() => frame(value), name); assert.ok(Buffer.byteLength(`${JSON.stringify(value)}\n`, 'utf8') <= 3072, `${name} exceeds the serial line limit`); } });
 test('invalid fixtures are rejected', () => { for (const { name, frame: value } of invalid) assert.throws(() => frame(value), name); });
 test('Wi-Fi profile schema documents SSID uniqueness and custom validation enforces it', () => {
   for (const profiles of [schema.$defs.config.properties.wifi_profiles, schema.$defs.configUpdate.properties.wifi_profiles]) {
@@ -67,4 +67,16 @@ test('Wi-Fi profile schema documents SSID uniqueness and custom validation enfor
     assert.equal(profiles['x-uniqueBy'], 'ssid');
   }
   assert.throws(() => update({ wifi_profiles: [{ ssid: 'DemoLan', wifi_password: 'one' }, { ssid: 'DemoLan', wifi_password: 'two' }] }));
+});
+test('schema documents the 3072-byte NDJSON limit and maximum five-profile update fits it', () => {
+  assert.equal(schema['x-ndjsonLineLimitBytes'], 3072);
+  const wifiProfiles = Array.from({ length: 5 }, (_, index) => ({
+    ssid: `ssid-${index}${'s'.repeat(26)}`,
+    wifi_password: 'p'.repeat(256),
+  }));
+  const value = { version: 1, type: 'set_config', id: 'five-profiles', config: { wifi_profiles: wifiProfiles } };
+  assert.doesNotThrow(() => frame(value));
+  const length = Buffer.byteLength(`${JSON.stringify(value)}\n`, 'utf8');
+  assert.ok(length > 1024);
+  assert.ok(length <= 3072);
 });
