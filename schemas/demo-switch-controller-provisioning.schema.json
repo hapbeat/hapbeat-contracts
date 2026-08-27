@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hapbeat.com/schemas/demo-switch-controller-provisioning.schema.json",
+  "title": "Hapbeat Demo Switch controller USB provisioning frame",
+  "oneOf": [
+    { "$ref": "#/$defs/getConfig" },
+    { "$ref": "#/$defs/setConfig" },
+    { "$ref": "#/$defs/factoryReset" },
+    { "$ref": "#/$defs/reboot" },
+    { "$ref": "#/$defs/configResponse" },
+    { "$ref": "#/$defs/statusResponse" },
+    { "$ref": "#/$defs/errorResponse" }
+  ],
+  "$defs": {
+    "identifier": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
+    "nullableIdentifier": { "oneOf": [{ "$ref": "#/$defs/identifier" }, { "type": "null" }] },
+    "requestId": { "$ref": "#/$defs/identifier" },
+    "nullableRequestId": { "oneOf": [{ "$ref": "#/$defs/requestId" }, { "type": "null" }] },
+    "ipv4": {
+      "type": "string",
+      "pattern": "^(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(?:\\.(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}$",
+      "not": { "pattern": "^(?:0|127|22[4-9]|23[0-9]|24[0-9]|25[0-5])\\." },
+      "description": "Dotted-decimal IPv4 syntax. Implementations MUST additionally reject non-unicast addresses as specified by demo-switch-controller-provisioning.md."
+    },
+    "nullableIpv4": { "oneOf": [{ "$ref": "#/$defs/ipv4" }, { "type": "null" }] },
+    "secret": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "x-maxUtf8Bytes": 256,
+      "description": "Input only. MUST NOT appear in responses, logs, fixtures, telemetry, or diagnostics."
+    },
+    "wifiSsid": { "type": "string", "minLength": 1, "maxLength": 32, "x-maxUtf8Bytes": 32 },
+    "nullableWifiSsid": { "oneOf": [{ "$ref": "#/$defs/wifiSsid" }, { "type": "null" }] },
+    "config": {
+      "type": "object",
+      "required": ["wifi_ssid", "wifi_password_set", "hmd_ip", "controller_id", "target_a_demo_id", "target_b_demo_id", "target_c_demo_id", "shared_secret_set", "allow_unsigned", "isolated_lan", "next_sequence"],
+      "additionalProperties": false,
+      "properties": {
+        "wifi_ssid": { "$ref": "#/$defs/nullableWifiSsid" },
+        "wifi_password_set": { "type": "boolean" },
+        "hmd_ip": { "$ref": "#/$defs/nullableIpv4" },
+        "controller_id": { "$ref": "#/$defs/identifier" },
+        "target_a_demo_id": { "$ref": "#/$defs/nullableIdentifier" },
+        "target_b_demo_id": { "$ref": "#/$defs/nullableIdentifier" },
+        "target_c_demo_id": { "$ref": "#/$defs/nullableIdentifier" },
+        "shared_secret_set": { "type": "boolean" },
+        "allow_unsigned": { "type": "boolean" },
+        "isolated_lan": { "type": "boolean" },
+        "next_sequence": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }
+      }
+    },
+    "configUpdate": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "wifi_ssid": { "$ref": "#/$defs/wifiSsid" },
+        "wifi_password": { "$ref": "#/$defs/secret" },
+        "hmd_ip": { "$ref": "#/$defs/ipv4" },
+        "controller_id": { "$ref": "#/$defs/identifier" },
+        "target_a_demo_id": { "$ref": "#/$defs/identifier" },
+        "target_b_demo_id": { "$ref": "#/$defs/identifier" },
+        "target_c_demo_id": { "$ref": "#/$defs/identifier" },
+        "shared_secret": { "$ref": "#/$defs/secret" },
+        "clear_wifi_ssid": { "type": "boolean" },
+        "clear_wifi_password": { "type": "boolean" },
+        "clear_hmd_ip": { "type": "boolean" },
+        "clear_controller_id": { "type": "boolean" },
+        "clear_target_a_demo_id": { "type": "boolean" },
+        "clear_target_b_demo_id": { "type": "boolean" },
+        "clear_target_c_demo_id": { "type": "boolean" },
+        "clear_shared_secret": { "type": "boolean" },
+        "allow_unsigned": { "type": "boolean" },
+        "isolated_lan": { "type": "boolean" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "allow_unsigned": { "const": true } }, "required": ["allow_unsigned"] },
+          "then": { "required": ["isolated_lan"], "properties": { "isolated_lan": { "const": true } } }
+        },
+        {
+          "not": {
+            "required": ["allow_unsigned", "shared_secret"],
+            "properties": { "allow_unsigned": { "const": true } }
+          }
+        },
+        {
+          "if": { "properties": { "clear_wifi_ssid": { "const": true } }, "required": ["clear_wifi_ssid"] },
+          "then": { "not": { "required": ["wifi_ssid"] } }
+        },
+        {
+          "if": { "properties": { "clear_wifi_password": { "const": true } }, "required": ["clear_wifi_password"] },
+          "then": { "not": { "required": ["wifi_password"] } }
+        },
+        {
+          "if": { "properties": { "clear_hmd_ip": { "const": true } }, "required": ["clear_hmd_ip"] },
+          "then": { "not": { "required": ["hmd_ip"] } }
+        },
+        {
+          "if": { "properties": { "clear_controller_id": { "const": true } }, "required": ["clear_controller_id"] },
+          "then": { "not": { "required": ["controller_id"] } }
+        },
+        {
+          "if": { "properties": { "clear_target_a_demo_id": { "const": true } }, "required": ["clear_target_a_demo_id"] },
+          "then": { "not": { "required": ["target_a_demo_id"] } }
+        },
+        {
+          "if": { "properties": { "clear_target_b_demo_id": { "const": true } }, "required": ["clear_target_b_demo_id"] },
+          "then": { "not": { "required": ["target_b_demo_id"] } }
+        },
+        {
+          "if": { "properties": { "clear_target_c_demo_id": { "const": true } }, "required": ["clear_target_c_demo_id"] },
+          "then": { "not": { "required": ["target_c_demo_id"] } }
+        },
+        {
+          "if": { "properties": { "clear_shared_secret": { "const": true } }, "required": ["clear_shared_secret"] },
+          "then": { "not": { "required": ["shared_secret"] } }
+        }
+      ]
+    },
+    "getConfig": {
+      "type": "object",
+      "required": ["version", "type", "id"],
+      "additionalProperties": false,
+      "properties": { "version": { "const": 1 }, "type": { "const": "get_config" }, "id": { "$ref": "#/$defs/requestId" } }
+    },
+    "setConfig": {
+      "type": "object",
+      "required": ["version", "type", "id", "config"],
+      "additionalProperties": false,
+      "properties": { "version": { "const": 1 }, "type": { "const": "set_config" }, "id": { "$ref": "#/$defs/requestId" }, "config": { "$ref": "#/$defs/configUpdate" } }
+    },
+    "factoryReset": {
+      "type": "object",
+      "required": ["version", "type", "id"],
+      "additionalProperties": false,
+      "properties": { "version": { "const": 1 }, "type": { "const": "factory_reset" }, "id": { "$ref": "#/$defs/requestId" } }
+    },
+    "reboot": {
+      "type": "object",
+      "required": ["version", "type", "id"],
+      "additionalProperties": false,
+      "properties": { "version": { "const": 1 }, "type": { "const": "reboot" }, "id": { "$ref": "#/$defs/requestId" } }
+    },
+    "configResponse": {
+      "type": "object",
+      "required": ["version", "type", "id", "response", "config"],
+      "additionalProperties": false,
+      "properties": { "version": { "const": 1 }, "type": { "const": "response" }, "id": { "$ref": "#/$defs/nullableRequestId" }, "response": { "const": "config" }, "config": { "$ref": "#/$defs/config" } }
+    },
+    "status": {
+      "type": "object",
+      "required": ["command", "state"],
+      "additionalProperties": false,
+      "properties": { "command": { "enum": ["set_config", "factory_reset", "reboot"] }, "state": { "enum": ["updated", "reset", "rebooting"] } }
+    },
+    "statusResponse": {
+      "type": "object",
+      "required": ["version", "type", "id", "response", "status"],
+      "additionalProperties": false,
+      "properties": { "version": { "const": 1 }, "type": { "const": "response" }, "id": { "$ref": "#/$defs/nullableRequestId" }, "response": { "const": "status" }, "status": { "$ref": "#/$defs/status" } }
+    },
+    "error": {
+      "type": "object",
+      "required": ["code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "code": { "enum": ["invalid_json", "line_too_long", "unsupported_version", "unknown_command", "invalid_request", "invalid_config", "conflicting_update", "write_failed", "busy"] },
+        "message": { "type": "string", "maxLength": 256, "x-maxUtf8Bytes": 256, "description": "MUST NOT include a secret." }
+      }
+    },
+    "errorResponse": {
+      "type": "object",
+      "required": ["version", "type", "id", "response", "error"],
+      "additionalProperties": false,
+      "properties": { "version": { "const": 1 }, "type": { "const": "response" }, "id": { "$ref": "#/$defs/nullableRequestId" }, "response": { "const": "error" }, "error": { "$ref": "#/$defs/error" } }
+    }
+  }
+}

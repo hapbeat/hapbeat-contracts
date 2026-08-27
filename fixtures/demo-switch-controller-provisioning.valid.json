@@ -1,0 +1,91 @@
+[
+  {
+    "name": "get config request",
+    "frame": { "version": 1, "type": "get_config", "id": "read-001" }
+  },
+  {
+    "name": "partial configuration update preserves omitted fields",
+    "frame": {
+      "version": 1,
+      "type": "set_config",
+      "id": "setup-001",
+      "config": {
+        "wifi_ssid": "DemoLan",
+        "hmd_ip": "192.168.10.20",
+        "controller_id": "m5-main",
+        "target_a_demo_id": "gloveball",
+        "target_b_demo_id": "dance",
+        "target_c_demo_id": "menu"
+      }
+    }
+  },
+  {
+    "name": "explicit secret clear without serializing a secret",
+    "frame": {
+      "version": 1,
+      "type": "set_config",
+      "id": "clear-001",
+      "config": { "clear_wifi_password": true, "clear_shared_secret": true }
+    }
+  },
+  {
+    "name": "config response exposes secret presence only",
+    "frame": {
+      "version": 1,
+      "type": "response",
+      "id": "read-001",
+      "response": "config",
+      "config": {
+        "wifi_ssid": "DemoLan",
+        "wifi_password_set": true,
+        "hmd_ip": "192.168.10.20",
+        "controller_id": "m5-main",
+        "target_a_demo_id": "gloveball",
+        "target_b_demo_id": "dance",
+        "target_c_demo_id": "menu",
+        "shared_secret_set": true,
+        "allow_unsigned": false,
+        "isolated_lan": false,
+        "next_sequence": 43
+      }
+    }
+  },
+  {
+    "name": "factory reset request",
+    "frame": { "version": 1, "type": "factory_reset", "id": "reset-001" }
+  },
+  {
+    "name": "factory reset status response",
+    "frame": {
+      "version": 1,
+      "type": "response",
+      "id": "reset-001",
+      "response": "status",
+      "status": { "command": "factory_reset", "state": "reset" }
+    }
+  },
+  {
+    "name": "reboot request",
+    "frame": { "version": 1, "type": "reboot", "id": "reboot-001" }
+  },
+  {
+    "name": "reboot status response",
+    "frame": {
+      "version": 1,
+      "type": "response",
+      "id": "reboot-001",
+      "response": "status",
+      "status": { "command": "reboot", "state": "rebooting" }
+    }
+  },
+  {
+    "name": "parse error without request id",
+    "frame": {
+      "version": 1,
+      "type": "response",
+      "id": null,
+      "response": "error",
+      "error": { "code": "invalid_json", "message": "invalid JSON" }
+    }
+  }
+]
