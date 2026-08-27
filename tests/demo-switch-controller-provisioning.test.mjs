@@ -67,15 +67,17 @@ function validateFrame(frame) {
     return;
   }
   if (frame.type !== 'response') fail('type is invalid');
-  assertId(frame.id, 'id', true);
-  if (frame.response === 'config') { assert.deepEqual(Object.keys(frame).sort(), ['config', 'id', 'response', 'type', 'version']); validateConfig(frame.config); return; }
+  if (frame.response === 'config') { assertId(frame.id, 'id'); assert.deepEqual(Object.keys(frame).sort(), ['config', 'id', 'response', 'type', 'version']); validateConfig(frame.config); return; }
   if (frame.response === 'status') {
+    assertId(frame.id, 'id');
     assert.deepEqual(Object.keys(frame).sort(), ['id', 'response', 'status', 'type', 'version']);
     assertObject(frame.status, 'status');
-    if (!['set_config', 'factory_reset', 'reboot'].includes(frame.status.command) || !['updated', 'reset', 'rebooting'].includes(frame.status.state) || Object.keys(frame.status).length !== 2) fail('status is invalid');
+    const statusPairs = { set_config: 'updated', factory_reset: 'reset', reboot: 'rebooting' };
+    if (statusPairs[frame.status.command] !== frame.status.state || Object.keys(frame.status).length !== 2) fail('status is invalid');
     return;
   }
   if (frame.response === 'error') {
+    assertId(frame.id, 'id', true);
     assert.deepEqual(Object.keys(frame).sort(), ['error', 'id', 'response', 'type', 'version']);
     assertObject(frame.error, 'error');
     if (!['invalid_json', 'line_too_long', 'unsupported_version', 'unknown_command', 'invalid_request', 'invalid_config', 'conflicting_update', 'write_failed', 'busy'].includes(frame.error.code) || typeof frame.error.message !== 'string' || Buffer.byteLength(frame.error.message, 'utf8') > 256 || Object.keys(frame.error).length !== 2) fail('error is invalid');

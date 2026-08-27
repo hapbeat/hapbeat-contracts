@@ -147,19 +147,20 @@
       "type": "object",
       "required": ["version", "type", "id", "response", "config"],
       "additionalProperties": false,
-      "properties": { "version": { "const": 1 }, "type": { "const": "response" }, "id": { "$ref": "#/$defs/nullableRequestId" }, "response": { "const": "config" }, "config": { "$ref": "#/$defs/config" } }
+      "properties": { "version": { "const": 1 }, "type": { "const": "response" }, "id": { "$ref": "#/$defs/requestId" }, "response": { "const": "config" }, "config": { "$ref": "#/$defs/config" } }
     },
     "status": {
-      "type": "object",
-      "required": ["command", "state"],
-      "additionalProperties": false,
-      "properties": { "command": { "enum": ["set_config", "factory_reset", "reboot"] }, "state": { "enum": ["updated", "reset", "rebooting"] } }
+      "oneOf": [
+        { "type": "object", "required": ["command", "state"], "additionalProperties": false, "properties": { "command": { "const": "set_config" }, "state": { "const": "updated" } } },
+        { "type": "object", "required": ["command", "state"], "additionalProperties": false, "properties": { "command": { "const": "factory_reset" }, "state": { "const": "reset" } } },
+        { "type": "object", "required": ["command", "state"], "additionalProperties": false, "properties": { "command": { "const": "reboot" }, "state": { "const": "rebooting" } } }
+      ]
     },
     "statusResponse": {
       "type": "object",
       "required": ["version", "type", "id", "response", "status"],
       "additionalProperties": false,
-      "properties": { "version": { "const": 1 }, "type": { "const": "response" }, "id": { "$ref": "#/$defs/nullableRequestId" }, "response": { "const": "status" }, "status": { "$ref": "#/$defs/status" } }
+      "properties": { "version": { "const": 1 }, "type": { "const": "response" }, "id": { "$ref": "#/$defs/requestId" }, "response": { "const": "status" }, "status": { "$ref": "#/$defs/status" } }
     },
     "error": {
       "type": "object",

@@ -28,5 +28,25 @@
   {
     "name": "unknown version one field",
     "frame": { "version": 2, "type": "get_config", "id": "read-003" }
+  },
+  {
+    "name": "successful response requires a request id",
+    "frame": {
+      "version": 1,
+      "type": "response",
+      "id": null,
+      "response": "status",
+      "status": { "command": "reboot", "state": "rebooting" }
+    }
+  },
+  {
+    "name": "status command and state must match",
+    "frame": {
+      "version": 1,
+      "type": "response",
+      "id": "setup-006",
+      "response": "status",
+      "status": { "command": "set_config", "state": "reset" }
+    }
   }
 ]
