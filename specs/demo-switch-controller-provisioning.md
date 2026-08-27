@@ -27,23 +27,22 @@ request の `type` は `get_config`、`set_config`、`factory_reset`、`reboot` 
 ```
 
 ```json
-{"version":1,"type":"response","id":"read-001","response":"config","config":{"wifi_ssid":"DemoLan","wifi_password_set":true,"hmd_ip":"192.168.10.20","controller_id":"m5-main","target_a_demo_id":"gloveball","target_b_demo_id":"dance","target_c_demo_id":"menu","shared_secret_set":true,"allow_unsigned":false,"isolated_lan":false,"next_sequence":43}}
+{"version":1,"type":"response","id":"read-001","response":"config","config":{"wifi_profiles":[{"ssid":"DemoLan","open":false,"wifi_password_set":true}],"hmd_ip":"192.168.10.20","controller_id":"m5-main","target_a_demo_id":"gloveball","target_b_demo_id":"dance","target_c_demo_id":"menu","shared_secret_set":true,"allow_unsigned":false,"isolated_lan":false,"next_sequence":43}}
 ```
 
-`config` response は常に全 field を返す。未設定の非 boolean field は `null`。`wifi_password` と `shared_secret` は、値、ハッシュ、長さ、encoding を含めて **絶対に response、log、diagnostic、fixture、telemetry に出してはならない**。存在状態は `wifi_password_set` と `shared_secret_set` だけで表す。
+`config` response は常に全 field を返す。`wifi_profiles` は最大 5 件の順序付き配列で、index 0 が現在 active/MRU profile である。各 profile は `ssid`、`open`、`wifi_password_set` だけを返す。`wifi_password` と `shared_secret` は、値、ハッシュ、長さ、encoding を含めて **絶対に response、log、diagnostic、fixture、telemetry に出してはならない**。
 
 ### Update configuration
 
 ```json
-{"version":1,"type":"set_config","id":"setup-001","config":{"wifi_ssid":"DemoLan","hmd_ip":"192.168.10.20","controller_id":"m5-main","target_a_demo_id":"gloveball","target_b_demo_id":"dance","target_c_demo_id":"menu"}}
+{"version":1,"type":"set_config","id":"setup-001","config":{"wifi_profiles":[{"ssid":"DemoLan","wifi_password":"input-only"}],"hmd_ip":"192.168.10.20","controller_id":"m5-main","target_a_demo_id":"gloveball","target_b_demo_id":"dance","target_c_demo_id":"menu"}}
 ```
 
-`set_config.config` の field を省略した場合、現在値を保持する。値を削除するには対応する `clear_*:true` を明示する。値と対応する clear flag を同じ request に含めてはならない。clear flag が `false` の場合は何もしない。設定可能な field と clear flag は次のとおり。
+`set_config.config` の controller-global field を省略した場合、現在値を保持する。`wifi_profiles` があれば全 profile list を置換する。list の各 SSID は一意、最大 5 件である。既存と同じ SSID の secured profile は `wifi_password` を省略して credential を保持できる。新しい secured SSID は `wifi_password` が必須である。`open:true` は password を持たず、同じ SSID の既存 credential を消去する。`clear_wifi_profiles:true` は全 Wi-Fi profile を消去する。`wifi_profiles` と `clear_wifi_profiles:true` は同じ request に含めてはならない。
 
 | 設定 field | clear flag |
 |---|---|
-| `wifi_ssid` | `clear_wifi_ssid` |
-| `wifi_password` | `clear_wifi_password` |
+| `wifi_profiles` | `clear_wifi_profiles` |
 | `hmd_ip` | `clear_hmd_ip` |
 | `controller_id` | `clear_controller_id` |
 | `target_a_demo_id` | `clear_target_a_demo_id` |
@@ -53,7 +52,7 @@ request の `type` は `get_config`、`set_config`、`factory_reset`、`reboot` 
 
 `hmd_ip` は任意の manual override である。未設定または `clear_hmd_ip:true` のとき、controller は [`demo-switch-control.md`](demo-switch-control.md) の `DISCOVER` / `HERE` で前面 Quest を自動検出する。複数の Quest が応答した場合に自動選択してはならず、固定 `hmd_ip` を設定するか LAN を分離する。
 
-`wifi_password` と `shared_secret` は set request でのみ書込み可能で、空文字は許可しない。clear は値を消す唯一の方法である。`controller_id` の clear は新しいランダム controller ID を生成することを意味し、`null` を保存してはならない。
+`wifi_password` と `shared_secret` は set request でのみ書込み可能で、空文字は許可しない。`controller_id` の clear は新しいランダム controller ID を生成することを意味し、`null` を保存してはならない。
 
 controller は request 全体を検証してから、更新された全 field、controller ID、次 sequence、重複 request result を単一の永続 transaction として commit する。1 field でも無効、clear と値が競合、または永続化に失敗した場合は、**一切の設定を変更せず** `error` を返す。設定途中の Wi-Fi 接続、UDP send、reboot は開始してはならない。
 
@@ -75,7 +74,7 @@ controller は request 全体を検証してから、更新された全 field、
 
 - `id`、`controller_id`、各 `target_*_demo_id` は ASCII `[a-z0-9][a-z0-9._-]{0,63}`。package name、Activity、executable、URI、argument を demo ID として受け入れない。
 - `hmd_ip` は dotted-decimal IPv4 の unicast address。`0.0.0.0`、`255.255.255.255`、loopback、multicast、予約済みの先頭 octet 240..255 は拒否する。実装は文字列比較でなく IP parser で検証する。
-- `wifi_ssid` は 1..32 UTF-8 bytes。password と shared secret は 1..256 UTF-8 bytes。schema の `maxLength` は補助であり、実装は UTF-8 byte 数も検証する。
+- profile の `ssid` は 1..32 UTF-8 bytes。password と shared secret は 1..256 UTF-8 bytes。schema の `maxLength` は補助であり、実装は UTF-8 byte 数も検証する。
 - `allow_unsigned` の既定値は `false`。`true` にする update は同じ transaction で `isolated_lan:true` を明示しなければならない。`allow_unsigned:true` の間は controller の接続先を隔離 demo LAN に限定し、設定 UI と log に警告を表示する。`shared_secret` が設定済みの場合でも unsigned command は受理しない。
 - `shared_secret_set:true` のとき、Demo Switch UDP command/status は既存 [`demo-switch-control.md`](demo-switch-control.md) の HMAC-SHA256 を使用する。secret が未設定かつ `allow_unsigned:false` のとき、UDP control は無効である。
 
@@ -85,6 +84,6 @@ controller は `controller_id` と Demo Switch UDP `next_sequence` を不揮発�
 
 ## Factory reset
 
-`factory_reset` は Wi-Fi SSID/password、HMD IP、target A/B/C demo ID、shared secret、isolated-LAN/unsigned opt-in、request-result cache を消去する。controller ID は消去後に新しいランダムな valid identifier を生成して永続化し、`next_sequence` は `1` にする。これにより reset 前の UDP replay state と新しい controller identity が衝突しない。factory reset は response を flush してから実行し、途中で失敗した場合は reset 前の設定を保持する。
+`factory_reset` は Wi-Fi profiles、HMD IP、target A/B/C demo ID、shared secret、isolated-LAN/unsigned opt-in、request-result cache を消去する。controller ID は消去後に新しいランダムな valid identifier を生成して永続化し、`next_sequence` は `1` にする。これにより reset 前の UDP replay state と新しい controller identity が衝突しない。factory reset は response を flush してから実行し、途中で失敗した場合は reset 前の設定を保持する。
 
 JSON Schema は [`demo-switch-controller-provisioning.schema.json`](../schemas/demo-switch-controller-provisioning.schema.json)、valid/invalid fixture と検証は [`demo-switch-controller-provisioning.test.mjs`](../tests/demo-switch-controller-provisioning.test.mjs) を正とする。

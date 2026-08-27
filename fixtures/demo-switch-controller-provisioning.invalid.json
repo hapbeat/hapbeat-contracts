@@ -22,8 +22,12 @@
       "type": "response",
       "id": "read-002",
       "response": "config",
-      "config": { "wifi_ssid": null, "wifi_password_set": true, "wifi_password": null, "hmd_ip": null, "controller_id": "m5-main", "target_a_demo_id": null, "target_b_demo_id": null, "target_c_demo_id": null, "shared_secret_set": false, "allow_unsigned": false, "isolated_lan": false, "next_sequence": 1 }
+      "config": { "wifi_profiles": [{ "ssid": "DemoLan", "open": false, "wifi_password_set": true, "wifi_password": null }], "hmd_ip": null, "controller_id": "m5-main", "target_a_demo_id": null, "target_b_demo_id": null, "target_c_demo_id": null, "shared_secret_set": false, "allow_unsigned": false, "isolated_lan": false, "next_sequence": 1 }
     }
+  },
+  {
+    "name": "duplicate Wi-Fi SSID",
+    "frame": { "version": 1, "type": "set_config", "id": "setup-007", "config": { "wifi_profiles": [{ "ssid": "DemoLan", "wifi_password": "one" }, { "ssid": "DemoLan", "wifi_password": "two" }] } }
   },
   {
     "name": "unknown version one field",

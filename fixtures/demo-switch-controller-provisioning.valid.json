@@ -10,7 +10,7 @@
       "type": "set_config",
       "id": "setup-001",
       "config": {
-        "wifi_ssid": "DemoLan",
+        "wifi_profiles": [{ "ssid": "DemoLan", "wifi_password": "input-only" }, { "ssid": "Guest", "open": true }],
         "hmd_ip": "192.168.10.20",
         "controller_id": "m5-main",
         "target_a_demo_id": "gloveball",
@@ -25,7 +25,7 @@
       "version": 1,
       "type": "set_config",
       "id": "clear-001",
-      "config": { "clear_wifi_password": true, "clear_shared_secret": true }
+      "config": { "clear_wifi_profiles": true, "clear_shared_secret": true }
     }
   },
   {
@@ -36,8 +36,7 @@
       "id": "read-001",
       "response": "config",
       "config": {
-        "wifi_ssid": "DemoLan",
-        "wifi_password_set": true,
+        "wifi_profiles": [{ "ssid": "DemoLan", "open": false, "wifi_password_set": true }, { "ssid": "Guest", "open": true, "wifi_password_set": false }],
         "hmd_ip": "192.168.10.20",
         "controller_id": "m5-main",
         "target_a_demo_id": "gloveball",

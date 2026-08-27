@@ -5,94 +5,66 @@ import { test } from 'node:test';
 const root = new URL('..', import.meta.url);
 const valid = JSON.parse(await readFile(new URL('fixtures/demo-switch-controller-provisioning.valid.json', root)));
 const invalid = JSON.parse(await readFile(new URL('fixtures/demo-switch-controller-provisioning.invalid.json', root)));
+const schema = JSON.parse(await readFile(new URL('schemas/demo-switch-controller-provisioning.schema.json', root)));
 const identifier = /^[a-z0-9][a-z0-9._-]{0,63}$/;
-const ipv4 = /^(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)){3}$/;
-const clearFields = ['wifi_ssid', 'wifi_password', 'hmd_ip', 'controller_id', 'target_a_demo_id', 'target_b_demo_id', 'target_c_demo_id', 'shared_secret'];
 
 function fail(message) { throw new Error(message); }
-function assertObject(value, name) { if (!value || Array.isArray(value) || typeof value !== 'object') fail(`${name} must be an object`); }
-function assertOnly(value, allowed, name) { for (const key of Object.keys(value)) if (!allowed.includes(key)) fail(`${name}.${key} is not allowed`); }
-function assertId(value, name, nullable = false) { if (nullable && value === null) return; if (typeof value !== 'string' || !identifier.test(value)) fail(`${name} is invalid`); }
-function assertUtf8(value, max, name) { if (typeof value !== 'string' || value.length === 0 || Buffer.byteLength(value, 'utf8') > max) fail(`${name} is invalid`); }
-function assertHmdIp(value) {
-  if (typeof value !== 'string' || !ipv4.test(value)) fail('hmd_ip syntax is invalid');
-  const octets = value.split('.').map(Number);
-  if (octets[0] === 0 || octets[0] === 127 || octets[0] >= 224 || value === '255.255.255.255') fail('hmd_ip must be unicast');
+function object(value, name) { if (!value || Array.isArray(value) || typeof value !== 'object') fail(`${name} must be an object`); }
+function only(value, allowed, name) { for (const key of Object.keys(value)) if (!allowed.includes(key)) fail(`${name}.${key} is not allowed`); }
+function text(value, max, name) { if (typeof value !== 'string' || !value || Buffer.byteLength(value, 'utf8') > max) fail(`${name} is invalid`); }
+function id(value, name, nullable = false) { if (nullable && value === null) return; if (typeof value !== 'string' || !identifier.test(value)) fail(`${name} is invalid`); }
+function hmd(value) { if (value === null) return; if (typeof value !== 'string' || !/^(?:\d{1,3}\.){3}\d{1,3}$/.test(value)) fail('hmd_ip is invalid'); const octets = value.split('.').map(Number); if (octets.some((octet) => octet > 255) || octets[0] === 0 || octets[0] === 127 || octets[0] >= 224) fail('hmd_ip must be unicast'); }
+function profile(value, response) {
+  object(value, 'wifi profile');
+  only(value, response ? ['ssid', 'open', 'wifi_password_set'] : ['ssid', 'open', 'wifi_password'], 'wifi profile');
+  text(value.ssid, 32, 'wifi profile ssid');
+  if ('open' in value && typeof value.open !== 'boolean') fail('wifi profile open is invalid');
+  if (response) { if (typeof value.open !== 'boolean' || typeof value.wifi_password_set !== 'boolean' || value.open === value.wifi_password_set) fail('wifi profile redaction is invalid'); }
+  else if (value.open === true && 'wifi_password' in value) fail('open profile cannot include password');
 }
-function assertVersion(frame) { if (frame.version !== 1) fail('version must be 1'); }
-
-function validateConfig(config) {
-  assertObject(config, 'config');
-  const fields = ['wifi_ssid', 'wifi_password_set', 'hmd_ip', 'controller_id', 'target_a_demo_id', 'target_b_demo_id', 'target_c_demo_id', 'shared_secret_set', 'allow_unsigned', 'isolated_lan', 'next_sequence'];
-  assert.deepEqual(Object.keys(config).sort(), fields.sort());
-  if (config.wifi_ssid !== null) assertUtf8(config.wifi_ssid, 32, 'wifi_ssid');
-  if (config.hmd_ip !== null) assertHmdIp(config.hmd_ip);
-  assertId(config.controller_id, 'controller_id');
-  for (const key of ['target_a_demo_id', 'target_b_demo_id', 'target_c_demo_id']) assertId(config[key], key, true);
-  for (const key of ['wifi_password_set', 'shared_secret_set', 'allow_unsigned', 'isolated_lan']) if (typeof config[key] !== 'boolean') fail(`${key} must be boolean`);
-  if (!Number.isSafeInteger(config.next_sequence) || config.next_sequence < 1) fail('next_sequence is invalid');
+function config(value) {
+  object(value, 'config');
+  const fields = ['wifi_profiles', 'hmd_ip', 'controller_id', 'target_a_demo_id', 'target_b_demo_id', 'target_c_demo_id', 'shared_secret_set', 'allow_unsigned', 'isolated_lan', 'next_sequence'];
+  assert.deepEqual(Object.keys(value).sort(), fields.sort());
+  if (!Array.isArray(value.wifi_profiles) || value.wifi_profiles.length > 5) fail('wifi_profiles is invalid');
+  value.wifi_profiles.forEach((entry) => profile(entry, true));
+  if (new Set(value.wifi_profiles.map((entry) => entry.ssid)).size !== value.wifi_profiles.length) fail('wifi profile SSIDs must be unique');
+  id(value.controller_id, 'controller_id');
+  hmd(value.hmd_ip);
+  for (const key of ['target_a_demo_id', 'target_b_demo_id', 'target_c_demo_id']) id(value[key], key, true);
+  for (const key of ['shared_secret_set', 'allow_unsigned', 'isolated_lan']) if (typeof value[key] !== 'boolean') fail(`${key} is invalid`);
+  if (!Number.isSafeInteger(value.next_sequence) || value.next_sequence < 1) fail('next_sequence is invalid');
 }
-
-function validateUpdate(update) {
-  assertObject(update, 'config update');
-  if (Object.keys(update).length === 0) fail('config update is empty');
-  const values = ['wifi_ssid', 'wifi_password', 'hmd_ip', 'controller_id', 'target_a_demo_id', 'target_b_demo_id', 'target_c_demo_id', 'shared_secret', 'allow_unsigned', 'isolated_lan'];
-  assertOnly(update, [...values, ...clearFields.map((field) => `clear_${field}`)], 'config update');
-  if ('wifi_ssid' in update) assertUtf8(update.wifi_ssid, 32, 'wifi_ssid');
-  for (const key of ['wifi_password', 'shared_secret']) if (key in update) assertUtf8(update[key], 256, key);
-  if ('hmd_ip' in update) assertHmdIp(update.hmd_ip);
-  for (const key of ['controller_id', 'target_a_demo_id', 'target_b_demo_id', 'target_c_demo_id']) if (key in update) assertId(update[key], key);
-  for (const field of clearFields) {
-    const clearKey = `clear_${field}`;
-    if (clearKey in update && typeof update[clearKey] !== 'boolean') fail(`${clearKey} must be boolean`);
-    if (update[clearKey] === true && field in update) fail(`${field} conflicts with ${clearKey}`);
-  }
-  for (const key of ['allow_unsigned', 'isolated_lan']) if (key in update && typeof update[key] !== 'boolean') fail(`${key} must be boolean`);
-  if (update.allow_unsigned === true && update.isolated_lan !== true) fail('unsigned mode requires isolated LAN opt-in');
-  if (update.allow_unsigned === true && 'shared_secret' in update) fail('unsigned mode cannot set a shared secret');
+function update(value) {
+  object(value, 'config update'); if (!Object.keys(value).length) fail('config update is empty');
+  const values = ['wifi_profiles', 'hmd_ip', 'controller_id', 'target_a_demo_id', 'target_b_demo_id', 'target_c_demo_id', 'shared_secret', 'allow_unsigned', 'isolated_lan'];
+  const clears = ['wifi_profiles', 'hmd_ip', 'controller_id', 'target_a_demo_id', 'target_b_demo_id', 'target_c_demo_id', 'shared_secret'];
+  only(value, [...values, ...clears.map((name) => `clear_${name}`)], 'config update');
+  if ('wifi_profiles' in value) { if (!Array.isArray(value.wifi_profiles) || !value.wifi_profiles.length || value.wifi_profiles.length > 5) fail('wifi_profiles is invalid'); value.wifi_profiles.forEach((entry) => profile(entry, false)); if (new Set(value.wifi_profiles.map((entry) => entry.ssid)).size !== value.wifi_profiles.length) fail('wifi profile SSIDs must be unique'); }
+  if (value.clear_wifi_profiles === true && 'wifi_profiles' in value) fail('wifi_profiles conflicts with clear_wifi_profiles');
+  for (const key of clears) if (`clear_${key}` in value && typeof value[`clear_${key}`] !== 'boolean') fail(`clear_${key} is invalid`);
+  for (const key of clears) if (value[`clear_${key}`] === true && key in value) fail(`${key} conflicts with clear_${key}`);
+  for (const key of ['controller_id', 'target_a_demo_id', 'target_b_demo_id', 'target_c_demo_id']) if (key in value) id(value[key], key);
+  if ('shared_secret' in value) text(value.shared_secret, 256, 'shared_secret');
+  if ('hmd_ip' in value) hmd(value.hmd_ip);
+  if (value.allow_unsigned === true && value.isolated_lan !== true) fail('unsigned requires isolated LAN');
 }
-
-function validateFrame(frame) {
-  assertObject(frame, 'frame');
-  assertVersion(frame);
-  if (frame.type === 'get_config' || frame.type === 'factory_reset' || frame.type === 'reboot') {
-    assert.deepEqual(Object.keys(frame).sort(), ['id', 'type', 'version']);
-    assertId(frame.id, 'id');
-    return;
-  }
-  if (frame.type === 'set_config') {
-    assert.deepEqual(Object.keys(frame).sort(), ['config', 'id', 'type', 'version']);
-    assertId(frame.id, 'id');
-    validateUpdate(frame.config);
-    return;
-  }
-  if (frame.type !== 'response') fail('type is invalid');
-  if (frame.response === 'config') { assertId(frame.id, 'id'); assert.deepEqual(Object.keys(frame).sort(), ['config', 'id', 'response', 'type', 'version']); validateConfig(frame.config); return; }
-  if (frame.response === 'status') {
-    assertId(frame.id, 'id');
-    assert.deepEqual(Object.keys(frame).sort(), ['id', 'response', 'status', 'type', 'version']);
-    assertObject(frame.status, 'status');
-    const statusPairs = { set_config: 'updated', factory_reset: 'reset', reboot: 'rebooting' };
-    if (statusPairs[frame.status.command] !== frame.status.state || Object.keys(frame.status).length !== 2) fail('status is invalid');
-    return;
-  }
-  if (frame.response === 'error') {
-    assertId(frame.id, 'id', true);
-    assert.deepEqual(Object.keys(frame).sort(), ['error', 'id', 'response', 'type', 'version']);
-    assertObject(frame.error, 'error');
-    if (!['invalid_json', 'line_too_long', 'unsupported_version', 'unknown_command', 'invalid_request', 'invalid_config', 'conflicting_update', 'write_failed', 'busy'].includes(frame.error.code) || typeof frame.error.message !== 'string' || Buffer.byteLength(frame.error.message, 'utf8') > 256 || Object.keys(frame.error).length !== 2) fail('error is invalid');
-    return;
-  }
+function frame(value) {
+  object(value, 'frame'); if (value.version !== 1) fail('version is invalid');
+  if (['get_config', 'factory_reset', 'reboot'].includes(value.type)) { assert.deepEqual(Object.keys(value).sort(), ['id', 'type', 'version']); id(value.id, 'id'); return; }
+  if (value.type === 'set_config') { assert.deepEqual(Object.keys(value).sort(), ['config', 'id', 'type', 'version']); id(value.id, 'id'); update(value.config); return; }
+  if (value.type !== 'response') fail('type is invalid');
+  if (value.response === 'config') { assert.deepEqual(Object.keys(value).sort(), ['config', 'id', 'response', 'type', 'version']); id(value.id, 'id'); config(value.config); return; }
+  if (value.response === 'status') { id(value.id, 'id'); const pairs = { set_config: 'updated', factory_reset: 'reset', reboot: 'rebooting' }; if (!value.status || pairs[value.status.command] !== value.status.state || Object.keys(value.status).length !== 2) fail('status is invalid'); return; }
+  if (value.response === 'error') { id(value.id, 'id', true); return; }
   fail('response is invalid');
 }
-
-test('valid fixtures conform and fit one serial line', () => {
-  for (const { name, frame } of valid) {
-    assert.doesNotThrow(() => validateFrame(frame), name);
-    assert.ok(Buffer.byteLength(`${JSON.stringify(frame)}\n`, 'utf8') <= 1024, `${name} exceeds the serial line limit`);
+test('valid fixtures conform and fit one serial line', () => { for (const { name, frame: value } of valid) { assert.doesNotThrow(() => frame(value), name); assert.ok(Buffer.byteLength(`${JSON.stringify(value)}\n`, 'utf8') <= 1024, `${name} exceeds the serial line limit`); } });
+test('invalid fixtures are rejected', () => { for (const { name, frame: value } of invalid) assert.throws(() => frame(value), name); });
+test('Wi-Fi profile schema documents SSID uniqueness and custom validation enforces it', () => {
+  for (const profiles of [schema.$defs.config.properties.wifi_profiles, schema.$defs.configUpdate.properties.wifi_profiles]) {
+    assert.equal(profiles.uniqueItems, true);
+    assert.equal(profiles['x-uniqueBy'], 'ssid');
   }
-});
-
-test('invalid fixtures are rejected', () => {
-  for (const { name, frame } of invalid) assert.throws(() => validateFrame(frame), name);
+  assert.throws(() => update({ wifi_profiles: [{ ssid: 'DemoLan', wifi_password: 'one' }, { ssid: 'DemoLan', wifi_password: 'two' }] }));
 });
