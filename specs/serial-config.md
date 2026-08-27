@@ -334,19 +334,23 @@ MQTT 受信機の **制限モード**（`mqtt-transport.md` §6.3）。ON のと
 ### 4.18 set_espnow_stream_relay_source — EspNowStream リピータの中継元 source MAC（transmitter / repeater）
 
 ESP-NOW stream のリピータ機が中継する **1 つの source MAC** を設定する（`espnow-stream.md` §7.2）。
-設定するとそのデバイスはリピータとして動作し、当該 source の `0xAA` パケットのみを verbatim
-再ブロードキャストする（ループ防止のため他ソース・他リピータは中継しない = 最大 1 ホップ）。
+MAC 文字列を設定するとそのデバイスは厳格な manual pin のリピータとして動作し、当該 source の
+`0xAA` パケットのみを verbatim 再ブロードキャストする（ループ防止のため他ソース・他リピータは
+中継しない = 最大 1 ホップ）。空 MAC は manual pin を解除し、auto origin-follow に戻る。
 
 **Request:**
 ```json
 {"cmd": "set_espnow_stream_relay_source", "mac": "AA:BB:CC:DD:EE:FF"}
 ```
 
-- `mac` (string): 中継する source 機の MAC（`""` でリピータ動作を無効化 = 通常の transmitter）。
+- `mac` (string): 中継する source 機の MAC。MAC 文字列は厳格な manual pin、`""` は manual pin の解除
+  （`espnow-stream.md` §7.2 の auto origin-follow へ復帰）を表す。
 - NVS: `espnow/relay_src`（string）。一発勝負イベントでは flash-time 定数でも可。
-- get_info の `espnow_stream_relay_source`（string, transmitter のみ）で現在値を読む。
+- get_info の `espnow_stream_relay_source`（string, transmitter / repeater のみ）は常に string とし、
+  `""` は auto origin-follow、MAC 文字列は manual pin を表す。
 
 **Response:** `{"status": "ok", "cmd": "set_espnow_stream_relay_source", "mac": "AA:BB:CC:DD:EE:FF"}`
+（`mac` は適用値をエコーする。`""` の場合は manual pin を解除して auto origin-follow に戻る。）
 
 ### 4.19 set_espnow_stream_ui — EspNowStream 受信機の省電力 UI ポリシー（receiver(espnow_stream)）
 
@@ -481,7 +485,7 @@ DuoWL v4 は **TPA6130A2 capless ヘッドホンアンプ**（v3 に無い）を
 | hapbeat | strm_buf_ms | uint16 | UDP ストリーム ジッタバッファ深さ（ms、0=低遅延既定、0〜500）。全 UDP 受信機。`set_stream_buffer` |
 | espnow | channel | uint8 | ESP-NOW チャンネル（既存） |
 | espnow | gain | float | espnow_stream 受信の既定ゲイン（receiver(espnow_stream)） |
-| espnow | relay_src | string | リピータが中継する source MAC（transmitter/repeater）。空 = 中継無効 |
+| espnow | relay_src | string | リピータが中継する source MAC（transmitter/repeater）。空 = manual pin 解除・auto origin-follow |
 | espnow_ui | auto_off_ms | uint32 | wake 後の OLED 表示時間（ms、既定 4000）。receiver(espnow_stream) |
 | espnow_ui | wake_btn | uint8 | ボタン押下で表示を起こす（1/0、既定 1）。receiver(espnow_stream) |
 | espnow_ui | wake_vol | uint8 | ボリューム変更で表示を起こす（1/0、既定 1）。receiver(espnow_stream) |
