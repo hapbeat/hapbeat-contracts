@@ -119,6 +119,20 @@ PING に対するデバイスの応答。
 registry の更新として扱い、active source を新しい正準 address で直ちに再解決する。既存 PING
 への PONG 応答と PLAY / STOP の target filter はこの通知で変わらない。
 
+#### 識別情報更新時の PONG 配送
+
+識別情報更新の unsolicited PONG は `seq=0`、`timestamp=0` とし、次の両方へ送る。
+
+1. subnet broadcast の UDP 7700 — Manager / helper の常駐 listener 向け。
+2. 有効な PING を直近 15 秒以内に送った各 sender の送信元 `(IPv4, UDP port)` への exact unicast —
+   SDK の local port 0（ephemeral）socket 向け。
+
+デバイスは sender table を最大 8 endpoint に制限し、同じ `(IPv4, UDP port)` の PING は既存 entry
+を更新する。満杯時は最も古い live entry を置換し、TTL 超過 entry は送信せず再利用する。SDK は
+PING を送った receive socket を維持して unicast PONG を受信し、periodic PING を待たず identity
+update を反映する。broadcast 7700 を受信できない ephemeral port の SDK でも、この unicast が
+endpoint 再解決を成立させる。
+
 ### 0x20 CONNECT_STATUS
 
 SDK/アプリからデバイスへの接続状態通知。定期的に送信し、デバイスが接続中であることを示す。

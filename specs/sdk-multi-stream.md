@@ -50,17 +50,20 @@ Playback の Address Override（target）を変更した場合、StreamHub は�
 新しい effective target で active source を再解決し、endpoint session の所属を Reconcile
 しなければならない。再生を stop / play し直すことは要求しない。
 
-1. 旧 effective target にだけ一致していた endpoint から source を直ちに除外し、最後の
-   source ならその endpoint へ exact unicast の END を送って以後の STREAM_DATA を停止する。
+1. 旧 effective target にだけ一致していた endpoint から source を直ちに除外し、Reconcile
+   完了後の STREAM_DATA を直ちに停止する。最後の source の END は §6 の endpoint lifecycle と
+   実装の linger 方針に従って exact unicast で送る（Address Override 自体は即時 END を要求しない）。
 2. 新 effective target に一致する既知 endpoint には直ちに source を追加し、必要ならその
-   endpoint だけへ BEGIN を送って送信を開始する。
+   endpoint だけへ BEGIN を送って送信を開始する。新 endpoint の cursor は既存の late-join 規約に
+   従い、有限 source は frame 0 から開始する。
 3. 新 effective target に一致する既知 endpoint が 0 台なら、source は
    `Deferred(NoResolvedEndpoint)` となり、SDK は直ちに discovery PING を送る。STREAM packet
    を broadcast してはならない。対応する PONG を受信したら、その endpoint を自動参加させる。
 4. override による endpoint membership の変更は route-only update ではない。旧 endpoint の
    END と新 endpoint の BEGIN が必要になる場合でも、それぞれの endpoint への exact unicast
    に限定する。この別 endpoint session の終了・開始は、同一 endpoint session の packet を
-   宛先集合をまたいで送る禁止事項には該当しない。Playback を replay してはならない。
+   宛先集合をまたいで送る禁止事項には該当しない。caller が `playStream` を再発行したり Playback
+   handle を置換したりする必要はない。この禁止は新 endpoint の frame 0 late-join を妨げない。
 
 ## 5. Mixing and wire profile
 
@@ -85,6 +88,8 @@ rightGain = gain * (pan >= 0 ? 1 : 1 + pan)
 4. 1 source の stop は同じ endpoint session の sibling source を停止してはならない。
 5. Playback の stop は複数回呼んでも結果が変わらない。
 6. live push source が Deferred の間、SDK は入力を無制限に保持してはならない。SDK は未解決中の write を drop するか、bounded buffer / backpressure を提供し、その方針を API 文書へ明記する。
+7. 最後の source を外した endpoint session は、実装が既に持つ linger を適用してから END を送ってよい。
+   linger 中も外れた source の DATA を送ってはならない。
 
 ## 7. Conformance cases
 
@@ -97,8 +102,9 @@ rightGain = gain * (pan >= 0 ? 1 : 1 + pan)
 5. 最後の source 停止時だけ END が 1 回送られる。
 6. broadcast の STREAM packet と、経路をまたぐ短間隔 END -> BEGIN が存在しない。
 7. Active source の Address Override は即時に endpoint membership を Reconcile し、旧 endpoint
-   への送信を停止する。既知の新 endpoint は即参加し、未知の新 target は即時 PING と PONG 後の
-   自動参加になる。
+   への DATA を停止する。最後の source の END は linger 方針に従い、既知の新 endpoint は frame 0
+   で即参加する。caller が Playback を再発行せず、未知の新 target は即時 PING と PONG 後の自動参加
+   になる。
 
 共通 fixture は `../fixtures/sdk-multi-stream-routing.json` を用いる。
 

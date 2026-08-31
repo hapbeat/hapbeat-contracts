@@ -54,8 +54,11 @@
       "old_endpoint_id": "left",
       "known_new_endpoint_id": "right",
       "expected_old_endpoint_streaming": false,
+      "expected_old_endpoint_data_after_reconcile": false,
+      "expected_old_endpoint_end": "endpoint_linger_policy",
       "expected_new_endpoint_streaming": true,
-      "forbidden": ["broadcast_stream_packet", "replay_playback"]
+      "expected_new_endpoint_start": "frame_0",
+      "forbidden": ["broadcast_stream_packet", "caller_playback_reissue"]
     },
     {
       "source_id": "left_only",
@@ -73,9 +76,21 @@
       },
       "expected_status_after_pong": "Active",
       "expected_new_endpoint_streaming": true,
-      "forbidden": ["broadcast_stream_packet", "replay_playback"]
+      "expected_new_endpoint_start": "frame_0",
+      "forbidden": ["broadcast_stream_packet", "caller_playback_reissue"]
     }
   ],
+  "identity_update_pong_delivery": {
+    "seq": 0,
+    "timestamp": 0,
+    "broadcast": {"port": 7700},
+    "recent_ping_sender_ttl_ms": 15000,
+    "recent_ping_sender_capacity": 8,
+    "unicast_ping_senders": [
+      {"ip": "192.0.2.100", "port": 49152},
+      {"ip": "192.0.2.101", "port": 49153}
+    ]
+  },
   "forbidden": [
     "broadcast_stream_packet",
     "cross_route_end_then_begin"
