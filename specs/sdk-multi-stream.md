@@ -44,6 +44,24 @@ Playback:
 5. 新しい PONG または endpoint expiry の後、StreamHub は source と endpoint の対応を再評価する。Deferred source が初めて解決した場合、有限 source は先頭から開始する。
 6. device address または宛先 route の変更だけで STREAM_END / STREAM_BEGIN を交差経路へ送ってはならない。`message-format.md` の順序制約に従う。
 
+### 4.1 Address Override の即時反映
+
+Playback の Address Override（target）を変更した場合、StreamHub は次の tick を待たずに
+新しい effective target で active source を再解決し、endpoint session の所属を Reconcile
+しなければならない。再生を stop / play し直すことは要求しない。
+
+1. 旧 effective target にだけ一致していた endpoint から source を直ちに除外し、最後の
+   source ならその endpoint へ exact unicast の END を送って以後の STREAM_DATA を停止する。
+2. 新 effective target に一致する既知 endpoint には直ちに source を追加し、必要ならその
+   endpoint だけへ BEGIN を送って送信を開始する。
+3. 新 effective target に一致する既知 endpoint が 0 台なら、source は
+   `Deferred(NoResolvedEndpoint)` となり、SDK は直ちに discovery PING を送る。STREAM packet
+   を broadcast してはならない。対応する PONG を受信したら、その endpoint を自動参加させる。
+4. override による endpoint membership の変更は route-only update ではない。旧 endpoint の
+   END と新 endpoint の BEGIN が必要になる場合でも、それぞれの endpoint への exact unicast
+   に限定する。この別 endpoint session の終了・開始は、同一 endpoint session の packet を
+   宛先集合をまたいで送る禁止事項には該当しない。Playback を replay してはならない。
+
 ## 5. Mixing and wire profile
 
 1. 同じ device endpoint に一致する logical source は、送信側で 1 endpoint session に混合する。異なる endpoint の source は別 session に分離する。
@@ -78,6 +96,9 @@ rightGain = gain * (pan >= 0 ? 1 : 1 + pan)
 4. endpoint 未解決時は packet を送らず Deferred となり、PONG 後に source 先頭から Active になる。
 5. 最後の source 停止時だけ END が 1 回送られる。
 6. broadcast の STREAM packet と、経路をまたぐ短間隔 END -> BEGIN が存在しない。
+7. Active source の Address Override は即時に endpoint membership を Reconcile し、旧 endpoint
+   への送信を停止する。既知の新 endpoint は即参加し、未知の新 target は即時 PING と PONG 後の
+   自動参加になる。
 
 共通 fixture は `../fixtures/sdk-multi-stream-routing.json` を用いる。
 

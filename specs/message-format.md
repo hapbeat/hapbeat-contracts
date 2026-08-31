@@ -109,10 +109,15 @@ PING に対するデバイスの応答。
 | timestamp | int64 | 元の PING のタイムスタンプ（マイクロ秒） |
 | server_time | int64 | デバイスが PONG を送信した時刻（マイクロ秒） |
 | device_name | null-terminated string | デバイス名 |
-| address | null-terminated string | デバイスアドレス（例: `player_1/chest`）。詳細は `device-addressing.md` 参照 |
+| address | null-terminated string | デバイスの完全な正準 address（例: `player_1/pos_chest/group_1`）。詳細は `device-addressing.md` 参照 |
 | firmware_version | null-terminated string | ファームウェアバージョン |
 
 受信側は `payload_length` を確認して、基本 PONG（16 bytes）と拡張 PONG（16 bytes + 可変長）を区別する。
+
+デバイスは `set_address`、address を変えるボタン操作、`set_name` など、PONG に含む識別情報の
+変更を成功させた後、浅い main loop から unsolicited PONG を送る。SDK はこの PONG を endpoint
+registry の更新として扱い、active source を新しい正準 address で直ちに再解決する。既存 PING
+への PONG 応答と PLAY / STOP の target filter はこの通知で変わらない。
 
 ### 0x20 CONNECT_STATUS
 
