@@ -133,6 +133,11 @@ PING を送った receive socket を維持して unicast PONG を受信し、per
 update を反映する。broadcast 7700 を受信できない ephemeral port の SDK でも、この unicast が
 endpoint 再解決を成立させる。
 
+`timestamp=0` は PING への応答ではないことを示す sentinel である。SDK / Manager はこの PONG を
+endpoint registry・liveness・表示用 identity の更新には使用するが、RTT（Round-Trip Time）や
+device time offset の計算には使用してはならない。通常の PING 応答（元の PING timestamp が非 0）
+だけが RTT / time-sync sample になる。
+
 ### 0x20 CONNECT_STATUS
 
 SDK/アプリからデバイスへの接続状態通知。定期的に送信し、デバイスが接続中であることを示す。

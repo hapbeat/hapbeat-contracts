@@ -83,6 +83,9 @@
   "identity_update_pong_delivery": {
     "seq": 0,
     "timestamp": 0,
+    "update_endpoint_registry": true,
+    "update_liveness": true,
+    "update_rtt_or_time_offset": false,
     "broadcast": {"port": 7700},
     "recent_ping_sender_ttl_ms": 15000,
     "recent_ping_sender_capacity": 8,
