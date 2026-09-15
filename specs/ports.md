@@ -13,7 +13,7 @@ Hapbeat エコシステム全体で使用するネットワークポートの**�
 | **7700** | UDP | **デバイス**（ファーム） | コマンド面: `PLAY` / `STOP` / `STOP_ALL` / `PING` / `STREAM_*` | デバイス固定・共有 |
 | **7701** | TCP | **デバイス**（ファーム） | 設定面: `get_info` / Kit 配布 / OTA / `log_stream` / Wi-Fi / display-layout | デバイス固定・共有 |
 | **7702** | UDP (OSC) | ツール（例: `hapbeat osc-bridge`） | OSC 入口 `/hapbeat/*` を受け、7700 へ中継 | ツールサービス |
-| **7703** | WebSocket (TCP) | **hapbeat-helper** | ブラウザ↔helper の JSON `{type,payload}` リレー（Studio / web-sdk browser transport） | ツールサービス |
+| **7703** | WebSocket (TCP) | **hapbeat-helper** | ブラウザ↔helper の JSON `{type,payload}` リレー（Studio / web-sdk browser transport）。音声 stream transaction は [`helper-streaming.md`](helper-streaming.md) に従う | ツールサービス |
 | **7710** | UDP | 前面で実行中の demo runtime | Demo Switch control: logical demo ID によるアプリ切替と `ACK` / `READY` / `FAILED` status | デモ制御専用 |
 | **7100** | HTTP (TCP) | **hapbeat-python-sdk** `hapbeat launchpad` | ブラウザ↔launchpad の UI/API | ツールサービス |
 | **5353** | UDP (mDNS) | デバイスが `_hapbeat._udp` を advertise | ゼロコンフィグ発見（TXT: `name`/`group`/`fw`/`mac`/`role`/`transport`） | 標準 mDNS |

@@ -39,6 +39,10 @@ Hapbeat デバイスに搭載される OLED ディスプレイ（128x64 ピク�
 | `custom_text` | 可変 | 任意のテキストを表示（サイズはテキスト長に依存） |
 | `gain` | 3x1 | ゲイン値を数値で表示 |
 | `group_id` | 3x1 | グループ ID を表示 |
+| `pwm_bias_state` | 8x1（compact: 4x1） | Band Wireless PWM 実験用。保存済みの固定バイアス有効状態を表示。 |
+| `pwm_bias_value` | 8x1（compact: 4x1） | Band Wireless PWM 実験用。ISRにより実際に適用中のバイアス率を表示。 |
+| `average_power` | 8x1（compact: 4x1） | 直近最大1分の平均推定放電電力を表示。MAX17048ではCRATE換算の推定値なので `P~` 接頭辞を用いる。 |
+| `estimated_runtime` | 8x1（compact: 4x1） | SOC と直近最大1分の平均推定放電電流から算出する推定残り稼働時間を分単位で表示。標準表示は `T~245m`、compact 表示は `245m`。充電中・取得不能時は `--`。 |
 
 ### サイズの変更
 

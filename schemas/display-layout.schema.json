@@ -76,7 +76,11 @@
             "custom_text",
             "gain",
             "group_id",
-            "mqtt_status"
+            "mqtt_status",
+            "pwm_bias_state",
+            "pwm_bias_value",
+            "average_power",
+            "estimated_runtime"
           ]
         },
         "position": {
