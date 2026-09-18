@@ -1,4 +1,8 @@
 {
+  "unsigned_control": {
+    "version": 1, "type": "CONTROL", "controller_id": "m5-main", "seq": 43,
+    "demo_id": "volley", "action": "scene", "scene_id": "block"
+  },
   "unsigned_command": {
     "version": 1,
     "type": "SWITCH",

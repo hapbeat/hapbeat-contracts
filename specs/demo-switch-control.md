@@ -26,6 +26,41 @@
 
 ## Status
 
+### In-application CONTROL
+
+`CONTROL` operates only on the foreground runtime whose `current_demo_id` equals
+`demo_id`; it never launches another application. Required fields are `version`,
+`type`, `controller_id`, `seq`, `demo_id`, `action`, `scene_id`; optional `auth`.
+The same identifier, payload, authentication and persistent sequence rules apply.
+Unknown fields are rejected. Actions are `menu_open`, `menu_close`, `recenter`,
+`restart`, `scene`. `scene_id` is a logical identifier for `scene`, and MUST be
+the empty string for every other action. Scene IDs resolve through an application
+allowlist, never to supplied paths or executable names. `restart` reloads the
+current experience, not the OS process. `recenter` uses the application's authored
+start/reposition policy, not a privileged OS recenter command.
+
+```json
+{"version":1,"type":"CONTROL","controller_id":"m5-main","seq":43,"demo_id":"volley","action":"scene","scene_id":"block"}
+```
+
+CONTROL uses the COMMAND HMAC header and fields in this order: `version`, `type`,
+`controller_id`, `seq`, `demo_id`, `action`, `scene_id`. Both added fields are signed,
+including an empty `scene_id`. SWITCH's fields and canonical bytes are unchanged.
+An unsupported action/scene, mismatched current demo, or busy receiver returns
+`FAILED/not_allowed` without executing. On acceptance send ACK, retain the
+listener, perform the operation on the application thread, then send READY only
+after completion (for scenes, after the new scene initializes). Execution failure
+returns `FAILED/launch_failed`. Status uses the existing schema and is correlated
+by controller ID, sequence and demo ID. A receiver accepts at most one operation
+at a time; duplicate sequences never execute twice. Menus use explicit open/close,
+not toggle, so repeated user actions do not invert state accidentally. Pending
+operations are not replayed when an application regains foreground.
+
+Controllers discover the foreground demo before CONTROL, including when an HMD
+address is manually configured (unicast DISCOVER/HERE is permitted there).
+Do not replay queued controls on a different demo after a transition. An operator
+must request the action again after a mismatch or failure.
+
 ```json
 {"version":1,"type":"READY","controller_id":"m5-main","seq":42,"demo_id":"gloveball","current_demo_id":"gloveball","code":"ok","message":"","auth":"..."}
 ```

@@ -4,11 +4,28 @@
   "title": "Hapbeat Demo Switch message",
   "oneOf": [
     { "$ref": "#/$defs/command" },
+    { "$ref": "#/$defs/control" },
     { "$ref": "#/$defs/status" },
     { "$ref": "#/$defs/discover" },
     { "$ref": "#/$defs/here" }
   ],
   "$defs": {
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "type", "controller_id", "seq", "demo_id", "action", "scene_id"],
+      "properties": {
+        "version": {"const": 1}, "type": {"const": "CONTROL"},
+        "controller_id": {"$ref": "#/$defs/identifier"},
+        "seq": {"type": "integer", "minimum": 1, "maximum": 9007199254740991},
+        "demo_id": {"$ref": "#/$defs/identifier"},
+        "action": {"enum": ["menu_open", "menu_close", "recenter", "restart", "scene"]},
+        "scene_id": {"type": "string"}, "auth": {"$ref": "#/$defs/auth"}
+      },
+      "if": {"properties": {"action": {"const": "scene"}}},
+      "then": {"properties": {"scene_id": {"$ref": "#/$defs/identifier"}}},
+      "else": {"properties": {"scene_id": {"const": ""}}}
+    },
     "identifier": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
     "auth": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
     "nonce": { "type": "string", "pattern": "^[0-9a-f]{16}$" },
