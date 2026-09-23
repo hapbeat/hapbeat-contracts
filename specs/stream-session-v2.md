@@ -122,7 +122,7 @@ incarnation match, and the timestamp is newer than the last accepted request):
 |---|---|---|
 | Valid 32-byte `HBS2` tail | v2 | Lease rules above. `lease_valid`=0 or superseded means defer, never legacy |
 | No `HBS2` marker after the ordinary fields (the PONG ends at or before volume_wiper, or other bytes follow) | legacy | v1 format below |
-| `HBS2` marker with wrong length, version, reserved or flags | unsupported | Defer; keep any previous class |
+| `HBS2` marker with wrong length, version, reserved or flags | ignored | No class or lease change; an unknown endpoint stays deferred |
 
 Unsolicited PONGs, replies to other requests and late replies never change the
 class. Before the first matched reply an endpoint is unknown and its streams defer.
