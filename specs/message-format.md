@@ -2,7 +2,7 @@
 
 ## 1. 概要
 
-本文書は、`NodeTransport.WifiUdp`（wire/config 値 `wifi_udp`）の SDK → デバイス UDP 通信と OSC 変換を定義する。UDP wire bytes は変更しない。
+本文書は、`NodeTransport.WifiUdp`（wire/config 値 `wifi_udp`）の SDK → デバイス UDP 通信と OSC 変換を定義する。Stream session v2 の識別・順序規則は [stream-session-v2.md](stream-session-v2.md) を正とする。
 
 ## 2. メッセージ層の整理
 
@@ -29,7 +29,7 @@ SDK は既知デバイスへ unicast し、既知デバイスが 0 台のとき�
 | オフセット | フィールド | 型 | サイズ | 説明 |
 |---|---|---|---|---|
 | 0 | magic | uint16 | 2 bytes | 固定値 `0x4842`（ASCII "HB"） |
-| 2 | protocol_version | uint8 | 1 byte | プロトコルバージョン。現行は `0x01` |
+| 2 | protocol_version | uint8 | 1 byte | 非streamは `0x01`、STREAM_BEGIN/DATA/END は `0x02` |
 | 3 | command_type | uint8 | 1 byte | コマンド種別（後述） |
 | 4 | seq | uint16 | 2 bytes | シーケンス番号（重複検出用） |
 | 6 | payload_length | uint16 | 2 bytes | payload のバイト長 |
@@ -91,6 +91,10 @@ gain_r = gain × (pan >= 0 ? 1.0 : 1.0 + pan)
 |---|---|---|
 | timestamp | int64 | 送信時のタイムスタンプ（マイクロ秒） |
 
+stream v2対応SDKは続けて非ゼロの`client_incarnation`（uint64）を付加し、
+payloadを16 bytesにする。通常の8-byte PINGは探索のみでleaseを発行しない。
+詳細は [stream-session-v2.md](stream-session-v2.md)。
+
 ### 0x11 PONG
 
 PING に対するデバイスの応答。
@@ -111,6 +115,12 @@ PING に対するデバイスの応答。
 | device_name | null-terminated string | デバイス名 |
 | address | null-terminated string | デバイスの完全な正準 address（例: `player_1/pos_chest/group_1`）。詳細は `device-addressing.md` 参照 |
 | firmware_version | null-terminated string | ファームウェアバージョン |
+| volume_level | uint8 | 現在の音量レベル |
+| volume_wiper | uint8 | 現在のwiper値 |
+
+16-byte PINGへの直接応答のみ、この後に32-byteのstream lease tailを付ける。
+形式・照合条件・再起動時の扱いは [stream-session-v2.md](stream-session-v2.md) に従う。
+unsolicited PONGはtailを持たず、確立済みのleaseを消去しない。
 
 受信側は `payload_length` を確認して、基本 PONG（16 bytes）と拡張 PONG（16 bytes + 可変長）を区別する。
 
@@ -165,12 +175,12 @@ UDP オーディオストリーミングの開始を通知する。**ADPCM デ�
 
 STREAM_BEGIN/DATA/END には **event_id フィールドを含まない**。device が管理するのは送信側の論理 source ではなく、device endpoint ごとの wire session である。複数 source の分離・mixing・endpoint への割当は SDK の責務とし、共通契約は `sdk-multi-stream.md` に定める。Kit manifest の `stream_events` のキーは SDK 内部で AudioClip / binding を紐付けるラベルとしてのみ使用される。
 
-#### STREAM_END / STREAM_BEGIN の順序制約
+#### STREAM_END / STREAM_BEGIN の順序制約（v2）
 
-- STREAM_END と STREAM_BEGIN を、broadcast / unicast または異なる宛先集合をまたいで連続送信してはならない。broadcast がアクセスポイントの DTIM バッファで遅延すると、device には BEGIN の後に古い END が到着し、新しい session を停止させる。
-- 経路だけを変える場合、END / BEGIN の再送は不要である。device は STREAM_DATA の送信元経路を session 識別に使わないため、送信先を切り替えた後も DATA を継続できる。
-- session を再アームする場合は BEGIN 単体を送る。BEGIN は decoder state を初期化し、残差がしきい値を超える場合だけリングバッファを flush する。
-- END の後に BEGIN が不可避な場合は、両方を同一経路・同一宛先集合へ送り、1 beacon 間隔（300 ms）以上空ける。
+- 全streamはexact unicast。全payload先頭に16-byte `device_boot_id/lease_ticket/generation` envelopeを付ける。
+- 古いBEGIN/DATA/ENDはデバイスの世代判定で拒否する。END後の固定300 ms待ちは撤廃する。詳細とPING/PONGのlease拡張は `stream-session-v2.md`。
+- 経路変更だけなら同一device boot/leaseを確認してsessionとcursorを維持してよい。device再起動・lease更新では新しい識別でBEGINし直す。
+- 以下のBEGIN/DATAの表はenvelopeの**後ろのbody**を示す。BEGIN固定長はenvelopeを含め28 bytes。v1 streamの受信互換は持たない。
 
 | フィールド | 型 | 説明 |
 |---|---|---|
@@ -199,7 +209,7 @@ STREAM_BEGIN/DATA/END には **event_id フィールドを含まない**。devic
 
 | フィールド | 型 | 説明 |
 |---|---|---|
-| offset | uint32 | バイトオフセット（順序確認用、デバイス側では未使用） |
+| offset | uint32 | バイトオフセット。v2では重複・逆順DATAを拒否する（uint32 wrap規則は `stream-session-v2.md`） |
 | data | variable | オーディオデータ（PCM16 raw bytes、ADPCM encoded bytes、または Opus フレーム列） |
 
 - PCM16: raw interleaved 16-bit LE samples
@@ -217,9 +227,9 @@ STREAM_BEGIN/DATA/END には **event_id フィールドを含まない**。devic
 
 ### 0x32 STREAM_END
 
-ストリーミング終了のヒント。ペイロードなし。リングバッファは自然にドレインされる。ACK は返さない。
+ストリーミング終了のヒント。v2の16-byte session envelopeだけを持つ。リングバッファは自然にドレインされる。ACK は返さない。
 
-送信側は上記「STREAM_END / STREAM_BEGIN の順序制約」を守る。特に endpoint discovery の更新だけを理由に旧経路へ END、新経路へ BEGIN を連続送信してはならない。
+受信側は有効なsession世代を検証してからENDを適用する。遅れた旧世代のENDで新世代を停止してはならない。
 
 ### 0xFF ERROR
 

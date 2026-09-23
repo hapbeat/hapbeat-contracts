@@ -2,7 +2,7 @@
 
 ## 1. Scope
 
-本仕様は、Hapbeat SDK が WifiUdp の `STREAM_BEGIN / STREAM_DATA / STREAM_END` を用いて、1 アプリから複数の論理 source を複数の target へ同時送信するための共通契約を定める。wire format は `message-format.md` から変更しない。
+本仕様は、Hapbeat SDK が WifiUdp の `STREAM_BEGIN / STREAM_DATA / STREAM_END` を用いて、1 アプリから複数の論理 source を複数の target へ同時送信するための共通契約を定める。wire format は `message-format.md` と `stream-session-v2.md` に従う。
 
 EspNowStreamSource / EspNowStreamReceiver / EspNowStreamRepeater は会場向け連続音声 transport であり、本仕様の SDK sender session には含めない。Python SDK を利用する TouchDesigner / VRChat integration は Python SDK の実装を共有し、独自の mixer や wire session を複製しない。
 
@@ -90,6 +90,7 @@ rightGain = gain * (pan >= 0 ? 1 : 1 + pan)
 6. live push source が Deferred の間、SDK は入力を無制限に保持してはならない。SDK は未解決中の write を drop するか、bounded buffer / backpressure を提供し、その方針を API 文書へ明記する。
 7. 最後の source を外した endpoint session は、実装が既に持つ linger を適用してから END を送ってよい。
    linger 中も外れた source の DATA を送ってはならない。
+8. `stream-session-v2.md` のdevice-issued leaseとgenerationを全streamに付ける。END後の300 ms cooldownは持たず、次世代を即開始できる。lingerとcooldownを混同しない。
 
 ## 7. Conformance cases
 
@@ -100,7 +101,7 @@ rightGain = gain * (pan >= 0 ? 1 : 1 + pan)
 3. source ごとの gain / pan / stop が sibling source に影響しない。
 4. endpoint 未解決時は packet を送らず Deferred となり、PONG 後に source 先頭から Active になる。
 5. 最後の source 停止時だけ END が 1 回送られる。
-6. broadcast の STREAM packet と、経路をまたぐ短間隔 END -> BEGIN が存在しない。
+6. broadcast の STREAM packet が存在しない。旧世代END/BEGIN/DATAを遅延・並替えしても、新世代の再生を停止・再初期化・汚染しない。終了直後の新世代に300 msの待ちが入らない。
 7. Active source の Address Override は即時に endpoint membership を Reconcile し、旧 endpoint
    への DATA を停止する。最後の source の END は linger 方針に従い、既知の新 endpoint は frame 0
    で即参加する。caller が Playback を再発行せず、未知の新 target は即時 PING と PONG 後の自動参加
