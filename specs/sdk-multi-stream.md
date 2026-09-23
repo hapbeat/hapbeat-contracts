@@ -91,6 +91,7 @@ rightGain = gain * (pan >= 0 ? 1 : 1 + pan)
 7. 最後の source を外した endpoint session は、実装が既に持つ linger を適用してから END を送ってよい。
    linger 中も外れた source の DATA を送ってはならない。
 8. `stream-session-v2.md` のdevice-issued leaseとgenerationを全streamに付ける。END後の300 ms cooldownは持たず、次世代を即開始できる。lingerとcooldownを混同しない。
+9. v2非対応（旧）ファームの機器には `stream-session-v2.md` の Legacy receiver fallback に従い、その機器だけv1 streamと300 ms END→BEGIN guardで送る。SDKだけの更新で旧ファームの機器を無音にしない。
 
 ## 7. Conformance cases
 
@@ -101,7 +102,7 @@ rightGain = gain * (pan >= 0 ? 1 : 1 + pan)
 3. source ごとの gain / pan / stop が sibling source に影響しない。
 4. endpoint 未解決時は packet を送らず Deferred となり、PONG 後に source 先頭から Active になる。
 5. 最後の source 停止時だけ END が 1 回送られる。
-6. broadcast の STREAM packet が存在しない。旧世代END/BEGIN/DATAを遅延・並替えしても、新世代の再生を停止・再初期化・汚染しない。終了直後の新世代に300 msの待ちが入らない。
+6. broadcast の STREAM packet が存在しない。v2機器では、旧世代END/BEGIN/DATAを遅延・並替えしても、新世代の再生を停止・再初期化・汚染しない。終了直後の新世代に300 msの待ちが入らない。旧ファームの機器にはv1 streamで送り、300 ms guardはその機器だけに掛かる。
 7. Active source の Address Override は即時に endpoint membership を Reconcile し、旧 endpoint
    への DATA を停止する。最後の source の END は linger 方針に従い、既知の新 endpoint は frame 0
    で即参加する。caller が Playback を再発行せず、未知の新 target は即時 PING と PONG 後の自動参加

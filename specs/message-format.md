@@ -180,7 +180,15 @@ STREAM_BEGIN/DATA/END には **event_id フィールドを含まない**。devic
 - 全streamはexact unicast。全payload先頭に16-byte `device_boot_id/lease_ticket/generation` envelopeを付ける。
 - 古いBEGIN/DATA/ENDはデバイスの世代判定で拒否する。END後の固定300 ms待ちは撤廃する。詳細とPING/PONGのlease拡張は `stream-session-v2.md`。
 - 経路変更だけなら同一device boot/leaseを確認してsessionとcursorを維持してよい。device再起動・lease更新では新しい識別でBEGINし直す。
-- 以下のBEGIN/DATAの表はenvelopeの**後ろのbody**を示す。BEGIN固定長はenvelopeを含め28 bytes。v1 streamの受信互換は持たない。
+- 以下のBEGIN/DATAの表はenvelopeの**後ろのbody**を示す。BEGIN固定長はenvelopeを含め28 bytes。v2受信機はv1 streamを受理しない。
+- SDKはv2非対応（旧）ファームの機器にだけ、下記「v1 stream（旧ファーム向け）」で送る。判定は `stream-session-v2.md` の Legacy receiver fallback。
+
+#### v1 stream（旧ファーム向け・SDKの後方互換）
+
+- header protocol_version=`0x01`。BEGIN/DATAのpayloadは下表のbodyそのもの（envelopeなし）、ENDはペイロードなし。
+- 旧ファームは古いENDを判別できない。STREAM_END と STREAM_BEGIN を broadcast / unicast または異なる宛先集合をまたいで連続送信しない（DTIMで遅延したbroadcastのENDが新sessionを止める）。
+- 経路だけを変える場合、END / BEGIN の再送は不要。旧ファームはSTREAM_DATAの送信元経路をsession識別に使わない。
+- END の後に BEGIN が不可避な場合は、同一経路・同一宛先へ送り、300 ms 以上空ける（その機器だけに適用し、v2機器は待たない）。
 
 | フィールド | 型 | 説明 |
 |---|---|---|
@@ -227,7 +235,7 @@ STREAM_BEGIN/DATA/END には **event_id フィールドを含まない**。devic
 
 ### 0x32 STREAM_END
 
-ストリーミング終了のヒント。v2の16-byte session envelopeだけを持つ。リングバッファは自然にドレインされる。ACK は返さない。
+ストリーミング終了のヒント。v2の16-byte session envelopeだけを持つ（旧ファーム向けv1 streamではペイロードなし）。リングバッファは自然にドレインされる。ACK は返さない。
 
 受信側は有効なsession世代を検証してからENDを適用する。遅れた旧世代のENDで新世代を停止してはならない。
 
