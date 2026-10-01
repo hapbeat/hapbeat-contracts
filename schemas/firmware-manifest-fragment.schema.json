@@ -45,6 +45,7 @@
         "transports": { "type": "array", "items": { "enum": ["wifi_udp", "mqtt", "espnow_stream"] } },
         "board": { "type": "string" },
         "hapbeat": { "type": "boolean" },
+        "haptic_output": { "enum": ["pwm"], "description": "Haptic output stage when it differs from the board default. \"pwm\" = MCU-direct PWM build for a reworked board (e.g. band_v4_pwm) that keeps the stock board id; hosts must not offer it to, or match it against, devices whose get_info lacks haptic_pwm. Absent = stock amplifier stage." },
         "label": { "type": "string" },
         "description": { "type": "string" },
         "fwVersion": { "type": "string", "description": "Bare semver baked into this build (no leading 'v'; dev builds carry dN)." },

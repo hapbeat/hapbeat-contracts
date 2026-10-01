@@ -70,6 +70,7 @@
         },
         "board": { "type": "string" },
         "hapbeat": { "type": "boolean", "description": "true = wearable Hapbeat (duo_wl_* / band_wl_*); false = ecosystem peripheral (broker / sensor / transmitter)." },
+        "haptic_output": { "enum": ["pwm"], "description": "Haptic output stage when it differs from the board default. \"pwm\" = MCU-direct PWM build for a reworked board (e.g. band_v4_pwm) that keeps the stock board id; hosts must not offer it to, or match it against, devices whose get_info lacks haptic_pwm. Absent = stock amplifier stage." },
         "label": { "type": "string" },
         "description": { "type": "string" },
         "fwVersion": { "type": "string", "description": "Latest version's bare semver (mirror of versions[0].fwVersion)." },
