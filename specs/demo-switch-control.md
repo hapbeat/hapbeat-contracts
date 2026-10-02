@@ -33,8 +33,13 @@
 `type`, `controller_id`, `seq`, `demo_id`, `action`, `scene_id`; optional `auth`.
 The same identifier, payload, authentication and persistent sequence rules apply.
 Unknown fields are rejected. Actions are `menu_open`, `menu_close`, `recenter`,
-`restart`, `scene`. `scene_id` is a logical identifier for `scene`, and MUST be
-the empty string for every other action. Scene IDs resolve through an application
+`restart`, `scene`, `haptics_on`, `haptics_off`, `haptics_ui_show`, `haptics_ui_hide`.
+`scene_id` is a logical identifier for `scene`, and MUST be
+the empty string for every other action. The four `haptics_*` actions set Hapbeat
+output and the visibility of the in-view haptics button as defined in
+[Demo Session](demo-session.md#触覚-onoff); a runtime that does not declare
+`supports.haptics_toggle` rejects them with `FAILED/not_allowed`. Like menus they are
+explicit set operations, never toggles. Scene IDs resolve through an application
 allowlist, never to supplied paths or executable names. `restart` reloads the
 current experience, not the OS process. `recenter` uses the application's authored
 start/reposition policy, not a privileged OS recenter command.

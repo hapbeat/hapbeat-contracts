@@ -73,6 +73,7 @@ hapbeat-contracts 自体は他のどの repo にも依存しません。
 | `versioning.md` | 仕様バージョニング方針・互換性ルール |
 | `release-feed.md` | ツール / SDK の最新版フィードと更新通知ポリシー（DEC-053） |
 | `demo-switch-control.md` | 独立 demo runtime 切替用 UDP 7710 control plane（logical demo ID、sequence、optional HMAC、ACK/READY/FAILED） |
+| `demo-session.md` | 独立 demo runtime を体験者が順に進める Demo Session（APK 内 descriptor、Intent で渡す session ticket、終了パネル、触覚 ON/OFF） |
 
 ### schemas/
 

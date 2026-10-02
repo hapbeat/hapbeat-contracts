@@ -15,13 +15,15 @@ class ControlTests(unittest.TestCase):
         validator = Draft202012Validator(SCHEMA)
         value = FIXTURES['unsigned_control']
         validator.validate(value)
-        for action in ['menu_open', 'menu_close', 'recenter', 'restart']:
+        for action in ['menu_open', 'menu_close', 'recenter', 'restart',
+                       'haptics_on', 'haptics_off', 'haptics_ui_show', 'haptics_ui_hide']:
             validator.validate(dict(value, action=action, scene_id=''))
 
     def test_rejects_invalid_controls(self):
         validator = Draft202012Validator(SCHEMA)
         base = FIXTURES['unsigned_control']
-        for changes in [dict(action='toggle'), dict(scene_id='../evil'), dict(scene_id=''),
+        for changes in [dict(action='toggle'), dict(action='haptics_toggle'),
+                        dict(action='haptics_on', scene_id='block'), dict(scene_id='../evil'), dict(scene_id=''),
                         dict(action='menu_open'), dict(seq=0), dict(auth='bad'), dict(path='arbitrary')]:
             with self.subTest(changes=changes):
                 self.assertFalse(validator.is_valid(dict(base, **changes)))
