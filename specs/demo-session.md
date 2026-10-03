@@ -65,6 +65,14 @@ session mode の runtime は、demo 固有の完了イベントで、体験者�
 - 入力: 人差し指先のポーク（ハンドトラッキング）と、コントローラの ray + trigger の両方。
 - 「もう一度」は同じ step を demo 内で再開する（process 再起動ではない）。終了パネルを閉じる。
 
+- 置く位置は runtime ごとに指定できる（Unity: scene の `DemoSessionPanelAnchor`、Unreal: `UHapbeatDemoSessionPanelAnchor`）。指定が無ければ HMD 正面。表示後は空間に固定し、頭に追従させない。
+
+## 共通の一時停止
+
+- 自前のメニューを持たない runtime は、共通の一時停止パネル（再開 / 最初からやり直す / Hub に戻る）を持つ。自前のメニューを持つ runtime はそちらを使い、共通の一時停止は無効にする。
+- 開閉は左手の Quest 標準メニュー操作（ハンドトラッキングの system menu gesture）とコントローラの ≡ ボタン。設定で「左手のひらを顔に向けて親指と人差し指をつまみ 2 秒保持」に切り替えられる。
+- 一時停止中はゲーム進行・音（ナビ音声を含む）・触覚を止める。パネルは HMD 正面に出して固定する。「Hub に戻る」は Hub がインストールされているときだけ出す。
+
 ## 触覚 ON/OFF
 
 - step 開始時の触覚は常に ON。
