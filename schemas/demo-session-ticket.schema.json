@@ -4,40 +4,115 @@
   "title": "Hapbeat Demo Session ticket",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version", "session_id", "index", "haptics_ui", "steps", "finish"],
+  "required": [
+    "version",
+    "session_id",
+    "index",
+    "haptics_ui",
+    "steps",
+    "finish"
+  ],
   "properties": {
-    "version": { "const": 1 },
-    "session_id": { "type": "string", "pattern": "^[0-9a-f]{16}$" },
-    "index": { "type": "integer", "minimum": 0, "maximum": 32 },
-    "haptics_ui": { "type": "boolean" },
-    "steps": { "type": "array", "minItems": 1, "maxItems": 32, "items": { "$ref": "#/$defs/step" } },
-    "finish": { "$ref": "#/$defs/component" }
+    "version": {
+      "const": 1
+    },
+    "session_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$"
+    },
+    "index": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 32
+    },
+    "haptics_ui": {
+      "type": "boolean"
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/step"
+      }
+    },
+    "finish": {
+      "$ref": "#/$defs/component"
+    },
+    "hand_style": {
+      "enum": [
+        "ghost",
+        "skin"
+      ],
+      "description": "Look of the common tracked hands for this session. Omitted: each runtime's default."
+    }
   },
   "$defs": {
-    "identifier": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
-    "javaName": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)+$", "maxLength": 200 },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "javaName": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)+$",
+      "maxLength": 200
+    },
     "component": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["package", "activity"],
-      "properties": { "package": { "$ref": "#/$defs/javaName" }, "activity": { "$ref": "#/$defs/javaName" } }
+      "required": [
+        "package",
+        "activity"
+      ],
+      "properties": {
+        "package": {
+          "$ref": "#/$defs/javaName"
+        },
+        "activity": {
+          "$ref": "#/$defs/javaName"
+        }
+      }
     },
     "step": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["demo_id", "title", "package", "activity", "options", "retry"],
+      "required": [
+        "demo_id",
+        "title",
+        "package",
+        "activity",
+        "options",
+        "retry"
+      ],
       "properties": {
-        "demo_id": { "$ref": "#/$defs/identifier" },
-        "title": { "type": "string", "minLength": 1, "maxLength": 40 },
-        "package": { "$ref": "#/$defs/javaName" },
-        "activity": { "$ref": "#/$defs/javaName" },
+        "demo_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "package": {
+          "$ref": "#/$defs/javaName"
+        },
+        "activity": {
+          "$ref": "#/$defs/javaName"
+        },
         "options": {
           "type": "object",
           "maxProperties": 8,
-          "propertyNames": { "$ref": "#/$defs/identifier" },
-          "additionalProperties": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,31}$" }
+          "propertyNames": {
+            "$ref": "#/$defs/identifier"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,31}$"
+          }
         },
-        "retry": { "type": "boolean" }
+        "retry": {
+          "type": "boolean"
+        }
       }
     }
   }

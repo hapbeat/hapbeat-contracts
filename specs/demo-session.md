@@ -40,6 +40,7 @@ Hub は package / activity を **descriptor から取らない**。PackageManage
 - `options` は該当 descriptor の有効 option をすべて含む。受け手は未知 option・未知 value を既定値に置き換えて続行し、警告ログを出す（体験を止めない）。
 - `retry` が true の step だけ、終了パネルに「もう一度」を出す。
 - `haptics_ui` は触覚 ON/OFF ボタンの表示状態。session 全体で引き継ぐ。
+- `hand_style`（任意）は共通の手の見た目（`ghost` / `skin`）。Hub の管理画面で選び、共通の手を使う runtime だけが従う。自前の手を持つ runtime は無視してよい。省略時は各 runtime の既定。
 
 ### 受け取り
 
