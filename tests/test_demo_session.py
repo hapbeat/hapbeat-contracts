@@ -48,14 +48,14 @@ class TicketTests(unittest.TestCase):
     def test_valid(self):
         Draft202012Validator.check_schema(TICKET.schema)
         TICKET.validate(FIXTURES['ticket'])
-        TICKET.validate(dict(FIXTURES['ticket'], hand_style='skin'))
+        TICKET.validate(dict(FIXTURES['ticket'], hand_style='skin', recenter_ui=True))
         encoded = json.dumps(FIXTURES['ticket'], ensure_ascii=False).encode('utf-8')
         self.assertLessEqual(len(encoded), 16384)
 
     def test_rejects(self):
         base = FIXTURES['ticket']
         for changes in [dict(index=-1), dict(session_id='xyz'), dict(steps=[]), dict(extra=1),
-                        dict(finish={'package': 'jp.hapbeat.demohub'}), dict(haptics_ui='false'), dict(hand_style='glove')]:
+                        dict(finish={'package': 'jp.hapbeat.demohub'}), dict(haptics_ui='false'), dict(hand_style='glove'), dict(recenter_ui='yes')]:
             with self.subTest(changes=changes):
                 self.assertFalse(TICKET.is_valid(dict(base, **changes)))
         for field, value in [('package', 'not a package'), ('activity', '../evil'), ('options', {'scene': 'Block'}),

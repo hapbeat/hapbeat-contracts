@@ -16,7 +16,8 @@ class ControlTests(unittest.TestCase):
         value = FIXTURES['unsigned_control']
         validator.validate(value)
         for action in ['menu_open', 'menu_close', 'recenter', 'restart',
-                       'haptics_on', 'haptics_off', 'haptics_ui_show', 'haptics_ui_hide']:
+                       'haptics_on', 'haptics_off', 'haptics_ui_show', 'haptics_ui_hide',
+                       'recenter_ui_show', 'recenter_ui_hide']:
             validator.validate(dict(value, action=action, scene_id=''))
 
     def test_rejects_invalid_controls(self):

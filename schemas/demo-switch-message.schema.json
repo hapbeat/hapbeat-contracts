@@ -19,7 +19,7 @@
         "controller_id": {"$ref": "#/$defs/identifier"},
         "seq": {"type": "integer", "minimum": 1, "maximum": 9007199254740991},
         "demo_id": {"$ref": "#/$defs/identifier"},
-        "action": {"enum": ["menu_open", "menu_close", "recenter", "restart", "scene", "haptics_on", "haptics_off", "haptics_ui_show", "haptics_ui_hide"]},
+        "action": {"enum": ["menu_open", "menu_close", "recenter", "restart", "scene", "haptics_on", "haptics_off", "haptics_ui_show", "haptics_ui_hide", "recenter_ui_show", "recenter_ui_hide"]},
         "scene_id": {"type": "string"}, "auth": {"$ref": "#/$defs/auth"}
       },
       "if": {"properties": {"action": {"const": "scene"}}},

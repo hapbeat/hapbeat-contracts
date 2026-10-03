@@ -40,6 +40,7 @@ Hub は package / activity を **descriptor から取らない**。PackageManage
 - `options` は該当 descriptor の有効 option をすべて含む。受け手は未知 option・未知 value を既定値に置き換えて続行し、警告ログを出す（体験を止めない）。
 - `retry` が true の step だけ、終了パネルに「もう一度」を出す。
 - `haptics_ui` は触覚 ON/OFF ボタンの表示状態。session 全体で引き継ぐ。
+- `recenter_ui`（任意、既定 false）は「視線をリセット」ボタンの表示状態。`haptics_ui` と同じく session 全体で引き継ぐ。
 - `hand_style`（任意）は共通の手の見た目（`ghost` / `skin`）。Hub の管理画面で選び、共通の手を使う runtime だけが従う。自前の手を持つ runtime は無視してよい。省略時は各 runtime の既定。
 
 ### 受け取り
@@ -80,6 +81,18 @@ session mode の runtime は、demo 固有の完了イベントで、体験者�
 - OFF は Hapbeat への出力だけを止める。音・映像は変えない。OFF にした時点で再生中のループ・Stream も止める。
 - `haptics_ui` の初期値は Hub の plan 設定（既定 false）。実行中は Demo Switch の `CONTROL` `haptics_ui_show` / `haptics_ui_hide` で変更でき、次の step へ引き継ぐ。触覚自体の ON/OFF は `haptics_on` / `haptics_off` で外部から指定でき、step を跨いで引き継がない。
 - session mode でなくても、descriptor が `haptics_toggle` を宣言した demo は同じ CONTROL を受け付ける（`haptics_ui` の初期値 false）。
+
+## 視線をリセット
+
+- すべての runtime（Hub を含む）は、視界の左下（触覚ボタンの上）に頭へ追従する「視線をリセット」ボタンを持つ。既定は非表示。表示は ticket の `recenter_ui`（Hub の管理画面で設定）と、Demo Switch の `CONTROL` `recenter_ui_show` / `recenter_ui_hide` で切り替え、次の step へ引き継ぐ。
+- 押すと（または `CONTROL` `recenter`）、体験者の今の頭の位置と向きを、その runtime の開始位置・正面として合わせ直す（アプリ空間のリセンター。OS の再センタリングは使わない）。表示中の共通パネル（Hub・終了・一時停止）も正面へ置き直す。床の高さは変えない。
+- Quest の Meta ボタン長押し（OS のリセンター）を検知したときも、表示中の共通パネルを正面へ置き直す。
+
+## 共通パネルの描画
+
+- 共通パネル（Hub・終了パネル・一時停止パネル・触覚ボタン・視線をリセット）は、シーンのモデルに隠れないよう常に最前面に描く。手（共通の手）がパネルより手前にあるときは手を前に描く。
+- パネルの見た目（配色・フォント・ボタンの縦並び・大きさ）は Unity と Unreal で揃える。
+- 一時停止中も手のトラッキングと手の表示は止めない（パネルを操作できるように）。
 
 ## 端末ごとの Hapbeat 宛先（device address file）
 

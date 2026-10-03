@@ -45,6 +45,10 @@
         "skin"
       ],
       "description": "Look of the common tracked hands for this session. Omitted: each runtime's default."
+    },
+    "recenter_ui": {
+      "type": "boolean",
+      "description": "Show the in-view 視線をリセット button. Omitted: false."
     }
   },
   "$defs": {
