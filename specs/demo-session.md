@@ -72,6 +72,17 @@ session mode の runtime は、demo 固有の完了イベントで、体験者�
 - `haptics_ui` の初期値は Hub の plan 設定（既定 false）。実行中は Demo Switch の `CONTROL` `haptics_ui_show` / `haptics_ui_hide` で変更でき、次の step へ引き継ぐ。触覚自体の ON/OFF は `haptics_on` / `haptics_off` で外部から指定でき、step を跨いで引き継がない。
 - session mode でなくても、descriptor が `haptics_toggle` を宣言した demo は同じ CONTROL を受け付ける（`haptics_ui` の初期値 false）。
 
+## 端末ごとの Hapbeat 宛先（device address file）
+
+複数の HMD を同時に使う展示で、HMD ごとに触覚の宛先（player / group）を分けるための端末単位の設定。アプリを開いて個別に変える手間をなくすため、インストール時に operator の PC から書き込む。
+
+- 置き場所: 各 demo runtime（Hub を含む）の app-specific external files directory 直下の `hapbeat-device.json`（Android の `Context.getExternalFilesDir(null)`。Quest では `/sdcard/Android/data/<package>/files/`）。runtime は追加の権限なしで読める。adb から `adb push` で書ける。
+- 形式: `{"version":1,"player":<int>,"group":<int>}`。値は 1〜99、または -1（その軸は指定しない）。schema: [`demo-device-address.schema.json`](../schemas/demo-device-address.schema.json)。最大 1024 bytes。
+- 適用: runtime は起動時、Hapbeat SDK の初期化後に 1 回読み、-1 でない軸を SDK の address override（`SetAddressOverride(player, group, persist: false)`）に設定する。ビルドで固定された軸（Unity `HapbeatConfig.buildOverride*`、Unreal `ForcedOverride*`）はそちらが優先し、ファイルでは変わらない。ファイルの値は、端末に保存された override（PlayerPrefs 等）より優先する。実行中に runtime の UI や API で変えるのは自由。
+- ファイルが無い・壊れている場合は何もしない（不正なら警告ログ）。適用結果をログ `HAPBEAT_DEVICE_ADDRESS player=<n> group=<n>` で出す。
+- Hub は自身のファイルを読み、待機画面に「この端末: player / group」を表示する（触覚は送らない）。
+- session ticket はこの値を運ばない。各 runtime が自分のファイルを読む。
+
 ## Hub
 
 - Hub は自身の `demo_id` を `demo_hub` とし、descriptor を持たない。

@@ -2,28 +2,112 @@
   "descriptor_volley": {
     "version": 1,
     "demo_id": "volley",
-    "title": { "ja": "バレーボール", "en": "Volleyball" },
+    "title": {
+      "ja": "バレーボール",
+      "en": "Volleyball"
+    },
     "minutes": 3,
-    "supports": { "haptics_toggle": true },
+    "supports": {
+      "haptics_toggle": true
+    },
     "options": [
-      { "id": "scene", "label": { "ja": "モード", "en": "Mode" }, "default": "block",
-        "values": [ { "value": "block", "label": { "ja": "ブロック", "en": "Block" } },
-                    { "value": "receive", "label": { "ja": "レシーブ", "en": "Receive" } } ] },
-      { "id": "points", "label": { "ja": "点数", "en": "Points" }, "default": "7", "when": { "scene": ["block"] },
-        "values": [ { "value": "3", "label": { "ja": "3点先取" } },
-                    { "value": "5", "label": { "ja": "5点先取" } },
-                    { "value": "7", "label": { "ja": "7点先取" } } ] },
-      { "id": "balls", "label": { "ja": "球数", "en": "Balls" }, "default": "10", "when": { "scene": ["receive"] },
-        "values": [ { "value": "10", "label": { "ja": "10球" } },
-                    { "value": "20", "label": { "ja": "20球" } } ] }
+      {
+        "id": "scene",
+        "label": {
+          "ja": "モード",
+          "en": "Mode"
+        },
+        "default": "block",
+        "values": [
+          {
+            "value": "block",
+            "label": {
+              "ja": "ブロック",
+              "en": "Block"
+            }
+          },
+          {
+            "value": "receive",
+            "label": {
+              "ja": "レシーブ",
+              "en": "Receive"
+            }
+          }
+        ]
+      },
+      {
+        "id": "points",
+        "label": {
+          "ja": "点数",
+          "en": "Points"
+        },
+        "default": "7",
+        "when": {
+          "scene": [
+            "block"
+          ]
+        },
+        "values": [
+          {
+            "value": "3",
+            "label": {
+              "ja": "3点先取"
+            }
+          },
+          {
+            "value": "5",
+            "label": {
+              "ja": "5点先取"
+            }
+          },
+          {
+            "value": "7",
+            "label": {
+              "ja": "7点先取"
+            }
+          }
+        ]
+      },
+      {
+        "id": "balls",
+        "label": {
+          "ja": "球数",
+          "en": "Balls"
+        },
+        "default": "10",
+        "when": {
+          "scene": [
+            "receive"
+          ]
+        },
+        "values": [
+          {
+            "value": "10",
+            "label": {
+              "ja": "10球"
+            }
+          },
+          {
+            "value": "20",
+            "label": {
+              "ja": "20球"
+            }
+          }
+        ]
+      }
     ]
   },
   "descriptor_trex": {
     "version": 1,
     "demo_id": "trex-encounter",
-    "title": { "ja": "T-Rex エンカウンター", "en": "T-Rex Encounter" },
+    "title": {
+      "ja": "T-Rex エンカウンター",
+      "en": "T-Rex Encounter"
+    },
     "minutes": 3,
-    "supports": { "haptics_toggle": true },
+    "supports": {
+      "haptics_toggle": true
+    },
     "options": []
   },
   "ticket": {
@@ -32,12 +116,34 @@
     "index": 1,
     "haptics_ui": false,
     "steps": [
-      { "demo_id": "volley", "title": "バレー ブロック 3点", "package": "jp.hapbeat.volley",
+      {
+        "demo_id": "volley",
+        "title": "バレー ブロック 3点",
+        "package": "jp.hapbeat.volley",
         "activity": "com.unity3d.player.UnityPlayerGameActivity",
-        "options": { "scene": "block", "points": "3" }, "retry": true },
-      { "demo_id": "trex-encounter", "title": "T-Rex", "package": "com.hapbeat.trexencounter",
-        "activity": "com.epicgames.unreal.GameActivity", "options": {}, "retry": false }
+        "options": {
+          "scene": "block",
+          "points": "3"
+        },
+        "retry": true
+      },
+      {
+        "demo_id": "trex-encounter",
+        "title": "T-Rex",
+        "package": "com.hapbeat.trexencounter",
+        "activity": "com.epicgames.unreal.GameActivity",
+        "options": {},
+        "retry": false
+      }
     ],
-    "finish": { "package": "jp.hapbeat.demohub", "activity": "com.unity3d.player.UnityPlayerGameActivity" }
+    "finish": {
+      "package": "jp.hapbeat.demohub",
+      "activity": "com.unity3d.player.UnityPlayerGameActivity"
+    }
+  },
+  "device_address": {
+    "version": 1,
+    "player": -1,
+    "group": 2
   }
 }

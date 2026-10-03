@@ -14,6 +14,7 @@ def load(path):
 
 DESCRIPTOR = Draft202012Validator(load('schemas/demo-session-descriptor.schema.json'))
 TICKET = Draft202012Validator(load('schemas/demo-session-ticket.schema.json'))
+DEVICE = Draft202012Validator(load('schemas/demo-device-address.schema.json'))
 FIXTURES = load('fixtures/sample-demo-session.json')
 
 
@@ -66,6 +67,24 @@ class TicketTests(unittest.TestCase):
             value = copy.copy(base)
             del value[field]
             self.assertFalse(TICKET.is_valid(value), field)
+
+
+
+class DeviceAddressTests(unittest.TestCase):
+    def test_valid(self):
+        Draft202012Validator.check_schema(DEVICE.schema)
+        DEVICE.validate(FIXTURES['device_address'])
+        DEVICE.validate({'version': 1, 'player': 3, 'group': -1})
+
+    def test_rejects(self):
+        base = FIXTURES['device_address']
+        for changes in [dict(group=0), dict(group=100), dict(player=-2), dict(group='2'), dict(version=2), dict(extra=1)]:
+            with self.subTest(changes=changes):
+                self.assertFalse(DEVICE.is_valid(dict(base, **changes)))
+        for field in base:
+            value = dict(base)
+            del value[field]
+            self.assertFalse(DEVICE.is_valid(value), field)
 
 
 if __name__ == '__main__':

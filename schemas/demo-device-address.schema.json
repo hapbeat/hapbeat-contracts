@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hapbeat.com/schemas/demo-device-address.schema.json",
+  "title": "Hapbeat demo device address file (hapbeat-device.json)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "player", "group"],
+  "properties": {
+    "version": { "const": 1 },
+    "player": { "$ref": "#/$defs/axis" },
+    "group": { "$ref": "#/$defs/axis" }
+  },
+  "$defs": {
+    "axis": {
+      "description": "1..99 sets the address override for this axis; -1 leaves it unchanged.",
+      "type": "integer",
+      "anyOf": [ { "const": -1 }, { "minimum": 1, "maximum": 99 } ]
+    }
+  }
+}
