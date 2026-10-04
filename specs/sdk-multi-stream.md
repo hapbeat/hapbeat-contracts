@@ -83,8 +83,10 @@ rightGain = gain * (pan >= 0 ? 1 : 1 + pan)
    channel gain（§5.4 の leftGain / rightGain）を、直前の mix block の値から新しい値まで、その
    block 内でサンプルごとに線形補間する。block 境界での階段状の変化（zipper）を作ってはならない。
    新しく加わった source の最初の block は補間せず、指定値から始める（onset は source の PCM が持つ）。
-8. **limiter**: 和の絶対値のピークが full scale（32767）以下の block は値を一切変えない（limiter を
-   通しても bit 単位で同一）。超える場合は gain reduction を掛ける。
+8. **limiter**: limiter 係数が 1.0（非作動・release 完了後）で、和の絶対値のピークが full scale
+   （32767）以下の block は値を一切変えない（soft knee も掛けない。limiter を通しても bit 単位で
+   同一）。ピークが full scale を超える場合は gain reduction を掛ける。release 途中（係数 < 1.0）の
+   block は、ピークが full scale 以下でも残りの係数と soft knee を適用する。
    - 目標: その block のピークを `0.9 × full scale` に収める係数 `0.9 × FS / peak`。
    - attack: 係数を下げる変化は、その block 内でサンプルごとに線形に適用する。
    - release: 係数を上げる変化は 1 block あたり最大 `+0.05` とし、1.0 まで戻す。
@@ -124,7 +126,7 @@ rightGain = gain * (pan >= 0 ? 1 : 1 + pan)
 
 8. 再生中に gain / pan を変えても、出力 PCM の隣接サンプル間の差が、変更前後それぞれの定常出力で
    生じる最大差を大きく超えない（block 境界に段差がない）。
-9. full scale 以下の和は limiter 前後で同一。full gain の正弦波 source を 4 本重ねても、出力が
+9. limiter 非作動中の full scale 以下の和は limiter 前後で同一（0.95·FS〜FS の和も無加工）。full gain の正弦波 source を 4 本重ねても、出力が
    ±32767 に張り付くサンプルは生じず（soft knee により ≤ 0.95·FS + 0.05·FS）、block 境界に段差がない。
 
 共通 fixture は `../fixtures/sdk-multi-stream-routing.json` を用いる。
