@@ -127,7 +127,9 @@ rightGain = gain * (pan >= 0 ? 1 : 1 + pan)
 8. 再生中に gain / pan を変えても、出力 PCM の隣接サンプル間の差が、変更前後それぞれの定常出力で
    生じる最大差を大きく超えない（block 境界に段差がない）。
 9. limiter 非作動中の full scale 以下の和は limiter 前後で同一（0.95·FS〜FS の和も無加工）。full gain の正弦波 source を 4 本重ねても、出力が
-   ±32767 に張り付くサンプルは生じず（soft knee により ≤ 0.95·FS + 0.05·FS）、block 境界に段差がない。
+   attack の最初の 2 block を除き ±32767 に張り付くサンプルは生じず（soft knee により < FS）、ピークは
+   0.85〜0.95·FS に収まり、block 境界に段差がない。attack 中の block は係数が 1.0 から線形に下がるため、
+   block 前半で knee の上限に達してよい。
 
 共通 fixture は `../fixtures/sdk-multi-stream-routing.json` を用いる。
 
