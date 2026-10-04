@@ -69,7 +69,7 @@ Playback の Address Override（target）を変更した場合、StreamHub は�
 
 1. 同じ device endpoint に一致する logical source は、送信側で 1 endpoint session に混合する。異なる endpoint の source は別 session に分離する。
 2. 標準出力は **16,000 Hz / stereo / PCM16 little-endian** とする。入力 source は StreamHub 内でこの形式へ正規化する。
-3. source ごとに gain と linear-balance pan を適用してから加算し、全 source の和を最後に 1 回だけ PCM16 範囲へ飽和させる。
+3. source ごとに gain と linear-balance pan を適用してから加算する。和は §5.8 の limiter を通し、最後に 1 回だけ PCM16 範囲へ飽和させる。
 4. pan は `-1.0` で left のみ、`0.0` で中央、`+1.0` で right のみとし、係数は次を用いる。
 
 ```text
@@ -79,6 +79,20 @@ rightGain = gain * (pan >= 0 ? 1 : 1 + pan)
 
 5. endpoint session の `STREAM_BEGIN` は `sample_rate=16000`、`channels=2`、`format=PCM16`、`total_samples=0`、`gain=1.0` とする。source gain / pan は PCM に適用済みとする。
 6. 1 logical source が複数 endpoint に一致する場合、各 endpoint session がその source の独立 cursor を持つ。endpoint 間の packet 到達同期は保証しない。
+7. **パラメータ変更の平滑化**: Playback の gain / pan を再生中に変えた場合、mixer は各 source の
+   channel gain（§5.4 の leftGain / rightGain）を、直前の mix block の値から新しい値まで、その
+   block 内でサンプルごとに線形補間する。block 境界での階段状の変化（zipper）を作ってはならない。
+   新しく加わった source の最初の block は補間せず、指定値から始める（onset は source の PCM が持つ）。
+8. **limiter**: 和の絶対値のピークが full scale（32767）以下の block は値を一切変えない（limiter を
+   通しても bit 単位で同一）。超える場合は gain reduction を掛ける。
+   - 目標: その block のピークを `0.9 × full scale` に収める係数 `0.9 × FS / peak`。
+   - attack: 係数を下げる変化は、その block 内でサンプルごとに線形に適用する。
+   - release: 係数を上げる変化は 1 block あたり最大 `+0.05` とし、1.0 まで戻す。
+   - soft knee: 係数を掛けた後の値が `0.95 × FS` を超える部分は
+     `0.95·FS + 0.05·FS · tanh((|v| − 0.95·FS) / (0.05·FS))` で丸める。
+   - 最後に §5.3 の飽和を 1 回だけ行う。hard clamp だけで過大な和を処理してはならない。
+9. **入力 resample**: 16,000 Hz 以外の入力は、少なくとも線形補間で変換する（最近傍は不可）。
+10. mix block の長さ（例: 10 ms / 256 frame）と send-ahead は実装依存とするが、§5.7 / §5.8 はどの block 長でも満たす。
 
 ## 6. Lifecycle
 
@@ -107,6 +121,11 @@ rightGain = gain * (pan >= 0 ? 1 : 1 + pan)
    への DATA を停止する。最後の source の END は linger 方針に従い、既知の新 endpoint は frame 0
    で即参加する。caller が Playback を再発行せず、未知の新 target は即時 PING と PONG 後の自動参加
    になる。
+
+8. 再生中に gain / pan を変えても、出力 PCM の隣接サンプル間の差が、変更前後それぞれの定常出力で
+   生じる最大差を大きく超えない（block 境界に段差がない）。
+9. full scale 以下の和は limiter 前後で同一。full gain の正弦波 source を 4 本重ねても、出力が
+   ±32767 に張り付くサンプルは生じず（soft knee により ≤ 0.95·FS + 0.05·FS）、block 境界に段差がない。
 
 共通 fixture は `../fixtures/sdk-multi-stream-routing.json` を用いる。
 
