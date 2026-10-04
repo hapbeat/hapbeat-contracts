@@ -161,3 +161,29 @@ must adopt this protocol, including the legacy fallback, before use with updated
 firmware; v1 FIRE remains usable.
 No release or public push is implied. Linger (keeping an idle session open briefly)
 is distinct from the removed cooldown and may remain.
+
+## Minimum versions
+
+Device firmware **0.5.0 and later** is the v2 line: it accepts only v2 streams.
+Apps built with an SDK that predates v2 lose all streamed haptics (clip/stream)
+on such devices; FIRE/PLAY kit events keep working. The firmware bumps the minor
+(0.4.x → 0.5.0) because this is a breaking change under pre-1.0 semver. There is
+no v1 stream receiver fallback (DEC-074); SDKs keep the legacy sender fallback
+above (DEC-075), so a v2-capable SDK still works with firmware below 0.5.0.
+
+Minimum versions that send v2 streams. Each is the next release after the last
+published one without v2 (planned; not yet released as of 2026-10-04):
+
+| Component | Minimum (includes v2) | Last published without v2 |
+|---|---|---|
+| Device firmware | 0.5.0 | 0.4.1 |
+| Unity SDK (UPM) | 0.6.0 | 0.5.1 |
+| Unreal SDK | 0.2.0 | 0.1.0 |
+| Python SDK (`hapbeat-python-sdk`) | 0.3.0 | 0.2.0 |
+| JS SDK (`@hapbeat/sdk`) | 0.4.0 | 0.3.0 |
+| hapbeat-helper | 0.5.0 | 0.4.0 |
+
+Not yet supported (stream is silent on firmware 0.5.0+): Arduino SDK, Godot SDK.
+TouchDesigner and VRChat integrations use the Python SDK and follow its minimum.
+Tools that warn users before a firmware update (Studio) take this table as the
+source of truth.
