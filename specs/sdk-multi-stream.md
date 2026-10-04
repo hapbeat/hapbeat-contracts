@@ -83,9 +83,10 @@ rightGain = gain * (pan >= 0 ? 1 : 1 + pan)
    channel gain（§5.4 の leftGain / rightGain）を、直前の mix block の値から新しい値まで、その
    block 内でサンプルごとに線形補間する。block 境界での階段状の変化（zipper）を作ってはならない。
    新しく加わった source の最初の block は補間せず、指定値から始める（onset は source の PCM が持つ）。
-8. **limiter**: limiter 係数が 1.0（非作動・release 完了後）で、和の絶対値のピークが full scale
-   （32767）以下の block は値を一切変えない（soft knee も掛けない。limiter を通しても bit 単位で
-   同一）。ピークが full scale を超える場合は gain reduction を掛ける。release 途中（係数 < 1.0）の
+8. **limiter**: limiter 係数が 1.0（非作動・release 完了後）で、和の絶対値のピークが 32768 以下
+   （PCM16 の -32768 を含む値域。full scale の clip 1 本だけでは作動しない）の block は値を一切変えない
+   （soft knee も掛けない。limiter を通しても bit 単位で同一。+32768 は §5.3 の飽和で 32767 になる）。
+   ピークが 32768 を超える場合は gain reduction を掛ける。release 途中（係数 < 1.0）の
    block は、ピークが full scale 以下でも残りの係数と soft knee を適用する。
    - 目標: その block のピークを `0.9 × full scale` に収める係数 `0.9 × FS / peak`。
    - attack: 係数を下げる変化は、その block 内でサンプルごとに線形に適用する。
@@ -108,6 +109,13 @@ rightGain = gain * (pan >= 0 ? 1 : 1 + pan)
    linger 中も外れた source の DATA を送ってはならない。
 8. `stream-session-v2.md` のdevice-issued leaseとgenerationを全streamに付ける。END後の300 ms cooldownは持たず、次世代を即開始できる。lingerとcooldownを混同しない。
 9. v2非対応（旧）ファームの機器には `stream-session-v2.md` の Legacy receiver fallback に従い、その機器だけv1 streamと300 ms END→BEGIN guardで送る。SDKだけの更新で旧ファームの機器を無音にしない。
+10. **有限 source の完了**: 有限 source は、一致する全 endpoint で最後まで再生した時点で完了する。
+    legacy endpoint の END→BEGIN guard を待っている endpoint は「未再生（保留）」として数え、guard 明けに
+    frame 0 から再生してから完了とする。保留中の endpoint が消えた（expiry）・target に一致しなくなった
+    場合は保留から外し、その時点で完了を再評価する（再評価をその endpoint の次回 pump に依存させない）。
+    保留の間、他 endpoint で再生済みでも Playback は Active のまま扱ってよい。
+11. legacy guard は endpoint（IPv4, UDP port, device address の組）単位で掛ける。同じ address を持つ
+    別の機器へ波及させない。
 
 ## 7. Conformance cases
 
