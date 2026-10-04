@@ -105,6 +105,14 @@ session mode の runtime は、demo 固有の完了イベントで、体験者�
 - Hub は自身のファイルを読み、待機画面に「この端末: player / group」を表示する（触覚は送らない）。
 - session ticket はこの値を運ばない。各 runtime が自分のファイルを読む。
 
+## Hub を外部から起動してセッションを始める
+
+- Hub は起動 Intent の String extra `com.hapbeat.demo_hub.start` を受け付ける。値は JSON 1 個（最大 4096 bytes）:
+  - `{"version":1,"preset":1}` … Hub のプリセット 1〜3 の plan で session を開始。
+  - `{"version":1,"demo_id":"handdemo","options":{"tutorial":"on"}}` … そのデモ 1 本の session（options は省略可、未指定・未知値は descriptor の既定値、retry=true、finish=Hub、`haptics_ui` / `recenter_ui` / `hand_style` は Hub の管理画面の設定）。
+- 受け付けたら Hub は自分のトップ画面を出さずに ticket を作って 1 本目を起動する（起動遷移の規則は同じ）。不正・未インストールなら Hub のトップを開いてステータス行に理由を出す。
+- 外部リモコンは Wi-Fi adb の `am start -n jp.hapbeat.demohub/com.unity3d.player.UnityPlayerGameActivity --es com.hapbeat.demo_hub.start '<json>'` でこれを使う。Demo Switch の `SWITCH`（UDP）は従来どおり ticket なしの直接起動で、session にはならない。
+
 ## Hub
 
 - Hub は自身の `demo_id` を `demo_hub` とし、descriptor を持たない。

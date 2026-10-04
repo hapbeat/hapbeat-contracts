@@ -34,7 +34,7 @@
 The same identifier, payload, authentication and persistent sequence rules apply.
 Unknown fields are rejected. Actions are `menu_open`, `menu_close`, `recenter`,
 `restart`, `scene`, `haptics_on`, `haptics_off`, `haptics_ui_show`, `haptics_ui_hide`,
-`recenter_ui_show`, `recenter_ui_hide`.
+`recenter_ui_show`, `recenter_ui_hide`, `tutorial_start`.
 `scene_id` is a logical identifier for `scene`, and MUST be
 the empty string for every other action. The four `haptics_*` actions set Hapbeat
 output and the visibility of the in-view haptics button as defined in
@@ -42,7 +42,12 @@ output and the visibility of the in-view haptics button as defined in
 `supports.haptics_toggle` rejects them with `FAILED/not_allowed`. Like menus they are
 explicit set operations, never toggles. `recenter_ui_show` / `recenter_ui_hide` set the visibility of
 the in-view 視線をリセット button ([Demo Session](demo-session.md#視線をリセット)); `recenter` performs the same
-reset as that button. Scene IDs resolve through an application
+reset as that button. `tutorial_start` starts the runtime's tutorial from its beginning (runtimes without a
+tutorial reject it with `FAILED/not_allowed`).
+
+Runtimes that host the shared pause panel handle `menu_open` / `menu_close` with it when the scene has no
+app-specific menu adapter, and `restart` with the shared restart (the same as the panel's 最初からやり直す) when
+the app registers none. A runtime rejects an action only when neither an adapter nor a shared handler exists. Scene IDs resolve through an application
 allowlist, never to supplied paths or executable names. `restart` reloads the
 current experience, not the OS process. `recenter` uses the application's authored
 start/reposition policy, not a privileged OS recenter command.
@@ -124,3 +129,29 @@ Quest の IPv4 手入力は必須ではない。controller は切替先が明示
 `DISCOVER` の必須 field は `version`, `type`, `controller_id`, `nonce`、`HERE` はそれらに `current_demo_id` を加える。未知 field は拒否する。shared secret 設定時は `auth` が必須で、未設定時は receiver と controller の双方が isolated-LAN unsigned mode を明示している場合だけ受理する。
 
 HMAC canonical bytes は command/status と同じ field encoding を使う。request は header `HAPBEAT-DEMO-SWITCH/1\nDISCOVER\n` に `version`, `type`, `controller_id`, `nonce`、response は header `HAPBEAT-DEMO-SWITCH/1\nHERE\n` に `version`, `type`, `controller_id`, `nonce`, `current_demo_id` の順で連結する。controller は nonce、controller ID、HMAC、送信元 IPv4 を検証し、600 ms 以上の収集 window 内で応答元が 1 IPv4 の場合だけ採用する。複数の Quest が応答した場合、最初の応答を勝手に選んではならない。
+
+## State query
+
+A controller may ask the foreground runtime for its current state. The request is sent like `DISCOVER`
+(unicast to a known HMD, or broadcast), and the runtime answers by unicast to the source endpoint. Neither
+message changes state, so no sequence number is used; a fresh 16-hex `nonce` per request correlates the reply.
+
+```json
+{"version":1,"type":"QUERY","controller_id":"remote-pixel","nonce":"0123456789abcdef"}
+```
+
+```json
+{"version":1,"type":"STATE","controller_id":"remote-pixel","nonce":"0123456789abcdef","current_demo_id":"handdemo","haptics_on":true,"haptics_ui":false,"recenter_ui":false,"paused":false,"step_index":1,"step_count":3}
+```
+
+`haptics_on` is the current Hapbeat output state, `haptics_ui` / `recenter_ui` the visibility of the in-view
+buttons, `paused` whether the shared pause (or the app's own menu pause) is active, and `step_index` /
+`step_count` the Demo Session position (-1 / 0 outside a session). Unknown fields are rejected. With a shared
+secret both carry `auth`: HMAC canonical bytes use the header `HAPBEAT-DEMO-SWITCH/1
+QUERY
+` with `version`,
+`type`, `controller_id`, `nonce`, and `HAPBEAT-DEMO-SWITCH/1
+STATE
+` with `version`, `type`, `controller_id`,
+`nonce`, `current_demo_id`, `haptics_on`, `haptics_ui`, `recenter_ui`, `paused`, `step_index`, `step_count`
+(booleans as `true` / `false`). Existing controllers that do not send `QUERY` are unaffected; `HERE` is unchanged.

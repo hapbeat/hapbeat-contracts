@@ -3,61 +3,195 @@
   "$id": "https://hapbeat.com/schemas/demo-switch-message.schema.json",
   "title": "Hapbeat Demo Switch message",
   "oneOf": [
-    { "$ref": "#/$defs/command" },
-    { "$ref": "#/$defs/control" },
-    { "$ref": "#/$defs/status" },
-    { "$ref": "#/$defs/discover" },
-    { "$ref": "#/$defs/here" }
+    {
+      "$ref": "#/$defs/command"
+    },
+    {
+      "$ref": "#/$defs/control"
+    },
+    {
+      "$ref": "#/$defs/status"
+    },
+    {
+      "$ref": "#/$defs/discover"
+    },
+    {
+      "$ref": "#/$defs/here"
+    },
+    {
+      "$ref": "#/$defs/query"
+    },
+    {
+      "$ref": "#/$defs/state"
+    }
   ],
   "$defs": {
     "control": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["version", "type", "controller_id", "seq", "demo_id", "action", "scene_id"],
+      "required": [
+        "version",
+        "type",
+        "controller_id",
+        "seq",
+        "demo_id",
+        "action",
+        "scene_id"
+      ],
       "properties": {
-        "version": {"const": 1}, "type": {"const": "CONTROL"},
-        "controller_id": {"$ref": "#/$defs/identifier"},
-        "seq": {"type": "integer", "minimum": 1, "maximum": 9007199254740991},
-        "demo_id": {"$ref": "#/$defs/identifier"},
-        "action": {"enum": ["menu_open", "menu_close", "recenter", "restart", "scene", "haptics_on", "haptics_off", "haptics_ui_show", "haptics_ui_hide", "recenter_ui_show", "recenter_ui_hide"]},
-        "scene_id": {"type": "string"}, "auth": {"$ref": "#/$defs/auth"}
+        "version": {
+          "const": 1
+        },
+        "type": {
+          "const": "CONTROL"
+        },
+        "controller_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "demo_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "action": {
+          "enum": [
+            "menu_open",
+            "menu_close",
+            "recenter",
+            "restart",
+            "scene",
+            "haptics_on",
+            "haptics_off",
+            "haptics_ui_show",
+            "haptics_ui_hide",
+            "recenter_ui_show",
+            "recenter_ui_hide",
+            "tutorial_start"
+          ]
+        },
+        "scene_id": {
+          "type": "string"
+        },
+        "auth": {
+          "$ref": "#/$defs/auth"
+        }
       },
-      "if": {"properties": {"action": {"const": "scene"}}},
-      "then": {"properties": {"scene_id": {"$ref": "#/$defs/identifier"}}},
-      "else": {"properties": {"scene_id": {"const": ""}}}
+      "if": {
+        "properties": {
+          "action": {
+            "const": "scene"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "scene_id": {
+            "$ref": "#/$defs/identifier"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "scene_id": {
+            "const": ""
+          }
+        }
+      }
     },
-    "identifier": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
-    "auth": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
-    "nonce": { "type": "string", "pattern": "^[0-9a-f]{16}$" },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "auth": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "nonce": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$"
+    },
     "base": {
       "type": "object",
-      "required": ["version", "type", "controller_id", "seq", "demo_id"],
+      "required": [
+        "version",
+        "type",
+        "controller_id",
+        "seq",
+        "demo_id"
+      ],
       "properties": {
-        "version": { "const": 1 },
-        "controller_id": { "$ref": "#/$defs/identifier" },
-        "seq": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
-        "demo_id": { "$ref": "#/$defs/identifier" },
-        "auth": { "$ref": "#/$defs/auth" }
+        "version": {
+          "const": 1
+        },
+        "controller_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "demo_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "auth": {
+          "$ref": "#/$defs/auth"
+        }
       }
     },
     "command": {
       "allOf": [
-        { "$ref": "#/$defs/base" },
         {
-          "properties": { "type": { "const": "SWITCH" } },
+          "$ref": "#/$defs/base"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "SWITCH"
+            }
+          },
           "unevaluatedProperties": false
         }
       ]
     },
     "status": {
       "allOf": [
-        { "$ref": "#/$defs/base" },
         {
-          "required": ["current_demo_id", "code", "message"],
+          "$ref": "#/$defs/base"
+        },
+        {
+          "required": [
+            "current_demo_id",
+            "code",
+            "message"
+          ],
           "properties": {
-            "type": { "enum": ["ACK", "READY", "FAILED"] },
-            "current_demo_id": { "$ref": "#/$defs/identifier" },
-            "code": { "enum": ["ok", "invalid_payload", "unsupported_version", "invalid_auth", "unsigned_disabled", "not_allowed", "replay", "launch_failed", "listener_failed"] },
+            "type": {
+              "enum": [
+                "ACK",
+                "READY",
+                "FAILED"
+              ]
+            },
+            "current_demo_id": {
+              "$ref": "#/$defs/identifier"
+            },
+            "code": {
+              "enum": [
+                "ok",
+                "invalid_payload",
+                "unsupported_version",
+                "invalid_auth",
+                "unsigned_disabled",
+                "not_allowed",
+                "replay",
+                "launch_failed",
+                "listener_failed"
+              ]
+            },
             "message": {
               "type": "string",
               "maxLength": 256,
@@ -71,27 +205,148 @@
     },
     "discover": {
       "type": "object",
-      "required": ["version", "type", "controller_id", "nonce"],
+      "required": [
+        "version",
+        "type",
+        "controller_id",
+        "nonce"
+      ],
       "additionalProperties": false,
       "properties": {
-        "version": { "const": 1 },
-        "type": { "const": "DISCOVER" },
-        "controller_id": { "$ref": "#/$defs/identifier" },
-        "nonce": { "$ref": "#/$defs/nonce" },
-        "auth": { "$ref": "#/$defs/auth" }
+        "version": {
+          "const": 1
+        },
+        "type": {
+          "const": "DISCOVER"
+        },
+        "controller_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "nonce": {
+          "$ref": "#/$defs/nonce"
+        },
+        "auth": {
+          "$ref": "#/$defs/auth"
+        }
       }
     },
     "here": {
       "type": "object",
-      "required": ["version", "type", "controller_id", "nonce", "current_demo_id"],
+      "required": [
+        "version",
+        "type",
+        "controller_id",
+        "nonce",
+        "current_demo_id"
+      ],
       "additionalProperties": false,
       "properties": {
-        "version": { "const": 1 },
-        "type": { "const": "HERE" },
-        "controller_id": { "$ref": "#/$defs/identifier" },
-        "nonce": { "$ref": "#/$defs/nonce" },
-        "current_demo_id": { "$ref": "#/$defs/identifier" },
-        "auth": { "$ref": "#/$defs/auth" }
+        "version": {
+          "const": 1
+        },
+        "type": {
+          "const": "HERE"
+        },
+        "controller_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "nonce": {
+          "$ref": "#/$defs/nonce"
+        },
+        "current_demo_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "auth": {
+          "$ref": "#/$defs/auth"
+        }
+      }
+    },
+    "query": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "type",
+        "controller_id",
+        "nonce"
+      ],
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "type": {
+          "const": "QUERY"
+        },
+        "controller_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "nonce": {
+          "$ref": "#/$defs/nonce"
+        },
+        "auth": {
+          "$ref": "#/$defs/auth"
+        }
+      }
+    },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "type",
+        "controller_id",
+        "nonce",
+        "current_demo_id",
+        "haptics_on",
+        "haptics_ui",
+        "recenter_ui",
+        "paused",
+        "step_index",
+        "step_count"
+      ],
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "type": {
+          "const": "STATE"
+        },
+        "controller_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "nonce": {
+          "$ref": "#/$defs/nonce"
+        },
+        "current_demo_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "haptics_on": {
+          "type": "boolean"
+        },
+        "haptics_ui": {
+          "type": "boolean"
+        },
+        "recenter_ui": {
+          "type": "boolean"
+        },
+        "paused": {
+          "type": "boolean"
+        },
+        "step_index": {
+          "type": "integer",
+          "minimum": -1,
+          "maximum": 32,
+          "description": "0-based Demo Session step; -1 outside a session"
+        },
+        "step_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "0 outside a session"
+        },
+        "auth": {
+          "$ref": "#/$defs/auth"
+        }
       }
     }
   }

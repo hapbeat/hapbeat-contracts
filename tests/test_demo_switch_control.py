@@ -17,7 +17,7 @@ class ControlTests(unittest.TestCase):
         validator.validate(value)
         for action in ['menu_open', 'menu_close', 'recenter', 'restart',
                        'haptics_on', 'haptics_off', 'haptics_ui_show', 'haptics_ui_hide',
-                       'recenter_ui_show', 'recenter_ui_hide']:
+                       'recenter_ui_show', 'recenter_ui_hide', 'tutorial_start']:
             validator.validate(dict(value, action=action, scene_id=''))
 
     def test_rejects_invalid_controls(self):
@@ -32,6 +32,18 @@ class ControlTests(unittest.TestCase):
             value = copy.copy(base)
             del value[field]
             self.assertFalse(validator.is_valid(value), field)
+
+class QueryStateTests(unittest.TestCase):
+    def test_query_and_state(self):
+        validator = Draft202012Validator(SCHEMA)
+        validator.validate(FIXTURES['unsigned_query'])
+        validator.validate(FIXTURES['unsigned_state'])
+        for changes in [dict(paused='no'), dict(step_index=-2), dict(extra=1), dict(nonce='xyz')]:
+            with self.subTest(changes=changes):
+                self.assertFalse(validator.is_valid(dict(FIXTURES['unsigned_state'], **changes)))
+        state = dict(FIXTURES['unsigned_state'])
+        del state['haptics_on']
+        self.assertFalse(validator.is_valid(state))
 
 if __name__ == '__main__':
     unittest.main()
