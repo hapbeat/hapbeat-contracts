@@ -77,14 +77,14 @@ session mode の runtime は、demo 固有の完了イベントで、体験者�
 ## 触覚 ON/OFF
 
 - step 開始時の触覚は常に ON。
-- `supports.haptics_toggle` の demo は、`haptics_ui` が true の間、視界の左下に触覚 ON/OFF ボタンを常時表示する。表示文言は「触覚 ON」「触覚 OFF」で、どちらでも幅は変えない。ボタンはポークとコントローラ ray で切り替える。
+- `supports.haptics_toggle` の demo は、`haptics_ui` が true の間、視界の左下に触覚 ON/OFF ボタンを常時表示する。表示文言は「Haptics / ON」「Haptics / OFF」（位置は「視線をリセット」節）で、どちらでも幅は変えない。ボタンはポークとコントローラ ray で切り替える。
 - OFF は Hapbeat への出力だけを止める。音・映像は変えない。OFF にした時点で再生中のループ・Stream も止める。
 - `haptics_ui` の初期値は Hub の plan 設定（既定 false）。実行中は Demo Switch の `CONTROL` `haptics_ui_show` / `haptics_ui_hide` で変更でき、次の step へ引き継ぐ。触覚自体の ON/OFF は `haptics_on` / `haptics_off` で外部から指定でき、step を跨いで引き継がない。
 - session mode でなくても、descriptor が `haptics_toggle` を宣言した demo は同じ CONTROL を受け付ける（`haptics_ui` の初期値 false）。
 
 ## 視線をリセット
 
-- すべての runtime（Hub を含む）は、視界の左下（触覚ボタンの上）に頭へ追従する「視線をリセット」ボタンを持つ。既定は非表示。表示は ticket の `recenter_ui`（Hub の管理画面で設定）と、Demo Switch の `CONTROL` `recenter_ui_show` / `recenter_ui_hide` で切り替え、次の step へ引き継ぐ。
+- すべての runtime（Hub を含む）は、視界の左下に頭へ追従する「視線をリセット」ボタンを持つ（触覚ボタンと横並び、視線をリセットが左。目から 0.45 m・下 30°、左 19.5° / 左 5°、各 88×64 mm、英語 2 行ラベル Reset / View・Haptics / ON・OFF。頭の水平の向きへゆっくり追従し、上下の傾きは無視）。既定は非表示。表示は ticket の `recenter_ui`（Hub の管理画面で設定）と、Demo Switch の `CONTROL` `recenter_ui_show` / `recenter_ui_hide` で切り替え、次の step へ引き継ぐ。
 - 押すと（または `CONTROL` `recenter`）、体験者の今の頭の位置と向きを、その runtime の開始位置・正面として合わせ直す（アプリ空間のリセンター。OS の再センタリングは使わない）。表示中の共通パネル（Hub・終了・一時停止）も正面へ置き直す。床の高さは変えない。
 - Quest の Meta ボタン長押し（OS のリセンター）を検知したときも、表示中の共通パネルを正面へ置き直す。
 
