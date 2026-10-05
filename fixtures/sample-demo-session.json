@@ -22,8 +22,15 @@
           {
             "value": "block",
             "label": {
-              "ja": "ブロック",
-              "en": "Block"
+              "ja": "スパイク＋ブロック",
+              "en": "Spike + Block"
+            }
+          },
+          {
+            "value": "match",
+            "label": {
+              "ja": "6人制の試合",
+              "en": "6 v 6 match"
             }
           },
           {
@@ -44,7 +51,8 @@
         "default": "7",
         "when": {
           "scene": [
-            "block"
+            "block",
+            "match"
           ]
         },
         "values": [
