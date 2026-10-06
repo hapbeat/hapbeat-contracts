@@ -115,6 +115,31 @@ session mode の runtime は、demo 固有の完了イベントで、体験者�
 - 受け付けたら Hub は自分のトップ画面を出さずに ticket を作って 1 本目を起動する（起動遷移の規則は同じ）。不正・未インストールなら Hub のトップを開いてステータス行に理由を出す。
 - 外部リモコンは Wi-Fi adb の `am start -n jp.hapbeat.demohub/com.unity3d.player.UnityPlayerGameActivity --es com.hapbeat.demo_hub.start '<json>'` でこれを使う。Demo Switch の `SWITCH`（UDP）は従来どおり ticket なしの直接起動で、session にはならない。
 
+## リモコンへのプリセット受け渡し（QR / リンク）
+
+Web のデモ紹介ページ（devtools-site のショーケース）で組んだ plan を、Android リモコン（`hapbeat-demos/android/demo-remote`）のプリセットとして取り込むための形式。リモコンは取り込んだプリセットを上の `steps` 形式で Hub に渡す。ページから LAN 内の端末へ直接送る方式は採らない（HTTPS のページから `http://<LAN の IP>` への送信はブラウザが制限するため）。
+
+- ペイロード: JSON 1 個。UTF-8 で最大 **700 bytes**（QR を誤り訂正 M で読みやすい大きさに保つため）。Schema: [`demo-remote-preset.schema.json`](../schemas/demo-remote-preset.schema.json)。例: [`sample-demo-remote-preset.json`](../fixtures/sample-demo-remote-preset.json)。
+  ```json
+  {"version":1,"presets":[{"name":"XR Kaigi A","steps":[{"demo_id":"energy-duel","options":{"tutorial":"on"}},{"demo_id":"volley","options":{"scene":"match"},"retry":false}]}]}
+  ```
+  - `presets` は 1〜3 件。`name` は 1〜40 文字（Unicode のコードポイントで数える）で、空白以外の文字を 1 つ以上含み、制御文字（U+0000〜U+001F、U+007F〜U+009F）と行区切り（U+2028、U+2029）を含まない。
+  - `steps` は 1〜32 件で、各 step の規則は「Hub を外部から起動してセッションを始める」の `steps` と同じ（`demo_id` 必須、`options` と `retry` は任意、それ以外のフィールドは不正）。`options` のキーと値は、その demo の descriptor の `options`（`id` と `values[].value`）に従い、schema の pattern（`[a-z0-9][a-z0-9._-]*`）を満たす。
+  - schema に違反するもの（未知のフィールド、型や pattern の違反、`version` が 1 以外、件数や長さの超過）と、重複したキーを持つ JSON は、全体を拒否する（一部だけ取り込まない）。
+  - Web 側は、組み立て中に残りのバイト数を表示し、700 bytes を超える組み合わせを QR にしない。
+- 符号化: ペイロードの UTF-8 bytes を base64url（RFC 4648 §5、`=` の padding なし）にし、先頭に `v1.` を付けた文字列を **トークン** とする。トークンは最大 937 文字で、`v1.` の後は `A-Z a-z 0-9 - _` だけからなる。
+- QR とページのリンク: `https://devtools.hapbeat.com/remote/preset#<トークン>`。トークンは fragment に置くのでサーバーには送られない。QR は誤り訂正 L か M、byte モードで作る。このページは、リモコン以外の端末で開いたときの説明と、Android で開いたときの「アプリで開く」ボタンを持つ。
+- アプリを開くリンク: `hapbeat-remote://preset?d=<トークン>`。Android の Chrome では `intent://preset?d=<トークン>#Intent;scheme=hapbeat-remote;package=com.hapbeat.demoremote;S.browser_fallback_url=<上の https のリンクを URL エンコードしたもの>;end` を使う（アプリが無い端末ではストアではなくこのページに戻る）。
+- リモコンが受け付ける入力は次の 2 つだけ。それ以外の URL は無視する。
+  - アプリ内の QR 読み取りで得た文字列が `https://devtools.hapbeat.com/remote/preset#` で始まる場合の、`#` より後。
+  - `hapbeat-remote://preset` のリンクの、クエリ `d` の値。
+- 受け取り側（リモコン）の規則:
+  - デコードの前にトークンを検査する（`v1.` で始まる、937 文字以下、`=`・`+`・`/` などの許可外の文字を含まない）。base64url をデコードしたバイト列は、不正な UTF-8 を置き換えずに拒否する。そのうえで schema と重複キーを検査する。
+  - `demo_id` は端末内の許可リスト（Hub に渡せる demo）で検証し、1 つでも外れたら全体を拒否して、外れた `demo_id` を表示する。
+  - 取り込む前に、名前と demo の並び（options を含む）を確認画面で見せ、利用者の承認を得る。取り込みだけで Hub やセッションを起動しない。
+  - 取り込んだ step は `options` と `retry` を含めて保存し、Hub に渡すときは検証済みの値から JSON を組み立て直す（受け取った文字列をそのまま使わない）。`name` は表示と保存にだけ使い、コマンドや JSON の組み立てに入れない。Hub へのコマンドに値を埋め込む実装（adb の `am start ... '<json>'` 等）は、pattern の検証に加えて、シェルの引用を正しくエスケープする。
+  - 同じ名前のプリセットがあるときは、上書きか別名で追加かを利用者が選ぶ。
+
 ## Hub
 
 - Hub は自身の `demo_id` を `demo_hub` とし、descriptor を持たない。
