@@ -60,6 +60,7 @@
     "controller_id": "remote-pixel",
     "nonce": "0123456789abcdef",
     "current_demo_id": "handdemo",
+    "foreground": true,
     "haptics_on": true,
     "haptics_ui": false,
     "recenter_ui": false,

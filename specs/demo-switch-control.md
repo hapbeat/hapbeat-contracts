@@ -6,7 +6,7 @@
 
 - UDP 7710。payload は UTF-8 JSON object 1 個、最大 **1024 bytes**。断片化、連結、末尾の非 JSON byte は禁止。
 - controller は切替先 IPv4 が未設定のとき、`DISCOVER` だけを LAN broadcast で 7710 へ送ってよい。前面 runtime は送信元 endpoint へ `HERE` を unicast で返す。controller は同じ nonce に対する有効な応答元が 1 IPv4 だけの場合に限り、その address を最大 30 秒 cache して以後の `SWITCH` を unicast する。0 台または複数台なら `SWITCH` を送ってはならない。
-- 前面の demo runtime だけが 7710 を bind する。切替順序は `ACK` 送信、listener 停止、切替前通知、local allowlist に解決した runtime 起動の順。
+- demo runtime は process が生きている間 7710 を bind する（境界設定・システムメニュー・OS の一時停止で前面でなくなっても受信を続ける）。前面でない間も `DISCOVER` に `HERE`、`QUERY` に `STATE`（`foreground: false`）を返すが、`SWITCH` と `CONTROL` は実行せず `FAILED` / `not_allowed`（message は `not in foreground`）を返す。bind に失敗したとき（直前のアプリのソケットが残っている等）は、短い間隔で数秒間再試行する。Android では受信中 `WifiManager.MulticastLock` を保持してよい（broadcast の `DISCOVER` を落とさないため）。切替順序は `ACK` 送信、listener 停止、切替前通知、local allowlist に解決した runtime 起動の順。
 - 次 runtime は controller endpoint と sequence を platform-specific launch context で引き継ぎ、初期化後にその endpoint へ `READY` を返す。起動できなければ現在 runtime が `FAILED` を返す。
 - launch context の搬送方法、process/application 起動 API は platform adapter の責務であり、この規範プロトコルには含めない。
 
@@ -141,10 +141,10 @@ message changes state, so no sequence number is used; a fresh 16-hex `nonce` per
 ```
 
 ```json
-{"version":1,"type":"STATE","controller_id":"remote-pixel","nonce":"0123456789abcdef","current_demo_id":"handdemo","haptics_on":true,"haptics_ui":false,"recenter_ui":false,"paused":false,"step_index":1,"step_count":3}
+{"version":1,"type":"STATE","controller_id":"remote-pixel","nonce":"0123456789abcdef","current_demo_id":"handdemo","foreground":true,"haptics_on":true,"haptics_ui":false,"recenter_ui":false,"paused":false,"step_index":1,"step_count":3}
 ```
 
-`haptics_on` is the current Hapbeat output state, `haptics_ui` / `recenter_ui` the visibility of the in-view
+`foreground` is false while the runtime is not the focused foreground app (boundary setup, system menu, OS pause), when it accepts no SWITCH / CONTROL; `haptics_on` is the current Hapbeat output state, `haptics_ui` / `recenter_ui` the visibility of the in-view
 buttons, `paused` whether the shared pause (or the app's own menu pause) is active, and `step_index` /
 `step_count` the Demo Session position (-1 / 0 outside a session). Unknown fields are rejected. With a shared
 secret both carry `auth`: HMAC canonical bytes use the header `HAPBEAT-DEMO-SWITCH/1
@@ -153,5 +153,5 @@ QUERY
 `type`, `controller_id`, `nonce`, and `HAPBEAT-DEMO-SWITCH/1
 STATE
 ` with `version`, `type`, `controller_id`,
-`nonce`, `current_demo_id`, `haptics_on`, `haptics_ui`, `recenter_ui`, `paused`, `step_index`, `step_count`
+`nonce`, `current_demo_id`, `foreground`, `haptics_on`, `haptics_ui`, `recenter_ui`, `paused`, `step_index`, `step_count`
 (booleans as `true` / `false`). Existing controllers that do not send `QUERY` are unaffected; `HERE` is unchanged.

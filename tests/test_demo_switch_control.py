@@ -38,11 +38,14 @@ class QueryStateTests(unittest.TestCase):
         validator = Draft202012Validator(SCHEMA)
         validator.validate(FIXTURES['unsigned_query'])
         validator.validate(FIXTURES['unsigned_state'])
-        for changes in [dict(paused='no'), dict(step_index=-2), dict(extra=1), dict(nonce='xyz')]:
+        for changes in [dict(paused='no'), dict(foreground='yes'), dict(step_index=-2), dict(extra=1), dict(nonce='xyz')]:
             with self.subTest(changes=changes):
                 self.assertFalse(validator.is_valid(dict(FIXTURES['unsigned_state'], **changes)))
         state = dict(FIXTURES['unsigned_state'])
         del state['haptics_on']
+        self.assertFalse(validator.is_valid(state))
+        state = dict(FIXTURES['unsigned_state'])
+        del state['foreground']
         self.assertFalse(validator.is_valid(state))
 
 if __name__ == '__main__':

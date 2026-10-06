@@ -297,6 +297,7 @@
         "controller_id",
         "nonce",
         "current_demo_id",
+        "foreground",
         "haptics_on",
         "haptics_ui",
         "recenter_ui",
@@ -319,6 +320,10 @@
         },
         "current_demo_id": {
           "$ref": "#/$defs/identifier"
+        },
+        "foreground": {
+          "type": "boolean",
+          "description": "false while not the focused foreground app; SWITCH / CONTROL are then refused"
         },
         "haptics_on": {
           "type": "boolean"
