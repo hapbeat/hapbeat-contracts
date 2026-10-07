@@ -115,15 +115,6 @@ session mode の runtime は、demo 固有の完了イベントで、体験者�
 - 受け付けたら Hub は自分のトップ画面を出さずに ticket を作って 1 本目を起動する（起動遷移の規則は同じ）。不正・未インストールなら Hub のトップを開いてステータス行に理由を出す。
 - 外部リモコンは Wi-Fi adb の `am start -n jp.hapbeat.demohub/com.unity3d.player.UnityPlayerGameActivity --es com.hapbeat.demo_hub.start '<json>'` でこれを使う。Demo Switch の `SWITCH`（UDP）は従来どおり ticket なしの直接起動で、session にはならない。
 
-## プリセットをリモコンへ共有する（QR / リンク）
-
-devtools-site のショーケース等で選んだ plan を、Android リモコンへプリセットとして渡す形式。リモコンはそれを保存し、Hub の外部起動 extra の `steps` で開始する。
-
-- ペイロード: `{"version":1,"presets":[{"name":"XR Kaigi A","steps":[{"demo_id":"trex-encounter","options":{"tutorial":"on"}},{"demo_id":"volley","retry":false}]}]}`。schema: [`demo-remote-preset-share.schema.json`](../schemas/demo-remote-preset-share.schema.json)。`presets` は 1〜8 件、`name` は 1〜40 文字（制御文字なし）、`steps` は 1〜32 件で、各 step は Hub の外部起動 `steps` と同じ（`demo_id`・`options`・`retry`）。UTF-8 の JSON 全体で 1024 bytes 以下（QR で読める大きさ）。未知フィールドや未知の version は全体を不正とする。
-- URL: `https://devtools.hapbeat.com/remote/preset#v1.<base64url(JSON)>`（padding なし。fragment なのでサーバーへは送られない）。ページは QR とこの URL のリンクを出す。
-- 受け手（リモコン）: 必ず確認ダイアログを出し、自動では開始しない。`demo_id` をリモコンが知っているデモの一覧で検証し、1 つでも外れたら全体を取り込まない。options の値は開始時に Hub が descriptor で検証する。
-- 送り手（devtools-site）: ショーケースの表示用 id と Hub の `demo_id` は別物なので、送り手側で `demo_id`（Hub の値）を持って変換する。
-
 ## Hub
 
 - Hub は自身の `demo_id` を `demo_hub` とし、descriptor を持たない。
