@@ -15,6 +15,7 @@ def load(path):
 DESCRIPTOR = Draft202012Validator(load('schemas/demo-session-descriptor.schema.json'))
 TICKET = Draft202012Validator(load('schemas/demo-session-ticket.schema.json'))
 DEVICE = Draft202012Validator(load('schemas/demo-device-address.schema.json'))
+SHARE = Draft202012Validator(load('schemas/demo-remote-preset-share.schema.json'))
 FIXTURES = load('fixtures/sample-demo-session.json')
 
 
@@ -86,6 +87,28 @@ class DeviceAddressTests(unittest.TestCase):
             value = dict(base)
             del value[field]
             self.assertFalse(DEVICE.is_valid(value), field)
+
+
+
+class RemotePresetShareTests(unittest.TestCase):
+    def test_valid_and_fits_a_qr(self):
+        Draft202012Validator.check_schema(SHARE.schema)
+        SHARE.validate(FIXTURES['remote_preset_share'])
+        encoded = json.dumps(FIXTURES['remote_preset_share'], ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+        self.assertLessEqual(len(encoded), 1024)
+
+    def test_rejects(self):
+        base = FIXTURES['remote_preset_share']
+        for changes in [dict(version=2), dict(presets=[]), dict(extra=1)]:
+            with self.subTest(changes=changes):
+                self.assertFalse(SHARE.is_valid(dict(base, **changes)))
+        for preset in [{'name': '', 'steps': [{'demo_id': 'volley'}]}, {'name': 'a
+b', 'steps': [{'demo_id': 'volley'}]},
+                       {'name': 'x', 'steps': []}, {'name': 'x', 'steps': [{'demo_id': 'Volley'}]},
+                       {'name': 'x', 'steps': [{'demo_id': 'volley', 'title': 't'}]},
+                       {'name': 'x', 'steps': [{'demo_id': 'volley', 'retry': 'no'}]}]:
+            with self.subTest(preset=preset):
+                self.assertFalse(SHARE.is_valid({'version': 1, 'presets': [preset]}))
 
 
 if __name__ == '__main__':

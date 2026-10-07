@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hapbeat.com/schemas/demo-remote-preset-share.schema.json",
+  "title": "Demo Session presets shared to the Android remote (QR / link)",
+  "description": "Encoded as UTF-8 JSON of at most 1024 bytes; carried in https://devtools.hapbeat.com/remote/preset#v1.<base64url without padding>.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "presets"],
+  "properties": {
+    "version": { "const": 1 },
+    "presets": { "type": "array", "minItems": 1, "maxItems": 8, "items": { "$ref": "#/$defs/preset" } }
+  },
+  "$defs": {
+    "identifier": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
+    "preset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "steps"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 40, "pattern": "^[^\u0000-\u001F\u007F]+$" },
+        "steps": { "type": "array", "minItems": 1, "maxItems": 32, "items": { "$ref": "#/$defs/step" } }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["demo_id"],
+      "properties": {
+        "demo_id": { "$ref": "#/$defs/identifier" },
+        "options": {
+          "type": "object",
+          "maxProperties": 8,
+          "propertyNames": { "$ref": "#/$defs/identifier" },
+          "additionalProperties": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,31}$" }
+        },
+        "retry": { "type": "boolean" }
+      }
+    }
+  }
+}

@@ -153,5 +153,25 @@
     "version": 1,
     "player": -1,
     "group": 2
+  },
+  "remote_preset_share": {
+    "version": 1,
+    "presets": [
+      {
+        "name": "XR Kaigi A",
+        "steps": [
+          {
+            "demo_id": "trex-encounter",
+            "options": {
+              "tutorial": "on"
+            }
+          },
+          {
+            "demo_id": "volley",
+            "retry": false
+          }
+        ]
+      }
+    ]
   }
 }
