@@ -48,5 +48,57 @@ class QueryStateTests(unittest.TestCase):
         del state['foreground']
         self.assertFalse(validator.is_valid(state))
 
+def canonical_steps(steps):
+    """`steps` HMAC value of PRESET / PRESET_SET (demo-switch-control.md, Hub presets)."""
+    encoded = []
+    for step in steps:
+        options = ','.join(f'{key}={value}' for key, value in sorted(step.get('options', {}).items()))
+        encoded.append(f"{step['demo_id']};{options};{1 if step.get('retry', True) else 0}")
+    return '|'.join(encoded)
+
+class PresetTests(unittest.TestCase):
+    NAMES = ['unsigned_preset_get', 'unsigned_preset', 'unsigned_preset_set', 'unsigned_preset_start']
+
+    def test_fixtures_valid_and_within_datagram(self):
+        validator = Draft202012Validator(SCHEMA)
+        for name in self.NAMES:
+            with self.subTest(name=name):
+                validator.validate(FIXTURES[name])
+                self.assertLessEqual(len(json.dumps(FIXTURES[name], ensure_ascii=False, separators=(',', ':')).encode('utf-8')), 1024)
+
+    def test_empty_name_and_cleared_steps(self):
+        validator = Draft202012Validator(SCHEMA)
+        validator.validate(dict(FIXTURES['unsigned_preset_set'], name='', steps=[]))
+        validator.validate(dict(FIXTURES['unsigned_preset'], name='', step_count=0, steps=[]))
+
+    def test_rejects_invalid_presets(self):
+        validator = Draft202012Validator(SCHEMA)
+        cases = {
+            'unsigned_preset_get': [dict(preset=0), dict(preset=4), dict(from_=-1), dict(seq=1), dict(nonce='xyz')],
+            'unsigned_preset': [dict(revision=-1), dict(step_count=33), dict(visible='yes'), dict(name=' '),
+                                dict(name='a' + chr(10)), dict(name='x' * 41), dict(extra=1)],
+            'unsigned_preset_set': [dict(demo_id='volley'), dict(seq=0), dict(preset=4), dict(name='a' + chr(0x2028)),
+                                    dict(steps=[{'demo_id': 'volley'}] * 33), dict(steps=[{'demo_id': 'Volley'}]),
+                                    dict(steps=[{'demo_id': 'volley', 'path': 'x'}]),
+                                    dict(steps=[{'demo_id': 'volley', 'options': {'scene': 'a;b'}}]), dict(nonce='0123456789abcdef')],
+            'unsigned_preset_start': [dict(demo_id='volley'), dict(preset=0), dict(steps=[]), dict(seq=0)],
+        }
+        for name, changes_list in cases.items():
+            for changes in changes_list:
+                changes = {('from' if key == 'from_' else key): value for key, value in changes.items()}
+                with self.subTest(name=name, changes=changes):
+                    self.assertFalse(validator.is_valid(dict(FIXTURES[name], **changes)))
+            for field in ['version', 'type', 'controller_id', 'preset']:
+                value = copy.copy(FIXTURES[name])
+                del value[field]
+                self.assertFalse(validator.is_valid(value), (name, field))
+
+    def test_canonical_steps_example(self):
+        value = canonical_steps(FIXTURES['unsigned_preset_set']['steps'])
+        self.assertEqual(value, 'energy-duel;tutorial=on;1|volley;scene=match;0')
+        self.assertEqual(len(value.encode('utf-8')), 46)
+        self.assertEqual(canonical_steps([]), '')
+        self.assertEqual(canonical_steps([{'demo_id': 'boxing', 'options': {'b': '2', 'a': '1'}}]), 'boxing;a=1,b=2;1')
+
 if __name__ == '__main__':
     unittest.main()

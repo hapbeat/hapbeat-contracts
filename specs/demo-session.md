@@ -144,4 +144,5 @@ Web のデモ紹介ページ（devtools-site のショーケース）で組ん�
 
 - Hub は自身の `demo_id` を `demo_hub` とし、descriptor を持たない。
 - ticket なしで起動された場合は待機 / plan 編集画面。`index == len(steps)` の ticket で起動された場合は終了画面（ヘッドセットを外す案内と、同じ plan での再開操作）を出す。
-- plan の保存形式、プリセット数、編集 UI は Hub 実装に委ねる。
+- Hub はプリセット 1〜3 を持つ。各プリセットは名前（空可）、トップ画面に出すか（`visible`）、steps を持ち、Hub の管理画面と、Demo Switch の [Hub presets](demo-switch-control.md#hub-presets)（リモコンからの読み書き・開始）で変更する。リモコンが取り込んだプリセット（上の QR / リンク）は `PRESET_SET` で Hub の枠へ書き込む。
+- plan の保存形式と編集 UI は Hub 実装に委ねる。

@@ -67,5 +67,73 @@
     "paused": false,
     "step_index": 1,
     "step_count": 3
+  },
+  "unsigned_preset_get": {
+    "version": 1,
+    "type": "PRESET_GET",
+    "controller_id": "remote-pixel",
+    "nonce": "0123456789abcdef",
+    "preset": 1,
+    "from": 0
+  },
+  "unsigned_preset": {
+    "version": 1,
+    "type": "PRESET",
+    "controller_id": "remote-pixel",
+    "nonce": "0123456789abcdef",
+    "preset": 1,
+    "revision": 7,
+    "name": "XR Kaigi A",
+    "visible": true,
+    "step_count": 2,
+    "from": 0,
+    "steps": [
+      {
+        "demo_id": "energy-duel",
+        "options": {
+          "tutorial": "on"
+        }
+      },
+      {
+        "demo_id": "volley",
+        "options": {
+          "scene": "match"
+        },
+        "retry": false
+      }
+    ]
+  },
+  "unsigned_preset_set": {
+    "version": 1,
+    "type": "PRESET_SET",
+    "controller_id": "remote-pixel",
+    "seq": 44,
+    "demo_id": "demo_hub",
+    "preset": 1,
+    "name": "XR Kaigi A",
+    "visible": true,
+    "steps": [
+      {
+        "demo_id": "energy-duel",
+        "options": {
+          "tutorial": "on"
+        }
+      },
+      {
+        "demo_id": "volley",
+        "options": {
+          "scene": "match"
+        },
+        "retry": false
+      }
+    ]
+  },
+  "unsigned_preset_start": {
+    "version": 1,
+    "type": "PRESET_START",
+    "controller_id": "remote-pixel",
+    "seq": 45,
+    "demo_id": "demo_hub",
+    "preset": 1
   }
 }

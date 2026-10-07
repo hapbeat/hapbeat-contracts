@@ -155,3 +155,88 @@ STATE
 ` with `version`, `type`, `controller_id`,
 `nonce`, `current_demo_id`, `foreground`, `haptics_on`, `haptics_ui`, `recenter_ui`, `paused`, `step_index`, `step_count`
 (booleans as `true` / `false`). Existing controllers that do not send `QUERY` are unaffected; `HERE` is unchanged.
+
+## Hub presets
+
+A controller may read, overwrite and start the Hub's presets 1–3 ([Demo Session](demo-session.md#hub)) without adb, so
+that staff can prepare the Hub before an exhibition and visitors only press a preset on the Hub. Only the Hub
+(`current_demo_id` `demo_hub`) handles these messages; other runtimes drop all four without a reply. Controllers send
+them unicast to an HMD whose `STATE` reports `demo_hub`, and treat no reply as "the Hub is not running".
+Every message is a single datagram within the 1024-byte limit.
+
+A preset carries `name`, `visible` and `steps`:
+
+- `name`: the empty string (no name) or 1–40 code points with the rules of the
+  [remote preset transfer](demo-session.md#リモコンへのプリセット受け渡しqr--リンク) `name`. Shown on the Hub's preset button.
+- `visible`: whether the Hub's top screen offers the preset (the Hub still hides one without installed steps).
+- `steps`: 0–32 steps with the rules of the Hub start extra `steps` (`demo_id`, optional `options`, optional `retry`,
+  default true). An empty list clears the preset.
+
+The Hub-wide launch settings (`haptics_ui`, `recenter_ui`, `hand_style`, staff waiting mode, the demo tiles shown) are
+not part of a preset and stay in the Hub's manage screen; in-run state is changed with `CONTROL`.
+
+### Read
+
+`PRESET_GET` is answered like `QUERY` (no sequence; a fresh `nonce` per request; answered while not foreground too):
+
+```json
+{"version":1,"type":"PRESET_GET","controller_id":"remote-pixel","nonce":"0123456789abcdef","preset":1,"from":0}
+```
+
+```json
+{"version":1,"type":"PRESET","controller_id":"remote-pixel","nonce":"0123456789abcdef","preset":1,"revision":7,"name":"XR Kaigi A","visible":true,"step_count":2,"from":0,"steps":[{"demo_id":"energy-duel","options":{"tutorial":"on"}},{"demo_id":"volley","options":{"scene":"match"},"retry":false}]}
+```
+
+- `preset` is 1–3 and `from` the first step wanted (0–31). `PRESET` returns as many steps from `from` as fit in 1024
+  bytes. When `from + steps.length < step_count` the controller asks again with the next `from`.
+- `revision` is a non-negative integer that the Hub increases whenever the preset is saved (by its own editor or by
+  `PRESET_SET`). If it differs between the pages, the controller starts reading again from 0.
+- When `from >= step_count`, `steps` is empty. When the step at `from` alone does not fit, `steps` is empty although
+  `from < step_count`; the controller reports that the preset cannot be shown and can only be edited on the Hub.
+- The Hub answers the stored data, including steps whose demo is not installed.
+
+### Write and start
+
+`PRESET_SET` overwrites one preset; `PRESET_START` starts a session from it, like the start extra `{"preset":n}`
+(the Hub-wide launch settings apply).
+
+```json
+{"version":1,"type":"PRESET_SET","controller_id":"remote-pixel","seq":44,"demo_id":"demo_hub","preset":1,"name":"XR Kaigi A","visible":true,"steps":[{"demo_id":"energy-duel","options":{"tutorial":"on"}},{"demo_id":"volley","options":{"scene":"match"},"retry":false}]}
+```
+
+```json
+{"version":1,"type":"PRESET_START","controller_id":"remote-pixel","seq":45,"demo_id":"demo_hub","preset":1}
+```
+
+- Both follow the `CONTROL` rules: `demo_id` must equal `demo_hub` (the current demo), persistent sequence, the same
+  status messages and codes, one operation at a time, nothing executes while not foreground. The Hub also refuses them
+  with `FAILED/not_allowed` while its manage screen is open (staff are editing) or a launch is in progress.
+- `PRESET_SET` is validated as a whole before anything is stored: every `demo_id` must be installed (a Hub catalog
+  entry) and every option key and value must exist in that demo's descriptor. A violation stores nothing and returns
+  `FAILED/invalid_payload` (unknown option) or `FAILED/not_allowed` (demo not installed) with the first offending
+  `demo_id` in `message`. On success the Hub sends `ACK`, stores the preset (increasing `revision`), refreshes its
+  screens and sends `READY`; a storage failure returns `FAILED/launch_failed`.
+- A plan whose `PRESET_SET` would exceed 1024 bytes cannot be written by a controller; controllers show the remaining
+  bytes while editing. The Hub's own editor still allows up to 32 steps.
+- `PRESET_START` fails with `FAILED/not_allowed` when the preset has no installed step. Otherwise the Hub sends `ACK`,
+  launches the first demo and sends `READY` (`current_demo_id` = that demo) once it has taken the foreground, or
+  `FAILED/launch_failed`. Nothing is carried to the launched demo; the controller follows with `QUERY`.
+
+### Authentication
+
+With a shared secret all four carry `auth`. Canonical bytes use the field encoding above:
+
+- `PRESET_GET`: header `HAPBEAT-DEMO-SWITCH/1\nPRESET_GET\n`, fields `version`, `type`, `controller_id`, `nonce`,
+  `preset`, `from`.
+- `PRESET`: header `HAPBEAT-DEMO-SWITCH/1\nPRESET\n`, fields `version`, `type`, `controller_id`, `nonce`, `preset`,
+  `revision`, `name`, `visible`, `step_count`, `from`, `steps`.
+- `PRESET_SET`: header `HAPBEAT-DEMO-SWITCH/1\nCOMMAND\n`, fields `version`, `type`, `controller_id`, `seq`, `demo_id`,
+  `preset`, `name`, `visible`, `steps`.
+- `PRESET_START`: header `HAPBEAT-DEMO-SWITCH/1\nCOMMAND\n`, fields `version`, `type`, `controller_id`, `seq`,
+  `demo_id`, `preset`.
+
+Booleans are `true` / `false`. The `steps` value is its steps joined with `|`; each step is
+`<demo_id>;<options>;<retry>` where `<options>` is `key=value` pairs sorted by key (ordinal) and joined with `,`
+(empty when there are none), and `<retry>` is `1` or `0` (`1` when omitted). Identifiers and option values cannot
+contain `|`, `;`, `,` or `=`, so this is unambiguous. The example `PRESET_SET` above signs
+`steps=46:energy-duel;tutorial=on;1|volley;scene=match;0`.
