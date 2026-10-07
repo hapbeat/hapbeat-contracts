@@ -102,8 +102,7 @@ class RemotePresetShareTests(unittest.TestCase):
         for changes in [dict(version=2), dict(presets=[]), dict(extra=1)]:
             with self.subTest(changes=changes):
                 self.assertFalse(SHARE.is_valid(dict(base, **changes)))
-        for preset in [{'name': '', 'steps': [{'demo_id': 'volley'}]}, {'name': 'a
-b', 'steps': [{'demo_id': 'volley'}]},
+        for preset in [{'name': '', 'steps': [{'demo_id': 'volley'}]}, {'name': 'a' + chr(10) + 'b', 'steps': [{'demo_id': 'volley'}]},
                        {'name': 'x', 'steps': []}, {'name': 'x', 'steps': [{'demo_id': 'Volley'}]},
                        {'name': 'x', 'steps': [{'demo_id': 'volley', 'title': 't'}]},
                        {'name': 'x', 'steps': [{'demo_id': 'volley', 'retry': 'no'}]}]:
