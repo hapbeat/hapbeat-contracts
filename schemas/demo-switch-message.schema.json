@@ -689,10 +689,11 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 40,
+          "pattern": "\\S",
           "not": {
-            "pattern": "[\\u0000-\\u001f\\u007f-\\u009f]"
+            "pattern": "[\\u0000-\\u001f\\u007f-\\u009f\\u2028\\u2029]"
           },
-          "description": "The Hub display name, 1-40 code points without control characters"
+          "description": "The Hub display name: 1-40 code points with the preset name rules (at least one non-space character, no C0/C1 control characters or line/paragraph separators)"
         },
         "visible": {
           "type": "boolean"
