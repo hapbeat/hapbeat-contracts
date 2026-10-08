@@ -34,7 +34,8 @@
 The same identifier, payload, authentication and persistent sequence rules apply.
 Unknown fields are rejected. Actions are `menu_open`, `menu_close`, `recenter`,
 `restart`, `scene`, `haptics_on`, `haptics_off`, `haptics_ui_show`, `haptics_ui_hide`,
-`recenter_ui_show`, `recenter_ui_hide`, `tutorial_start`.
+`recenter_ui_show`, `recenter_ui_hide`, `tutorial_start`, `hand_style_ghost`, `hand_style_skin`,
+`session_next`, `session_retry`, `hub_top`, `hub_replay`.
 `scene_id` is a logical identifier for `scene`, and MUST be
 the empty string for every other action. The four `haptics_*` actions set Hapbeat
 output and the visibility of the in-view haptics button as defined in
@@ -44,6 +45,25 @@ explicit set operations, never toggles. `recenter_ui_show` / `recenter_ui_hide` 
 the in-view 視線をリセット button ([Demo Session](demo-session.md#視線をリセット)); `recenter` performs the same
 reset as that button. `tutorial_start` starts the runtime's tutorial from its beginning (runtimes without a
 tutorial reject it with `FAILED/not_allowed`).
+
+`hand_style_ghost` / `hand_style_skin` set the look of the shared hands ([Demo Session](demo-session.md) `hand_style`),
+explicitly like `haptics_*`. A runtime that does not draw the shared hands rejects both with `FAILED/not_allowed`, and so
+does one whose shared hands have only the ghost look (no hand mesh available) for `hand_style_skin`. Within a Demo
+Session the new look carries over to the following steps (the next ticket's `hand_style`), like `haptics_ui`. On the
+Hub they change the Hub-wide setting, the same as its manage screen ([Hub settings](#hub-settings)).
+
+`session_next` does what the pause panel's 次へ and the completion panel's 次へ / デモを終了 do: it launches the next step,
+or the finish runtime (the Hub) after the last one. Only a runtime in a Demo Session (`step_index` ≥ 0) accepts it. It
+ends like `PRESET_START`: `ACK`, then `READY` with `current_demo_id` set to the launched demo once this runtime has left the
+foreground, or `FAILED/launch_failed`. `session_retry` is the completion panel's もう一度, accepted only while that panel
+shows もう一度 (the step's `retry`); `READY` follows once the step has restarted.
+
+`hub_top` and `hub_replay` are handled only by the Hub; other runtimes reject them with `FAILED/not_allowed`.
+`hub_top` shows the Hub's top screen, as 完了 (manage screen) and トップへ (finish screen) do, and is accepted on the top
+screen too (nothing changes). Unlike the Hub's preset and settings commands it is accepted while the manage screen
+is open, and closes it (what the manage screen has saved stays). `hub_replay` is the
+finish screen's 最初から（同じプラン）: the finished plan starts again from its first step with the Hub-wide launch
+settings, accepted only on the finish screen, and ends like `session_next`.
 
 Runtimes that host the shared pause panel handle `menu_open` / `menu_close` with it when the scene has no
 app-specific menu adapter, and `restart` with the shared restart (the same as the panel's 最初からやり直す) when
@@ -141,26 +161,40 @@ message changes state, so no sequence number is used; a fresh 16-hex `nonce` per
 ```
 
 ```json
-{"version":1,"type":"STATE","controller_id":"remote-pixel","nonce":"0123456789abcdef","current_demo_id":"handdemo","foreground":true,"haptics_on":true,"haptics_ui":false,"recenter_ui":false,"paused":false,"step_index":1,"step_count":3}
+{"version":1,"type":"STATE","controller_id":"remote-pixel","nonce":"0123456789abcdef","current_demo_id":"handdemo","foreground":true,"haptics_on":true,"haptics_ui":false,"recenter_ui":false,"paused":false,"step_index":1,"step_count":3,"device_model":"Oculus Quest 3","editor":false,"screen":"main","hand_style":"ghost"}
 ```
 
-`foreground` is false while the runtime is not the focused foreground app (boundary setup, system menu, OS pause), when it accepts no SWITCH / CONTROL; `haptics_on` is the current Hapbeat output state, `haptics_ui` / `recenter_ui` the visibility of the in-view
-buttons, `paused` whether the shared pause (or the app's own menu pause) is active, and `step_index` /
-`step_count` the Demo Session position (-1 / 0 outside a session). Unknown fields are rejected. With a shared
-secret both carry `auth`: HMAC canonical bytes use the header `HAPBEAT-DEMO-SWITCH/1
+`foreground` is false while the runtime is not the focused foreground app (boundary setup, system menu, OS pause), when
+it accepts no SWITCH / CONTROL; `haptics_on` is the current Hapbeat output state, `haptics_ui` / `recenter_ui` the
+visibility of the in-view buttons, `paused` whether the shared pause (or the app's own menu pause) is active, and
+`step_index` / `step_count` the Demo Session position (-1 / 0 outside a session).
+
+`STATE` may also carry the following fields, in this order. Demo apps are rebuilt with a new package version one at a time, so
+a controller treats a missing field as unknown, never as an error:
+
+- `device_model`: the device model as the OS reports it (Unity `SystemInfo.deviceModel`, e.g. `Oculus Quest 3`), 1–64
+  code points without control characters (U+0000–U+001F, U+007F–U+009F). It tells a headset from a PC on the LAN.
+- `editor`: true when the runtime runs inside a development editor (Unity Editor, Unreal Play In Editor) rather than as an
+  installed app. Controllers do not list such responders as headsets unless the operator asks for them.
+- `screen`: `main`, `completion` (the completion panel, or the Hub's finish screen) or `manage` (the Hub's manage screen).
+- `hand_style`: `ghost` or `skin`, the current look of the shared hands; absent when the runtime does not draw them.
+
+Unknown fields are rejected. With a shared secret both messages carry `auth`: HMAC canonical bytes use the header
+`HAPBEAT-DEMO-SWITCH/1
 QUERY
-` with `version`,
-`type`, `controller_id`, `nonce`, and `HAPBEAT-DEMO-SWITCH/1
+` with `version`, `type`, `controller_id`, `nonce`, and `HAPBEAT-DEMO-SWITCH/1
 STATE
-` with `version`, `type`, `controller_id`,
-`nonce`, `current_demo_id`, `foreground`, `haptics_on`, `haptics_ui`, `recenter_ui`, `paused`, `step_index`, `step_count`
+` with
+`version`, `type`, `controller_id`, `nonce`, `current_demo_id`, `foreground`, `haptics_on`, `haptics_ui`, `recenter_ui`,
+`paused`, `step_index`, `step_count`, then each of `device_model`, `editor`, `screen`, `hand_style` that is present
 (booleans as `true` / `false`). Existing controllers that do not send `QUERY` are unaffected; `HERE` is unchanged.
 
 ## Hub presets
 
 A controller may read, overwrite and start the Hub's presets 1–3 ([Demo Session](demo-session.md#hub)) without adb, so
 that staff can prepare the Hub before an exhibition and visitors only press a preset on the Hub. Only the Hub
-(`current_demo_id` `demo_hub`) handles these messages; other runtimes drop all four without a reply. Controllers send
+(`current_demo_id` `demo_hub`) handles these messages and those of [Hub settings](#hub-settings) and
+[Hub start](#hub-start); other runtimes drop them without a reply. Controllers send
 them unicast to an HMD whose `STATE` reports `demo_hub`, and treat no reply as "the Hub is not running".
 Every message is a single datagram within the 1024-byte limit.
 
@@ -173,7 +207,7 @@ A preset carries `name`, `visible` and `steps`:
   default true). An empty list clears the preset.
 
 The Hub-wide launch settings (`haptics_ui`, `recenter_ui`, `hand_style`, staff waiting mode, the demo tiles shown) are
-not part of a preset and stay in the Hub's manage screen; in-run state is changed with `CONTROL`.
+not part of a preset; they are read and changed with [Hub settings](#hub-settings), and in-run state with `CONTROL`.
 
 ### Read
 
@@ -240,3 +274,74 @@ Booleans are `true` / `false`. The `steps` value is its steps joined with `|`; e
 (empty when there are none), and `<retry>` is `1` or `0` (`1` when omitted). Identifiers and option values cannot
 contain `|`, `;`, `,` or `=`, so this is unambiguous. The example `PRESET_SET` above signs
 `steps=46:energy-duel;tutorial=on;1|volley;scene=match;0`.
+
+## Hub settings
+
+A controller may read and change the Hub-wide settings of the manage screen without adb, so that everything the Hub's
+manage screen offers can be done from the controller. Like the Hub presets, only the Hub handles these messages.
+
+```json
+{"version":1,"type":"HUB_SETTINGS_GET","controller_id":"remote-pixel","nonce":"0123456789abcdef","from":0}
+```
+
+```json
+{"version":1,"type":"HUB_SETTINGS","controller_id":"remote-pixel","nonce":"0123456789abcdef","revision":3,"haptics_ui":false,"recenter_ui":true,"hand_style":"ghost","staff_waiting":false,"player":1,"group":-1,"demo_count":2,"from":0,"demos":[{"demo_id":"volley","title":"Volley","visible":true},{"demo_id":"fps","title":"FPS","visible":false}]}
+```
+
+- `HUB_SETTINGS_GET` is answered like `PRESET_GET` (no sequence, a fresh `nonce`, answered while not foreground too).
+- `haptics_ui` / `recenter_ui`: the initial visibility of the in-view buttons for every launch (`recenter_ui` also for the
+  Hub's own 視線をリセット button). `hand_style`: `ghost` or `skin`, for the Hub's own hands and every launch.
+  `staff_waiting`: the staff waiting mode (the top screen waits for staff instead of offering presets and tiles).
+- `player` / `group`: this headset's [device address](demo-session.md#端末ごとの-hapbeat-宛先device-address-file) as the Hub read it at its
+  start (1–99, or -1 when the axis is not specified or the file is missing or invalid). Read only.
+- `demos`: the installed demos (Hub catalog entries) in catalog order, each with `demo_id`, `title` (the Hub's display
+  name, 1–40 code points without control characters) and `visible` (shown as a tile on the top screen). `demo_count`
+  (0–64) is their number. Paging works like `PRESET`: `from` (0–63) is the first demo wanted, the reply carries as many as
+  fit in 1024 bytes, and the controller asks again from `from + demos.length` while that is below `demo_count`.
+- `revision` increases whenever the Hub saves its settings (its manage screen or `HUB_SETTINGS_SET`, including a preset's
+  `visible`). If it differs between the pages, the controller starts reading again from 0.
+
+```json
+{"version":1,"type":"HUB_SETTINGS_SET","controller_id":"remote-pixel","seq":46,"demo_id":"demo_hub","haptics_ui":false,"recenter_ui":true,"hand_style":"skin","staff_waiting":false,"visible_demos":["volley"]}
+```
+
+- `HUB_SETTINGS_SET` follows the `PRESET_SET` rules (CONTROL rules, refused with `FAILED/not_allowed` while the manage
+  screen is open or a launch is in progress). It sets all four values and the tiles: `visible_demos` (0–64 distinct demo
+  IDs) lists the installed demos shown as tiles, and every other installed demo is hidden. An ID that is not installed
+  returns `FAILED/not_allowed` with that ID in `message` and stores nothing. The tile choice of demos that are not installed
+  is kept as it is.
+- On success the Hub sends `ACK`, stores the settings (increasing `revision`), applies them at once (its own hands and
+  視線をリセット button, the top or staff waiting screen) and sends `READY`; a storage failure returns `FAILED/launch_failed`.
+- The device address is not written here (it is pushed with adb, see Demo Session).
+
+## Hub start
+
+`HUB_START` starts a Demo Session from steps sent by the controller, like the Hub start extra `steps`
+([Demo Session](demo-session.md#hub-を外部から起動してセッションを始める)) but without adb. One demo is a single step.
+
+```json
+{"version":1,"type":"HUB_START","controller_id":"remote-pixel","seq":47,"demo_id":"demo_hub","steps":[{"demo_id":"volley","options":{"scene":"match"}}]}
+```
+
+- `steps`: 1–32 steps with the `PRESET_SET` rules, validated the same way (`FAILED/not_allowed` for a demo that is not
+  installed, `FAILED/invalid_payload` for an unknown option, with the first offending `demo_id` in `message`). The steps
+  are not stored; the Hub-wide launch settings apply, and the session finishes on the Hub.
+- Otherwise it follows `PRESET_START`: the CONTROL rules, then `ACK`, and `READY` with `current_demo_id` set to the first
+  demo once it has taken the foreground, or `FAILED/launch_failed`.
+
+## Authentication of the Hub settings and Hub start
+
+With a shared secret all four carry `auth`, with the field encoding above:
+
+- `HUB_SETTINGS_GET`: header `HAPBEAT-DEMO-SWITCH/1\nHUB_SETTINGS_GET\n`, fields `version`, `type`, `controller_id`,
+  `nonce`, `from`.
+- `HUB_SETTINGS`: header `HAPBEAT-DEMO-SWITCH/1\nHUB_SETTINGS\n`, fields `version`, `type`, `controller_id`, `nonce`,
+  `revision`, `haptics_ui`, `recenter_ui`, `hand_style`, `staff_waiting`, `player`, `group`, `demo_count`, `from`, `demos`.
+  The `demos` value is its demos joined with `|`, each `<demo_id>;<visible>;<N>:<title>` where `<visible>` is `1` or `0`
+  and `<N>` is the title's UTF-8 byte count (the title may contain any character, so it is length-prefixed). The example
+  above signs `demos=29:volley;1;6:Volley|fps;0;3:FPS`.
+- `HUB_SETTINGS_SET`: header `HAPBEAT-DEMO-SWITCH/1\nCOMMAND\n`, fields `version`, `type`, `controller_id`, `seq`,
+  `demo_id`, `haptics_ui`, `recenter_ui`, `hand_style`, `staff_waiting`, `visible_demos`. The `visible_demos` value is the
+  IDs joined with `|` in the order sent (empty for none).
+- `HUB_START`: header `HAPBEAT-DEMO-SWITCH/1\nCOMMAND\n`, fields `version`, `type`, `controller_id`, `seq`, `demo_id`,
+  `steps` (encoded like `PRESET_SET`).

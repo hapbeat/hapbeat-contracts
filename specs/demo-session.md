@@ -41,7 +41,7 @@ Hub は package / activity を **descriptor から取らない**。PackageManage
 - `retry` が true の step だけ、終了パネルに「もう一度」を出す。
 - `haptics_ui` は触覚 ON/OFF ボタンの表示状態。session 全体で引き継ぐ。
 - `recenter_ui`（任意、既定 false）は「視線をリセット」ボタンの表示状態。`haptics_ui` と同じく session 全体で引き継ぐ。
-- `hand_style`（任意）は共通の手の見た目（`ghost` / `skin`）。Hub の管理画面で選び、共通の手を使う runtime だけが従う。自前の手を持つ runtime は無視してよい。省略時は各 runtime の既定。
+- `hand_style`（任意）は共通の手の見た目（`ghost` / `skin`）。Hub の管理画面（またはリモコンの `HUB_SETTINGS_SET`）で選び、共通の手を使う runtime だけが従う。自前の手を持つ runtime は無視してよい。省略時は各 runtime の既定。実行中は Demo Switch の `CONTROL`（`hand_style_ghost` / `hand_style_skin`）で変えられ、変えた見た目は同じ session の以降の step に引き継ぐ（次の ticket の `hand_style`）。
 
 ### 受け取り
 
@@ -113,7 +113,7 @@ session mode の runtime は、demo 固有の完了イベントで、体験者�
   - `{"version":1,"steps":[{"demo_id":"handdemo","options":{"tutorial":"on"}},{"demo_id":"trex-encounter","retry":false}]}` … 外部（リモコン）で組んだ plan の session。`steps` は 1〜32 件、各 step は `demo_id`（必須）、`options`（任意、規則は 1 本指定と同じ）、`retry`（任意、既定 true）だけを持つ。`haptics_ui` / `recenter_ui` / `hand_style` と `finish` は 1 本指定と同じく Hub が決める。未インストール・不正な step が 1 つでもあれば全体を開始しない。Hub のプリセット 1〜3 は変えない（外部の plan は保存しない）。
   - `preset` / `demo_id` / `steps` はどれか 1 つだけ。未知フィールドは不正。
 - 受け付けたら Hub は自分のトップ画面を出さずに ticket を作って 1 本目を起動する（起動遷移の規則は同じ）。不正・未インストールなら Hub のトップを開いてステータス行に理由を出す。
-- 外部リモコンは Wi-Fi adb の `am start -n jp.hapbeat.demohub/com.unity3d.player.UnityPlayerGameActivity --es com.hapbeat.demo_hub.start '<json>'` でこれを使う。Demo Switch の `SWITCH`（UDP）は従来どおり ticket なしの直接起動で、session にはならない。
+- 外部リモコンは Wi-Fi adb の `am start -n jp.hapbeat.demohub/com.unity3d.player.UnityPlayerGameActivity --es com.hapbeat.demo_hub.start '<json>'` でこれを使う。Hub が前面にあるときは、adb を使わずに Demo Switch の `HUB_START` / `PRESET_START`（[Hub start](demo-switch-control.md#hub-start)）でも同じ session を始められる。Demo Switch の `SWITCH`（UDP）は従来どおり ticket なしの直接起動で、session にはならない。
 
 ## リモコンへのプリセット受け渡し（QR / リンク）
 
@@ -145,4 +145,5 @@ Web のデモ紹介ページ（devtools-site のショーケース）で組ん�
 - Hub は自身の `demo_id` を `demo_hub` とし、descriptor を持たない。
 - ticket なしで起動された場合は待機 / plan 編集画面。`index == len(steps)` の ticket で起動された場合は終了画面（ヘッドセットを外す案内と、同じ plan での再開操作）を出す。
 - Hub はプリセット 1〜3 を持つ。各プリセットは名前（空可）、トップ画面に出すか（`visible`）、steps を持ち、Hub の管理画面と、Demo Switch の [Hub presets](demo-switch-control.md#hub-presets)（リモコンからの読み書き・開始）で変更する。リモコンが取り込んだプリセット（上の QR / リンク）は `PRESET_SET` で Hub の枠へ書き込む。
+- Hub 全体の設定（`haptics_ui`、`recenter_ui`、`hand_style`、スタッフ待機モード、トップに出すデモのタイル）は、Hub の管理画面と Demo Switch の [Hub settings](demo-switch-control.md#hub-settings) で変更する。管理画面を閉じる・終了画面の操作（トップへ、最初から）は `CONTROL` の `hub_top` / `hub_replay` でもできる。Hub の管理画面でできることは、端末の宛先（adb で書く）を除いてすべてリモコンからもできる。
 - plan の保存形式と編集 UI は Hub 実装に委ねる。
