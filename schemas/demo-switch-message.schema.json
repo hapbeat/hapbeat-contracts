@@ -99,7 +99,8 @@
             "session_next",
             "session_retry",
             "hub_top",
-            "hub_replay"
+            "hub_replay",
+            "haptics_test"
           ]
         },
         "scene_id": {

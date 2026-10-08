@@ -35,7 +35,7 @@ The same identifier, payload, authentication and persistent sequence rules apply
 Unknown fields are rejected. Actions are `menu_open`, `menu_close`, `recenter`,
 `restart`, `scene`, `haptics_on`, `haptics_off`, `haptics_ui_show`, `haptics_ui_hide`,
 `recenter_ui_show`, `recenter_ui_hide`, `tutorial_start`, `hand_style_ghost`, `hand_style_skin`,
-`session_next`, `session_retry`, `hub_top`, `hub_replay`.
+`session_next`, `session_retry`, `hub_top`, `hub_replay`, `haptics_test`.
 `scene_id` is a logical identifier for `scene`, and MUST be
 the empty string for every other action. The four `haptics_*` actions set Hapbeat
 output and the visibility of the in-view haptics button as defined in
@@ -64,6 +64,13 @@ screen too (nothing changes). Unlike the Hub's preset and settings commands it i
 is open, and closes it (what the manage screen has saved stays). `hub_replay` is the
 finish screen's 最初から（同じプラン）: the finished plan starts again from its first step with the Hub-wide launch
 settings, accepted only on the finish screen, and ends like `session_next`.
+
+`haptics_test` is the Hub's haptics check, the same as the 触覚テスト button of its manage screen: the Hub plays a 100 Hz
+sine for 1 s at a fixed moderate level to this headset's Hapbeat address (the [device address](demo-session.md#端末ごとの-hapbeat-宛先device-address-file),
+the address every demo on this headset uses). Staff use it when setting up a headset to confirm that its Hapbeat devices are
+reached and that their group matches the headset. Only the Hub handles it (other runtimes reject it with
+`FAILED/not_allowed`); it is accepted on every Hub screen, the manage screen included, and `READY` follows once the
+tone has been handed to the Hapbeat SDK (not when it ends). A Hub built without the Hapbeat SDK rejects it.
 
 Runtimes that host the shared pause panel handle `menu_open` / `menu_close` with it when the scene has no
 app-specific menu adapter, and `restart` with the shared restart (the same as the panel's 最初からやり直す) when

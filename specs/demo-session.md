@@ -104,7 +104,7 @@ session mode の runtime は、demo 固有の完了イベントで、体験者�
 - 形式: `{"version":1,"player":<int>,"group":<int>}`。値は 1〜99、または -1（その軸は指定しない）。schema: [`demo-device-address.schema.json`](../schemas/demo-device-address.schema.json)。最大 1024 bytes。
 - 適用: runtime は起動時、Hapbeat SDK の初期化後に 1 回読み、-1 でない軸を SDK の address override（`SetAddressOverride(player, group, persist: false)`）に設定する。ビルドで固定された軸（Unity `HapbeatConfig.buildOverride*`、Unreal `ForcedOverride*`）はそちらが優先し、ファイルでは変わらない。ファイルの値は、端末に保存された override（PlayerPrefs 等）より優先する。実行中に runtime の UI や API で変えるのは自由。
 - ファイルが無い・壊れている場合は何もしない（不正なら警告ログ）。適用結果をログ `HAPBEAT_DEVICE_ADDRESS player=<n> group=<n>` で出す。
-- Hub は自身のファイルを読み、待機画面に「この端末: player / group」を表示する（触覚は送らない）。
+- Hub は自身のファイルを読み、待機画面に「この端末: player / group」を表示する。Hub が触覚を出すのは、管理画面の「触覚テスト」とリモコンの `CONTROL` `haptics_test`（100 Hz の正弦波を 1 秒、この宛先へ）だけ。端末の Hapbeat に届くか、グループが合っているかを設営時に確かめるため。
 - session ticket はこの値を運ばない。各 runtime が自分のファイルを読む。
 
 ## Hub を外部から起動してセッションを始める
