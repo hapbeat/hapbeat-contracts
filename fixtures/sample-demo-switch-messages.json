@@ -135,5 +135,110 @@
     "seq": 45,
     "demo_id": "demo_hub",
     "preset": 1
+  },
+  "unsigned_state_extended": {
+    "version": 1,
+    "type": "STATE",
+    "controller_id": "remote-pixel",
+    "nonce": "0123456789abcdef",
+    "current_demo_id": "handdemo",
+    "foreground": true,
+    "haptics_on": true,
+    "haptics_ui": false,
+    "recenter_ui": false,
+    "paused": false,
+    "step_index": 1,
+    "step_count": 3,
+    "device_model": "Oculus Quest 3",
+    "editor": false,
+    "screen": "main",
+    "hand_style": "ghost"
+  },
+  "unsigned_state_partial": {
+    "version": 1,
+    "type": "STATE",
+    "controller_id": "remote-pixel",
+    "nonce": "0123456789abcdef",
+    "current_demo_id": "handdemo",
+    "foreground": true,
+    "haptics_on": true,
+    "haptics_ui": false,
+    "recenter_ui": false,
+    "paused": false,
+    "step_index": 1,
+    "step_count": 3,
+    "screen": "completion"
+  },
+  "unsigned_control_hand_style": {
+    "version": 1,
+    "type": "CONTROL",
+    "controller_id": "remote-pixel",
+    "seq": 48,
+    "demo_id": "handdemo",
+    "action": "hand_style_skin",
+    "scene_id": ""
+  },
+  "unsigned_hub_settings_get": {
+    "version": 1,
+    "type": "HUB_SETTINGS_GET",
+    "controller_id": "remote-pixel",
+    "nonce": "0123456789abcdef",
+    "from": 0
+  },
+  "unsigned_hub_settings": {
+    "version": 1,
+    "type": "HUB_SETTINGS",
+    "controller_id": "remote-pixel",
+    "nonce": "0123456789abcdef",
+    "revision": 3,
+    "haptics_ui": false,
+    "recenter_ui": true,
+    "hand_style": "ghost",
+    "staff_waiting": false,
+    "player": 1,
+    "group": -1,
+    "demo_count": 2,
+    "from": 0,
+    "demos": [
+      {
+        "demo_id": "volley",
+        "title": "Volley",
+        "visible": true
+      },
+      {
+        "demo_id": "fps",
+        "title": "FPS",
+        "visible": false
+      }
+    ]
+  },
+  "unsigned_hub_settings_set": {
+    "version": 1,
+    "type": "HUB_SETTINGS_SET",
+    "controller_id": "remote-pixel",
+    "seq": 46,
+    "demo_id": "demo_hub",
+    "haptics_ui": false,
+    "recenter_ui": true,
+    "hand_style": "skin",
+    "staff_waiting": false,
+    "visible_demos": [
+      "volley"
+    ]
+  },
+  "unsigned_hub_start": {
+    "version": 1,
+    "type": "HUB_START",
+    "controller_id": "remote-pixel",
+    "seq": 47,
+    "demo_id": "demo_hub",
+    "steps": [
+      {
+        "demo_id": "volley",
+        "options": {
+          "scene": "match"
+        }
+      }
+    ]
   }
 }
