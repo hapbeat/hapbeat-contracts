@@ -235,7 +235,7 @@ STREAM_BEGIN/DATA/END には **event_id フィールドを含まない**。devic
 
 ### 0x32 STREAM_END
 
-ストリーミング終了のヒント。v2の16-byte session envelopeだけを持つ（旧ファーム向けv1 streamではペイロードなし）。リングバッファは自然にドレインされる。ACK は返さない。
+ストリーミング終了のヒント。v2の16-byte session envelopeだけを持つ（旧ファーム向けv1 streamではペイロードなし）。リングバッファは自然にドレインされる。ACK は返さない。ENDが失われても、v2受信機は受理DATAが5秒途絶えたsessionをENDと同じ扱いで終了する（`stream-session-v2.md` Inactivity timeout）。送信側はsessionを開いている間、無音を含めDATAを送り続ける。
 
 受信側は有効なsession世代を検証してからENDを適用する。遅れた旧世代のENDで新世代を停止してはならない。
 

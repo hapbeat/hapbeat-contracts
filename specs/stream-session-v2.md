@@ -109,6 +109,39 @@ high-water mark and terminal tombstone are retained even when sender entries exp
 Lost BEGIN can lose a cue, as with the previous unreliable stream transport; it
 must not cause DATA to enter another session. Repeating the same BEGIN is safe.
 Lost END cannot make old DATA acceptable after a newer generation begins.
+A lost END with no newer generation is recovered by the inactivity timeout below.
+
+## Inactivity timeout
+
+END is sent once and unacknowledged, so a receiver must not depend on it to leave
+stream playback. When the Active session has had neither its BEGIN nor any of its
+DATA accepted for **5 seconds** (device monotonic clock), the receiver ends it on
+its own, with the effect of accepting that session's END: it stops accepting data,
+marks the tuple Ended (it stays the high-water mark, so later DATA, equal BEGIN or
+END of that generation are rejected and only a greater generation plays again),
+unpins its lease, and leaves stream playback state (e.g. the PWM playback bias,
+output-mode switch lock, playback-active power monitoring). Already buffered audio
+drains as after END. The receiver logs the timeout once with the ended
+ticket/generation. The check runs in the receiver's main loop, not in the audio
+mix path. Rejected, malformed or wrong-target packets do not extend the window.
+
+Senders MUST keep sending DATA (silence included) for as long as they intend a
+session to stay open, and send END when it ends. A sender that stops sending DATA
+for longer than the timeout (for example a pause) must END the session and BEGIN a
+new generation when it resumes; resumed DATA under the timed-out generation is
+rejected. The timeout only recovers a lost END; it never replaces END.
+
+The value is chosen above the longest DATA gap of current senders while a session
+is open: the SDK empty-session linger before END (Unity, Unreal: 300 ms; Python,
+JS: 310 ms, `sdk-multi-stream.md` §6), Studio Scene haptics, which keeps sending
+DATA in ~10 ms ticks through its 3 s quiet period before END (a throttled
+background tab stretches ticks to about 1 s), and the Studio editor, which
+streams a clip continuously from BEGIN to END. It stays below the 15 s lease TTL.
+
+Scope: only WifiUdp v2 sessions. Paths that fill the device playback ring without
+a WifiUdp session are not timed out by this rule: the ESP-NOW stream receiver
+(`espnow-stream.md`, its own receive/lock logic) and DuoWL line-in capture. There
+is no v1 stream receiver (Minimum versions), so no separate legacy timeout exists.
 
 ## Legacy receiver fallback (SDK)
 
@@ -144,6 +177,9 @@ new format. The 300 ms guard applies only after a legacy END.
 Test immediate END-to-BEGIN, old END after new BEGIN, old/duplicate BEGIN, END
 before BEGIN, old/duplicate/backward DATA, wrong source/boot/lease, reboot,
 reconnect, table exhaustion/eviction, counter exhaustion, and malformed bodies.
+Test the inactivity timeout: BEGIN without DATA and DATA followed by silence end
+after the timeout, each accepted DATA restarts it, it fires once, the timed-out
+generation's DATA/BEGIN stay rejected, and a greater BEGIN plays again.
 After a lease ends and expires, a greater generation under its old ticket must be
 rejected. After accepting a new-boot PONG for a newer pending request, a late
 old-boot PONG must not revert the lease. An unsolicited PONG without a lease tail
