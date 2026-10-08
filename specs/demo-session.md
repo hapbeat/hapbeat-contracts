@@ -119,7 +119,7 @@ session mode の runtime は、demo 固有の完了イベントで、体験者�
 
 ## リモコンへのプリセット受け渡し（QR / リンク）
 
-Web のデモ紹介ページ（devtools-site のショーケース）で組んだ plan を、Android リモコン（`hapbeat-demos/android/demo-remote`）経由で Hub のプリセット 1〜3 に書き込むための形式。リモコンは自分ではプリセットを保持せず、取り込んだプリセットを Demo Switch の `PRESET_SET`（[Hub presets](demo-switch-control.md#hub-presets)）で Hub の枠へ書き込む。ページから LAN 内の端末へ直接送る方式は採らない（HTTPS のページから `http://<LAN の IP>` への送信はブラウザが制限するため）。
+Web のデモ紹介ページ（devtools-site のショーケース）で組んだ plan を、Android リモコン（`hapbeat-demos/android/demo-remote`）経由で Hub のプリセット 1〜3 に書き込むための形式。リモコンは取り込んだプリセットを Demo Switch の `PRESET_SET`（[Hub presets](demo-switch-control.md#hub-presets)）で Hub の枠へ書き込む。Hub が前面にないときは、書き込むまでリモコン内に「未書き込み」として保持する。ページから LAN 内の端末へ直接送る方式は採らない（HTTPS のページから `http://<LAN の IP>` への送信はブラウザが制限するため）。
 
 - ペイロード: JSON 1 個。UTF-8 で最大 **700 bytes**（QR を誤り訂正 M で読みやすい大きさに保つため）。Schema: [`demo-remote-preset.schema.json`](../schemas/demo-remote-preset.schema.json)。例: [`sample-demo-remote-preset.json`](../fixtures/sample-demo-remote-preset.json)。
   ```json
@@ -140,7 +140,7 @@ Web のデモ紹介ページ（devtools-site のショーケース）で組ん�
   - `demo_id` は端末内の許可リスト（Hub に渡せる demo）で検証し、1 つでも外れたら全体を拒否して、外れた `demo_id` を表示する。
   - 取り込む前に、名前と demo の並び（options を含む）を確認画面で見せ、利用者の承認を得る。取り込みだけで Hub やセッションを起動しない（書き込み後の開始は利用者の別操作）。
   - 取り込んだ step は `options` と `retry` を含めて保存し、Hub に渡すときは検証済みの値から JSON を組み立て直す（受け取った文字列をそのまま使わない）。`name` は表示と保存にだけ使い、コマンドや JSON の組み立てに入れない。Hub へのコマンドに値を埋め込む実装（adb の `am start ... '<json>'` 等）は、pattern の検証に加えて、シェルの引用を正しくエスケープする。
-  - 取り込む各プリセットについて、書き込む Hub の枠（1〜3）を利用者が選ぶ。中身のある枠には上書きになることを明示する。書き込みは `PRESET_SET`（`visible` は true）で行い、Hub が前面でない・応答しないときは書き込まずに確認画面のまま待つ。
+  - 取り込む各プリセットについて、書き込む Hub の枠（1〜3）を利用者が選ぶ。中身のある枠には上書きになることを明示する。書き込みは `PRESET_SET`（`visible` は true）で行う。Hub が前面でない・応答しないときは、取り込んだプリセットをリモコン内に「未書き込み」として保存し（アプリを閉じても残す）、Hub が前面になったあとの利用者の操作で書き込む。書き込めたものはリモコンから消す。未書き込みのプリセットも、書き込む前に中身を確認・削除できる。
 
 ## Hub
 
