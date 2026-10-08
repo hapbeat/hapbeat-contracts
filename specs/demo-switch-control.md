@@ -180,11 +180,7 @@ a controller treats a missing field as unknown, never as an error:
 - `hand_style`: `ghost` or `skin`, the current look of the shared hands; absent when the runtime does not draw them.
 
 Unknown fields are rejected. With a shared secret both messages carry `auth`: HMAC canonical bytes use the header
-`HAPBEAT-DEMO-SWITCH/1
-QUERY
-` with `version`, `type`, `controller_id`, `nonce`, and `HAPBEAT-DEMO-SWITCH/1
-STATE
-` with
+`HAPBEAT-DEMO-SWITCH/1\nQUERY\n` with `version`, `type`, `controller_id`, `nonce`, and `HAPBEAT-DEMO-SWITCH/1\nSTATE\n` with
 `version`, `type`, `controller_id`, `nonce`, `current_demo_id`, `foreground`, `haptics_on`, `haptics_ui`, `recenter_ui`,
 `paused`, `step_index`, `step_count`, then each of `device_model`, `editor`, `screen`, `hand_style` that is present
 (booleans as `true` / `false`). Existing controllers that do not send `QUERY` are unaffected; `HERE` is unchanged.
@@ -295,7 +291,7 @@ manage screen offers can be done from the controller. Like the Hub presets, only
 - `player` / `group`: this headset's [device address](demo-session.md#端末ごとの-hapbeat-宛先device-address-file) as the Hub read it at its
   start (1–99, or -1 when the axis is not specified or the file is missing or invalid). Read only.
 - `demos`: the installed demos (Hub catalog entries) in catalog order, each with `demo_id`, `title` (the Hub's display
-  name, 1–40 code points without control characters) and `visible` (shown as a tile on the top screen). `demo_count`
+  name, 1–40 code points with the rules of a preset `name`) and `visible` (shown as a tile on the top screen). `demo_count`
   (0–64) is their number. Paging works like `PRESET`: `from` (0–63) is the first demo wanted, the reply carries as many as
   fit in 1024 bytes, and the controller asks again from `from + demos.length` while that is below `demo_count`.
 - `revision` increases whenever the Hub saves its settings (its manage screen or `HUB_SETTINGS_SET`, including a preset's
