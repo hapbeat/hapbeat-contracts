@@ -42,6 +42,7 @@ Hub は package / activity を **descriptor から取らない**。PackageManage
 - `haptics_ui` は触覚 ON/OFF ボタンの表示状態。session 全体で引き継ぐ。
 - `recenter_ui`（任意、既定 false）は「視線をリセット」ボタンの表示状態。`haptics_ui` と同じく session 全体で引き継ぐ。
 - `hand_style`（任意）は共通の手の見た目（`ghost` / `skin`）。Hub の管理画面（またはリモコンの `HUB_SETTINGS_SET`）で選び、共通の手を使う runtime だけが従う。自前の手を持つ runtime は無視してよい。省略時は各 runtime の既定。実行中は Demo Switch の `CONTROL`（`hand_style_ghost` / `hand_style_skin`）で変えられ、変えた見た目は同じ session の以降の step に引き継ぐ（次の ticket の `hand_style`）。
+- `narration_volume`（任意、既定 50）はナレーション（案内音声）の音量。0〜100 の 10 刻みの整数（0 は無音）。Hub の管理画面（またはリモコンの `HUB_SETTINGS_SET`）で決め、ナレーションを持つ runtime が下の「ナレーションの音量」の規則で再生ゲインに使う。session 全体で引き継ぐ。省略時は 50。
 
 ### 受け取り
 
@@ -149,3 +150,12 @@ Web のデモ紹介ページ（devtools-site のショーケース）で組ん�
 - Hub はプリセット 1〜3 を持つ。各プリセットは名前（空可）、トップ画面に出すか（`visible`）、steps を持ち、Hub の管理画面と、Demo Switch の [Hub presets](demo-switch-control.md#hub-presets)（リモコンからの読み書き・開始）で変更する。リモコンが取り込んだプリセット（上の QR / リンク）は `PRESET_SET` で Hub の枠へ書き込む。
 - Hub 全体の設定（`haptics_ui`、`recenter_ui`、`hand_style`、スタッフ待機モード、トップに出すデモのタイル）は、Hub の管理画面と Demo Switch の [Hub settings](demo-switch-control.md#hub-settings) で変更する。管理画面を閉じる・終了画面の操作（トップへ、最初から）は `CONTROL` の `hub_top` / `hub_replay` でもできる。Hub の管理画面でできることは、端末の宛先（adb で書く）を除いてすべてリモコンからもできる。
 - plan の保存形式と編集 UI は Hub 実装に委ねる。
+
+## ナレーションの音量
+
+Unity と Unreal のデモで、ナレーションが同じ大きさに聞こえるようにする規則。管理者は Hub の `narration_volume` だけで全デモの音量を変えられる。
+
+- 音声ファイル: 事前生成のナレーション（`hapbeat-demos/tools/tts`）は、1 行ごとに積分ラウドネス **-20 LUFS**（ITU-R BS.1770、true peak -1.5 dBTP 以下）に正規化してから各デモに入れる。既製の音声（Boxing の英語音声など）も同じ値に正規化する。
+- 再生ゲイン: `narration_volume / 100 × エンジン補正係数`。エンジン補正係数は Unity と Unreal の共通部品（`com.hapbeat.demo-switch`、`HapbeatDemoSession`）が 1 つずつ持ち、同じ音声ファイルを同じ `narration_volume` で鳴らしたときに Quest の出力の大きさが揃う値にする（初期値は両方 1.0。実機の録音で測って直す）。各デモは自分で音量の定数を持たず、共通部品からゲインを得る。
+- 既定の 50 は、-20 LUFS のファイルを約 -26 LUFS で鳴らす。これは 2026-10 時点の Unity デモの音量（約 -27 LUFS）に合わせた小さめの値。100 は約 -20 LUFS。
+- ナレーション中に効果音を下げる（ducking）など、デモ内の音のバランスは各デモの責務のまま。

@@ -288,12 +288,13 @@ manage screen offers can be done from the controller. Like the Hub presets, only
 ```
 
 ```json
-{"version":1,"type":"HUB_SETTINGS","controller_id":"remote-pixel","nonce":"0123456789abcdef","revision":3,"haptics_ui":false,"recenter_ui":true,"hand_style":"ghost","staff_waiting":false,"player":1,"group":-1,"demo_count":2,"from":0,"demos":[{"demo_id":"volley","title":"Volley","visible":true},{"demo_id":"fps","title":"FPS","visible":false}]}
+{"version":1,"type":"HUB_SETTINGS","controller_id":"remote-pixel","nonce":"0123456789abcdef","revision":3,"haptics_ui":false,"recenter_ui":true,"hand_style":"ghost","narration_volume":50,"staff_waiting":false,"player":1,"group":-1,"demo_count":2,"from":0,"demos":[{"demo_id":"volley","title":"Volley","visible":true},{"demo_id":"fps","title":"FPS","visible":false}]}
 ```
 
 - `HUB_SETTINGS_GET` is answered like `PRESET_GET` (no sequence, a fresh `nonce`, answered while not foreground too).
 - `haptics_ui` / `recenter_ui`: the initial visibility of the in-view buttons for every launch (`recenter_ui` also for the
   Hub's own 視線をリセット button). `hand_style`: `ghost` or `skin`, for the Hub's own hands and every launch.
+  `narration_volume`: 0–100 in steps of 10, the narration volume of every launch ([Demo Session](demo-session.md#ナレーションの音量)).
   `staff_waiting`: the staff waiting mode (the top screen waits for staff instead of offering presets and tiles).
 - `player` / `group`: this headset's [device address](demo-session.md#端末ごとの-hapbeat-宛先device-address-file) as the Hub read it at its
   start (1–99, or -1 when the axis is not specified or the file is missing or invalid). Read only.
@@ -305,11 +306,11 @@ manage screen offers can be done from the controller. Like the Hub presets, only
   `visible`). If it differs between the pages, the controller starts reading again from 0.
 
 ```json
-{"version":1,"type":"HUB_SETTINGS_SET","controller_id":"remote-pixel","seq":46,"demo_id":"demo_hub","haptics_ui":false,"recenter_ui":true,"hand_style":"skin","staff_waiting":false,"visible_demos":["volley"]}
+{"version":1,"type":"HUB_SETTINGS_SET","controller_id":"remote-pixel","seq":46,"demo_id":"demo_hub","haptics_ui":false,"recenter_ui":true,"hand_style":"skin","narration_volume":60,"staff_waiting":false,"visible_demos":["volley"]}
 ```
 
 - `HUB_SETTINGS_SET` follows the `PRESET_SET` rules (CONTROL rules, refused with `FAILED/not_allowed` while the manage
-  screen is open or a launch is in progress). It sets all four values and the tiles: `visible_demos` (0–64 distinct demo
+  screen is open or a launch is in progress). It sets all five values and the tiles: `visible_demos` (0–64 distinct demo
   IDs) lists the installed demos shown as tiles, and every other installed demo is hidden. An ID that is not installed
   returns `FAILED/not_allowed` with that ID in `message` and stores nothing. The tile choice of demos that are not installed
   is kept as it is.
@@ -339,12 +340,13 @@ With a shared secret all four carry `auth`, with the field encoding above:
 - `HUB_SETTINGS_GET`: header `HAPBEAT-DEMO-SWITCH/1\nHUB_SETTINGS_GET\n`, fields `version`, `type`, `controller_id`,
   `nonce`, `from`.
 - `HUB_SETTINGS`: header `HAPBEAT-DEMO-SWITCH/1\nHUB_SETTINGS\n`, fields `version`, `type`, `controller_id`, `nonce`,
-  `revision`, `haptics_ui`, `recenter_ui`, `hand_style`, `staff_waiting`, `player`, `group`, `demo_count`, `from`, `demos`.
+  `revision`, `haptics_ui`, `recenter_ui`, `hand_style`, `narration_volume`, `staff_waiting`, `player`, `group`, `demo_count`, `from`,
+  `demos`.
   The `demos` value is its demos joined with `|`, each `<demo_id>;<visible>;<N>:<title>` where `<visible>` is `1` or `0`
   and `<N>` is the title's UTF-8 byte count (the title may contain any character, so it is length-prefixed). The example
   above signs `demos=29:volley;1;6:Volley|fps;0;3:FPS`.
 - `HUB_SETTINGS_SET`: header `HAPBEAT-DEMO-SWITCH/1\nCOMMAND\n`, fields `version`, `type`, `controller_id`, `seq`,
-  `demo_id`, `haptics_ui`, `recenter_ui`, `hand_style`, `staff_waiting`, `visible_demos`. The `visible_demos` value is the
+  `demo_id`, `haptics_ui`, `recenter_ui`, `hand_style`, `narration_volume`, `staff_waiting`, `visible_demos`. The `visible_demos` value is the
   IDs joined with `|` in the order sent (empty for none).
 - `HUB_START`: header `HAPBEAT-DEMO-SWITCH/1\nCOMMAND\n`, fields `version`, `type`, `controller_id`, `seq`, `demo_id`,
   `steps` (encoded like `PRESET_SET`).
