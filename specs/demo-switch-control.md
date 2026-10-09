@@ -6,7 +6,7 @@
 
 - UDP 7710。payload は UTF-8 JSON object 1 個、最大 **1024 bytes**。断片化、連結、末尾の非 JSON byte は禁止。
 - controller は切替先 IPv4 が未設定のとき、`DISCOVER` だけを LAN broadcast で 7710 へ送ってよい。前面 runtime は送信元 endpoint へ `HERE` を unicast で返す。controller は同じ nonce に対する有効な応答元が 1 IPv4 だけの場合に限り、その address を最大 30 秒 cache して以後の `SWITCH` を unicast する。0 台または複数台なら `SWITCH` を送ってはならない。
-- demo runtime は process が生きている間 7710 を bind する（境界設定・システムメニュー・OS の一時停止で前面でなくなっても受信を続ける）。前面でない間も `DISCOVER` に `HERE`、`QUERY` に `STATE`（`foreground: false`）を返すが、`SWITCH` と `CONTROL` は実行せず `FAILED` / `not_allowed`（message は `not in foreground`）を返す。bind に失敗したとき（直前のアプリのソケットが残っている等）は、短い間隔で数秒間再試行する。Android では受信中 `WifiManager.MulticastLock` を保持してよい（broadcast の `DISCOVER` を落とさないため）。切替順序は `ACK` 送信、listener 停止、切替前通知、local allowlist に解決した runtime 起動の順。
+- demo runtime は process が生きている間 7710 を bind する（境界設定・システムメニュー・OS の一時停止で前面でなくなっても受信を続ける）。前面でない間も `DISCOVER` に `HERE`、`QUERY` に `STATE`（`foreground: false`）を返すが、`SWITCH` と `CONTROL` は実行せず `FAILED` / `not_allowed`（message は `not in foreground`）を返す。bind に失敗したとき（直前のアプリや裏に残ったアプリのソケットが残っている等）は、前面にいる間は bind できるまで約 1 秒間隔で再試行し続ける（数秒で諦めない。裏のアプリが終われば受信を始められるように）。前面でない間は再試行を止め、前面に戻ったら再開する。bind できないまま 5 秒たったら、警告ログ `DEMO_SWITCH_BIND_WAITING`（Unity は `[Demo Switch] Waiting for UDP 7710`）を出す。controller は adb で端末を調べられる場合、このログと裏で動いている demo のプロセスを手がかりに、原因（ほかの demo がポートを使っている）を利用者に示してよい。Android では受信中 `WifiManager.MulticastLock` を保持してよい（broadcast の `DISCOVER` を落とさないため）。切替順序は `ACK` 送信、listener 停止、切替前通知、local allowlist に解決した runtime 起動の順。
 - 次 runtime は controller endpoint と sequence を platform-specific launch context で引き継ぎ、初期化後にその endpoint へ `READY` を返す。起動できなければ現在 runtime が `FAILED` を返す。
 - launch context の搬送方法、process/application 起動 API は platform adapter の責務であり、この規範プロトコルには含めない。
 
