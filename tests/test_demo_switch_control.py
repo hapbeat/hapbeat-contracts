@@ -116,9 +116,10 @@ CANONICAL = {
     'CONTROL': ('COMMAND', ['version', 'type', 'controller_id', 'seq', 'demo_id', 'action', 'scene_id']),
     'HUB_SETTINGS_GET': ('HUB_SETTINGS_GET', ['version', 'type', 'controller_id', 'nonce', 'from']),
     'HUB_SETTINGS': ('HUB_SETTINGS', ['version', 'type', 'controller_id', 'nonce', 'revision', 'haptics_ui', 'recenter_ui',
-                                      'hand_style', 'staff_waiting', 'player', 'group', 'demo_count', 'from', 'demos']),
+                                      'hand_style', 'narration_volume', 'staff_waiting', 'player', 'group', 'demo_count', 'from',
+                                      'demos']),
     'HUB_SETTINGS_SET': ('COMMAND', ['version', 'type', 'controller_id', 'seq', 'demo_id', 'haptics_ui', 'recenter_ui',
-                                     'hand_style', 'staff_waiting', 'visible_demos']),
+                                     'hand_style', 'narration_volume', 'staff_waiting', 'visible_demos']),
     'HUB_START': ('COMMAND', ['version', 'type', 'controller_id', 'seq', 'demo_id', 'steps']),
 }
 
@@ -167,7 +168,8 @@ class HubParityTests(unittest.TestCase):
         settings = FIXTURES['unsigned_hub_settings']
         demo = {'demo_id': 'volley', 'title': 'x' * 40, 'visible': True}
         for changes in [dict(player=99, group=1), dict(player=-1), dict(demo_count=64, **{'from': 63}), dict(demo_count=0, demos=[]),
-                        dict(demos=[demo] * 64), dict(demos=[dict(demo, title='バレー🙂')])]:
+                        dict(demos=[demo] * 64), dict(demos=[dict(demo, title='バレー🙂')]), dict(narration_volume=0),
+                        dict(narration_volume=100)]:
             validator.validate(dict(settings, **changes))
         ids = [f'demo{i}' for i in range(64)]
         validator.validate(dict(FIXTURES['unsigned_hub_settings_set'], visible_demos=[]))
@@ -185,13 +187,16 @@ class HubParityTests(unittest.TestCase):
             'unsigned_control_hand_style': [dict(action='hand_style'), dict(action='hand_style_toggle'),
                                             dict(action='session_next', scene_id='block')],
             'unsigned_hub_settings_get': [dict(from_=-1), dict(from_=64), dict(seq=1), dict(nonce='xyz'), dict(extra=1)],
-            'unsigned_hub_settings': [dict(revision=-1), dict(hand_style='glove'), dict(staff_waiting='no'), dict(player=0),
+            'unsigned_hub_settings': [dict(revision=-1), dict(hand_style='glove'), dict(narration_volume=55),
+                                      dict(narration_volume=110), dict(narration_volume=-10), dict(narration_volume='50'),
+                                      dict(narration_volume=50.5), dict(staff_waiting='no'), dict(player=0),
                                       dict(player=100), dict(group=-2), dict(group=1.5), dict(demo_count=65), dict(from_=64),
                                       dict(demos=[demo] * 65), dict(demos=[dict(demo, title='')]),
                                       dict(demos=[dict(demo, title='x' * 41)]), dict(demos=[dict(demo, title='a' + chr(9))]),
                                       dict(demos=[dict(demo, demo_id='Volley')]), dict(demos=[dict(demo, extra=1)]),
                                       dict(demos=[{'demo_id': 'volley', 'title': 'Volley'}]), dict(extra=1)],
-            'unsigned_hub_settings_set': [dict(demo_id='volley'), dict(seq=0), dict(hand_style='glove'),
+            'unsigned_hub_settings_set': [dict(demo_id='volley'), dict(seq=0), dict(hand_style='glove'), dict(narration_volume=5),
+                                          dict(narration_volume=110),
                                           dict(visible_demos=['volley', 'volley']), dict(visible_demos=['Volley']),
                                           dict(visible_demos=[f'demo{i}' for i in range(65)]), dict(nonce='0123456789abcdef')],
             'unsigned_hub_start': [dict(demo_id='volley'), dict(seq=0), dict(steps=[]), dict(steps=[{'demo_id': 'volley'}] * 33),
@@ -215,8 +220,8 @@ class HubParityTests(unittest.TestCase):
             'unsigned_state_partial': 'c1529021a52273598596f8cefde5c5da6d58ee912bee05219f29c4e1569b1a74',
             'unsigned_control_hand_style': '19428bbb3df765bcb2606f517c3a41328574b5acd23537c306768ea4478eee80',
             'unsigned_hub_settings_get': 'de07246f7208dac8a116de59f8b2bf5f5e82135e5e276084a4b99664dc3d197a',
-            'unsigned_hub_settings': '33d8ca3fbb0e14efae9e8e505992d3f97446bcdcfed7774953b367485a4d1a49',
-            'unsigned_hub_settings_set': 'dd5dc8984242f56413c51d6b17ddfee52dd40e3dc663bfbfbd13533f8155039b',
+            'unsigned_hub_settings': '591f3a09b9240691077766f700262badfb2feed1ebaf528698a75db508450179',
+            'unsigned_hub_settings_set': '3160415e0f228ec3b690007d187b458d80faac6d5d498913bccafc3c17924533',
             'unsigned_hub_start': '8cc476ef9a64e5b376aad77225b57429736f116063bdf4149601e111bec1e7a2',
         }
         for name, digest in expected.items():

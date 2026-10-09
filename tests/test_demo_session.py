@@ -49,13 +49,17 @@ class TicketTests(unittest.TestCase):
         Draft202012Validator.check_schema(TICKET.schema)
         TICKET.validate(FIXTURES['ticket'])
         TICKET.validate(dict(FIXTURES['ticket'], hand_style='skin', recenter_ui=True))
+        for volume in (0, 50, 60, 100):
+            TICKET.validate(dict(FIXTURES['ticket'], narration_volume=volume))
         encoded = json.dumps(FIXTURES['ticket'], ensure_ascii=False).encode('utf-8')
         self.assertLessEqual(len(encoded), 16384)
 
     def test_rejects(self):
         base = FIXTURES['ticket']
         for changes in [dict(index=-1), dict(session_id='xyz'), dict(steps=[]), dict(extra=1),
-                        dict(finish={'package': 'jp.hapbeat.demohub'}), dict(haptics_ui='false'), dict(hand_style='glove'), dict(recenter_ui='yes')]:
+                        dict(finish={'package': 'jp.hapbeat.demohub'}), dict(haptics_ui='false'), dict(hand_style='glove'), dict(recenter_ui='yes'),
+                        dict(narration_volume=55), dict(narration_volume=110), dict(narration_volume=-10),
+                        dict(narration_volume='50'), dict(narration_volume=50.5)]:
             with self.subTest(changes=changes):
                 self.assertFalse(TICKET.is_valid(dict(base, **changes)))
         for field, value in [('package', 'not a package'), ('activity', '../evil'), ('options', {'scene': 'Block'}),

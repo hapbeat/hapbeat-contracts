@@ -49,6 +49,10 @@
     "recenter_ui": {
       "type": "boolean",
       "description": "Show the in-view 視線をリセット button. Omitted: false."
+    },
+    "narration_volume": {
+      "$ref": "#/$defs/narration_volume",
+      "description": "Narration volume of this session (demo-session.md, ナレーションの音量). Omitted: 50."
     }
   },
   "$defs": {
@@ -118,6 +122,12 @@
           "type": "boolean"
         }
       }
+    },
+    "narration_volume": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "multipleOf": 10
     }
   }
 }

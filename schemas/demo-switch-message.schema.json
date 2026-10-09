@@ -661,6 +661,13 @@
         "skin"
       ]
     },
+    "narration_volume": {
+      "description": "Narration volume of every launch, 0-100 in steps of 10 (demo-session.md, ナレーションの音量).",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "multipleOf": 10
+    },
     "device_axis": {
       "description": "Device address player / group: 1-99, or -1 when not specified or the file is missing or invalid.",
       "type": "integer",
@@ -746,6 +753,7 @@
         "haptics_ui",
         "recenter_ui",
         "hand_style",
+        "narration_volume",
         "staff_waiting",
         "player",
         "group",
@@ -780,6 +788,9 @@
         },
         "hand_style": {
           "$ref": "#/$defs/hand_style"
+        },
+        "narration_volume": {
+          "$ref": "#/$defs/narration_volume"
         },
         "staff_waiting": {
           "type": "boolean"
@@ -826,6 +837,7 @@
         "haptics_ui",
         "recenter_ui",
         "hand_style",
+        "narration_volume",
         "staff_waiting",
         "visible_demos"
       ],
@@ -855,6 +867,9 @@
         },
         "hand_style": {
           "$ref": "#/$defs/hand_style"
+        },
+        "narration_volume": {
+          "$ref": "#/$defs/narration_volume"
         },
         "staff_waiting": {
           "type": "boolean"

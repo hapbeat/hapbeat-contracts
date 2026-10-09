@@ -194,6 +194,7 @@
     "haptics_ui": false,
     "recenter_ui": true,
     "hand_style": "ghost",
+    "narration_volume": 50,
     "staff_waiting": false,
     "player": 1,
     "group": -1,
@@ -221,6 +222,7 @@
     "haptics_ui": false,
     "recenter_ui": true,
     "hand_style": "skin",
+    "narration_volume": 60,
     "staff_waiting": false,
     "visible_demos": [
       "volley"
