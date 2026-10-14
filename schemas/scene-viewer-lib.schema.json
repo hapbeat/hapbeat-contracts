@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hapbeat.com/schemas/scene-viewer-lib.schema.json",
+  "title": "Hapbeat Scene viewer-lib.json",
+  "description": "Project settings Hapbeat Studio's Scene tab reads from <project>/Saved/HapticViewer/viewer-lib.json (specs/scene-recording.md section 3.1).",
+  "type": "object",
+  "required": ["schema_version", "title", "project_name", "paths"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "title": { "type": "string", "minLength": 1 },
+    "project_name": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "paths": {
+      "type": "object",
+      "required": ["cues", "clips", "sounds"],
+      "properties": {
+        "cues": { "type": "string", "minLength": 1 },
+        "clips": { "type": "string", "minLength": 1 },
+        "sounds": { "type": "string", "minLength": 1 }
+      }
+    },
+    "at": { "type": "array", "minItems": 1, "items": { "$ref": "https://hapbeat.com/schemas/cue-table.schema.json#/$defs/at" }, "uniqueItems": true },
+    "loop_at": { "type": "array", "minItems": 1, "items": { "$ref": "https://hapbeat.com/schemas/cue-table.schema.json#/$defs/at" }, "uniqueItems": true },
+    "families": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["label", "color", "cues"],
+        "properties": {
+          "label": { "type": "string" },
+          "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+          "cues": { "type": "array", "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*(:[a-z][a-z0-9_]*)?$" } }
+        }
+      }
+    },
+    "ticks": { "type": "array", "items": { "$ref": "https://hapbeat.com/schemas/cue-table.schema.json#/$defs/cueName" } },
+    "layers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["cue", "level", "colors"],
+        "properties": {
+          "cue": { "$ref": "https://hapbeat.com/schemas/cue-table.schema.json#/$defs/cueName" },
+          "level": { "$ref": "#/$defs/pair" },
+          "rate": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/pair" }] },
+          "colors": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "moment_rules": {
+      "type": "object",
+      "properties": {
+        "max": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 1 } },
+        "min_gap_s": { "type": "object", "additionalProperties": { "type": "number", "minimum": 0 } },
+        "default_max": { "oneOf": [{ "type": "null" }, { "type": "integer", "minimum": 1 }] }
+      }
+    },
+    "import_command": { "type": "string" },
+    "record_command": { "type": "string" }
+  },
+  "$defs": {
+    "pair": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "integer", "minimum": 0 } }
+  }
+}

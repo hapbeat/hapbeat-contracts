@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hapbeat.com/schemas/scene-viewer-data.schema.json",
+  "title": "Hapbeat Scene viewer-data.json",
+  "description": "The recording Hapbeat Studio's Scene tab and Editor read from <project>/Saved/HapticViewer/viewer-data.json (specs/scene-recording.md section 3.2).",
+  "type": "object",
+  "required": ["schema_version", "fps", "frames", "video", "events"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "fps": { "type": "number", "exclusiveMinimum": 0, "maximum": 240 },
+    "frames": { "type": "integer", "minimum": 1 },
+    "video": { "type": "string", "minLength": 1 },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["t", "name"],
+        "properties": {
+          "t": { "type": "number", "minimum": 0 },
+          "name": { "$ref": "https://hapbeat.com/schemas/scene-session.schema.json#/$defs/cueRef" },
+          "hand": { "$ref": "https://hapbeat.com/schemas/scene-session.schema.json#/$defs/hand" },
+          "gain": { "type": "number", "minimum": 0 },
+          "dist": { "type": "number", "minimum": 0 },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "levels": { "$ref": "https://hapbeat.com/schemas/scene-session.schema.json#/$defs/levels" }
+  }
+}

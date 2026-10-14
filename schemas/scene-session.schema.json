@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hapbeat.com/schemas/scene-session.schema.json",
+  "title": "Hapbeat Scene recording session",
+  "description": "What a recording (an SDK's record mode or a project's script) writes for hapbeat-helper scene build (specs/scene-recording.md section 2).",
+  "type": "object",
+  "required": ["schema_version", "project", "fps", "events", "lib"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "project": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "fps": { "type": "number", "exclusiveMinimum": 0, "maximum": 240 },
+    "frames": { "type": "string", "minLength": 1 },
+    "video": { "type": "string", "minLength": 1 },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["frame", "cue"],
+        "properties": {
+          "frame": { "type": "integer", "minimum": 0 },
+          "cue": { "$ref": "#/$defs/cueRef" },
+          "hand": { "$ref": "#/$defs/hand" },
+          "gain": { "type": "number", "minimum": 0 },
+          "dist": { "type": "number", "minimum": 0 },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "levels": { "$ref": "#/$defs/levels" },
+    "lib": { "$ref": "https://hapbeat.com/schemas/scene-viewer-lib.schema.json" }
+  },
+  "oneOf": [
+    { "required": ["frames"], "not": { "required": ["video"] } },
+    { "required": ["video"], "not": { "required": ["frames"] } }
+  ],
+  "$defs": {
+    "cueRef": { "type": "string", "pattern": "^[a-z][a-z0-9_]*(:[a-z][a-z0-9_]*)?$" },
+    "hand": { "enum": ["left", "right", "both"] },
+    "levels": {
+      "type": "object",
+      "required": ["columns", "rows"],
+      "properties": {
+        "columns": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*:(level|rate)(:(left|right))?$" }
+        },
+        "rows": { "type": "array", "items": { "type": "array", "items": { "type": "number", "minimum": 0 } } }
+      }
+    }
+  }
+}

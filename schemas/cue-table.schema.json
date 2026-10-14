@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hapbeat.com/schemas/cue-table.schema.json",
+  "title": "Hapbeat cue table",
+  "description": "Event (cue) -> sound effect and haptic routes. Structure only; the cross-field rules are specs/cue-table.md section 6.",
+  "type": "object",
+  "required": ["schema_version", "kit", "clips", "cues"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "kit": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "clips": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/clipName" },
+      "additionalProperties": { "$ref": "#/$defs/clip" }
+    },
+    "sounds": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/soundName" },
+      "additionalProperties": { "$ref": "#/$defs/sound" }
+    },
+    "cues": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/cueName" },
+      "additionalProperties": { "$ref": "#/$defs/cue" }
+    }
+  },
+  "$defs": {
+    "cueName": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+    "variantName": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+    "clipName": { "type": "string", "pattern": "^[a-z][a-z0-9_-]*$" },
+    "soundName": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]*$" },
+    "unit": { "type": "number", "minimum": 0, "maximum": 1 },
+    "multiplier": { "type": "number", "minimum": 0, "maximum": 2 },
+    "syncMs": { "type": "number", "minimum": 0, "maximum": 600000 },
+    "curve": { "enum": ["linear", "easeIn", "easeOut", "easeInOut", "sigmoid"] },
+    "at": {
+      "enum": ["hand", "both", "pos_neck", "pos_chest", "pos_abd", "pos_l_arm", "pos_r_arm", "pos_l_wrist", "pos_r_wrist",
+        "pos_hip", "pos_l_thigh", "pos_r_thigh", "pos_l_ankle", "pos_r_ankle"]
+    },
+    "clip": {
+      "type": "object",
+      "required": ["intensity", "loop"],
+      "properties": {
+        "intensity": { "$ref": "#/$defs/unit" },
+        "loop": { "type": "boolean" },
+        "description": { "type": "string" },
+        "syncMs": { "$ref": "#/$defs/syncMs" }
+      }
+    },
+    "sound": {
+      "type": "object",
+      "required": ["intensity"],
+      "properties": {
+        "intensity": { "$ref": "#/$defs/unit" },
+        "syncMs": { "$ref": "#/$defs/syncMs" }
+      }
+    },
+    "levelMap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["points"],
+      "properties": {
+        "points": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "prefixItems": [
+              { "type": "number", "exclusiveMinimum": 0 },
+              { "type": "number", "minimum": 0, "maximum": 4 }
+            ],
+            "items": false
+          }
+        },
+        "intercept": { "type": "number", "minimum": 0, "maximum": 4 },
+        "curve": { "$ref": "#/$defs/curve" }
+      }
+    },
+    "sfx": {
+      "type": "object",
+      "required": ["volume"],
+      "properties": {
+        "sound": { "$ref": "#/$defs/soundName" },
+        "sounds": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/soundName" } },
+        "alternates": { "type": "array", "items": { "$ref": "#/$defs/soundName" }, "uniqueItems": true },
+        "volume": { "$ref": "#/$defs/multiplier" },
+        "levelMap": { "$ref": "#/$defs/levelMap" }
+      },
+      "not": { "required": ["sound", "sounds"] },
+      "anyOf": [
+        { "required": ["sound"] },
+        { "required": ["sounds"] },
+        { "required": ["alternates"], "properties": { "alternates": { "minItems": 1 } } }
+      ]
+    },
+    "route": {
+      "type": "object",
+      "required": ["at", "gain"],
+      "properties": {
+        "clip": { "$ref": "#/$defs/clipName" },
+        "clips": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/clipName" } },
+        "alternates": { "type": "array", "items": { "$ref": "#/$defs/clipName" }, "uniqueItems": true },
+        "at": { "$ref": "#/$defs/at" },
+        "gain": { "$ref": "#/$defs/multiplier" },
+        "levelMap": { "$ref": "#/$defs/levelMap" }
+      },
+      "not": { "required": ["clip", "clips"] },
+      "anyOf": [
+        { "required": ["clip"] },
+        { "required": ["clips"] },
+        { "required": ["alternates"], "properties": { "alternates": { "minItems": 1 } } }
+      ]
+    },
+    "sfxOrNull": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/sfx" }] },
+    "haptics": { "type": "array", "items": { "$ref": "#/$defs/route" } },
+    "variation": {
+      "type": "object",
+      "properties": {
+        "gainJitterDb": { "type": "number", "minimum": 0, "maximum": 12 },
+        "pitchJitterSt": { "type": "number", "minimum": 0, "maximum": 12 },
+        "rateJitterPct": { "type": "number", "minimum": 0, "maximum": 50 },
+        "pick": { "enum": ["random", "roundRobin"] },
+        "paired": { "type": "boolean" }
+      }
+    },
+    "distanceFalloff": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["nearCm", "farCm", "farGain"],
+          "properties": {
+            "nearCm": { "type": "number", "minimum": 0 },
+            "farCm": { "type": "number", "minimum": 0 },
+            "farGain": { "$ref": "#/$defs/multiplier" },
+            "curve": { "$ref": "#/$defs/curve" }
+          }
+        }
+      ]
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sfx": { "enum": ["tentative", "approved"] },
+        "haptics": { "enum": ["tentative", "approved"] }
+      }
+    },
+    "emit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["during", "intervalSec"],
+      "properties": {
+        "during": { "$ref": "#/$defs/cueName" },
+        "intervalSec": { "type": "number", "minimum": 0.05, "maximum": 30 },
+        "jitterPct": { "type": "number", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "variant": {
+      "type": "object",
+      "properties": {
+        "description": { "type": "string" },
+        "sfx": { "$ref": "#/$defs/sfxOrNull" },
+        "haptics": { "$ref": "#/$defs/haptics" },
+        "variation": { "$ref": "#/$defs/variation" },
+        "distanceFalloff": { "$ref": "#/$defs/distanceFalloff" },
+        "review": { "$ref": "#/$defs/review" },
+        "sfxVolume": { "$ref": "#/$defs/multiplier" },
+        "hapticsGain": { "$ref": "#/$defs/multiplier" },
+        "rampTo": { "$ref": "#/$defs/multiplier" },
+        "rampCurve": { "$ref": "#/$defs/curve" },
+        "rampSteps": { "type": "array", "minItems": 1, "maxItems": 64, "items": { "$ref": "#/$defs/multiplier" } }
+      },
+      "not": { "anyOf": [{ "required": ["preview"] }, { "required": ["rampSteps", "rampTo"] }, { "required": ["rampSteps", "rampCurve"] }] }
+    },
+    "cue": {
+      "type": "object",
+      "properties": {
+        "description": { "type": "string" },
+        "loop": { "type": "boolean" },
+        "sfx": { "$ref": "#/$defs/sfxOrNull" },
+        "haptics": { "$ref": "#/$defs/haptics" },
+        "variants": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/variantName" },
+          "additionalProperties": { "$ref": "#/$defs/variant" }
+        },
+        "variation": { "$ref": "#/$defs/variation" },
+        "distanceFalloff": { "$ref": "#/$defs/distanceFalloff" },
+        "emit": { "$ref": "#/$defs/emit" },
+        "review": { "$ref": "#/$defs/review" }
+      },
+      "not": { "required": ["preview"] }
+    }
+  }
+}
