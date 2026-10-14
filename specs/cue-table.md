@@ -121,7 +121,8 @@ schema: [`schemas/cue-table.schema.json`](../schemas/cue-table.schema.json)（�
   - `rampTo` 0..2: 一続きの発生の間に、開始の倍率（`sfxVolume` / `hapticsGain`、省略 = 1）からこの値まで変える。`rampCurve`（§8 の形、既定 `linear`）で補間する。ゲームは場面の進み具合で、Studio は一続きの何回目かで補間する。
   - `rampSteps` 0..2 の配列（1〜64 個）: 1 発ずつの倍率（一続きの何回目か、足りなければ最後の値）。`rampTo` / `rampCurve` の代わりに使う。
 - ゲームは `<cue>` か `<cue>:<variant>` で鳴らす。無い variant 名が来たら、元の cue で鳴らして警告を出す。
-- 同じ出来事の程度違い（強弱など）は、cue を分けずに variant にする（例: `guard_glove:soft` / `guard_glove:hard`）。
+- 同じ出来事の程度違い（強弱など）は、cue を分けずに variant にする（例: `guard_glove:soft` / `guard_glove:hard`）。音と触覚は別々に「共有」（variant に `sfx` / `haptics` を書かず、差は `sfxVolume` / `hapticsGain` で付ける）か「分ける」（variant に自分の `sfx` / `haptics` を書く）かを選ぶ。程度違いの variant では、素材を持つのは親か各 variant かのどちらか一方にする（書き方の約束で、検証のエラーにはしない）。状況別の variant（親が既定として単独でも鳴り、variant がその場面だけ上書きする）は、親と variant の両方に書いてよい。
+- ゲームの取り込みは、引き継ぎを展開して variant ごとの再生情報に書き出してよい。
 
 ### 5.4 variation（揺らぎ）
 
