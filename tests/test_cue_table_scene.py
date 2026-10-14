@@ -77,6 +77,9 @@ class CueTableTests(unittest.TestCase):
             (['cues', 'footstep', 'review', 'sfx'], 'done'),
             (['cues', 'footstep', 'preview'], {'count': 5}),
             (['cues', 'footstep', 'distanceFalloff', 'farGain'], 3),
+            (['cues', 'footstep', 'variants', 'approach', 'loop'], True),   # variant cannot be a loop
+            (['cues', 'footstep', 'variants', 'approach', 'emit'], {'during': 'rub', 'intervalSec': 1}),
+            (['cues', 'footstep', 'variants', 'approach', 'variants'], {}),
         ]
         for path, value in cases:
             with self.subTest(path=path, value=value):
@@ -113,6 +116,12 @@ class SceneTests(unittest.TestCase):
         for path, value in cases:
             with self.subTest(path=path, value=value):
                 self.assertFalse(v.is_valid(changed(base, path, value)))
+
+    def test_variant_references(self):
+        lib = changed(SCENE['viewer_lib_minimal'], ['ticks'], ['footstep', 'footstep:approach'])
+        lib['moment_rules'] = {'max': {'footstep:approach': 2}, 'min_gap_s': {'roar': 1.5}}
+        VALIDATORS['scene-viewer-lib'].validate(lib)
+        self.assertFalse(VALIDATORS['scene-viewer-lib'].is_valid(changed(lib, ['ticks'], ['footstep:Approach'])))
 
     def test_viewer_rejects(self):
         lib, data = VALIDATORS['scene-viewer-lib'], VALIDATORS['scene-viewer-data']

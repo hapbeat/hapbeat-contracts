@@ -47,11 +47,11 @@ schema: [`schemas/scene-session.schema.json`](../schemas/scene-session.schema.js
 | `schema_version` | ✓ | `1` |
 | `project` | ✓ | プロジェクト名（`^[a-z][a-z0-9-]*$`） |
 | `fps` | ✓ | 録画のフレームレート（固定タイムステップ。§4） |
-| `frames` / `video` | どちらか 1 つ | 画面。パスはプロジェクトのルートから |
+| `frames` / `video` | どちらか 1 つ | 画面。パスはプロジェクトのルートから。`frames` は記録専用のフォルダで、`f<frame>.png` 以外を置かない（ビルド後にその PNG を消す。§4） |
 | `events` | ✓ | cue の発生（時刻順） |
 | `events[].frame` | ✓ | 発生したフレーム（0 以上の整数） |
 | `events[].cue` | ✓ | `<cue>` か `<cue>:<variant>` |
-| `events[].hand` | | 動いた側: `left` / `right` / `both`。`at: "hand"` の route の行き先（cue-table §4.5）。省略 = 動いた側なし |
+| `events[].hand` | | 動いた側: `left` / `right` / `both`。`at: "hand"` の route の行き先（cue-table §4.5）。省略 = 動いた側の指定なし（`at: "hand"` は両手首） |
 | `events[].gain` | | その発生にゲームが掛けた倍率（省略 = 1） |
 | `events[].dist` | | 発生時のプレイヤーとの距離（cm）。`distanceFalloff` に使う |
 | `events[].note` | | 自由記述（Studio が表示する） |
@@ -61,7 +61,7 @@ schema: [`schemas/scene-session.schema.json`](../schemas/scene-session.schema.js
 
 ### 2.1 ループの cue のレベル
 
-ループの cue（`loop: true`）は、ゲームが渡す入力値（cue-table §5.6）を毎フレーム記録する。列名は次の形:
+ループの cue（`loop: true`）は、鳴り始めた（入力が 0 から上がった）フレームに `events` を 1 件書き（場面の目印になる。`note` は任意）、ゲームが渡す入力値（cue-table §5.6）を毎フレーム記録する。止まったときの発生は書かない（入力が 0 に戻る）。列名は次の形:
 
 | 列名 | 意味 |
 |---|---|
@@ -87,12 +87,14 @@ Studio はこの列名からループの cue とレイヤーを組み立てる�
 | `paths` | ✓ | | `{ "cues": <cue 表の JSON>, "clips": <触覚 WAV のフォルダ>, "sounds": <効果音 WAV のフォルダ> }`。プロジェクトのルートからの相対パス |
 | `at` | | cue-table §4.5 の全値 | 画面で選べる装着位置（絞り込み） |
 | `loop_at` | | `at` | ループの cue で選べる装着位置 |
-| `families` | | `[]` | cue の系統 `[{ "label", "color": "#rrggbb", "cues": [...] }]`。タイムラインの色分け |
+| `families` | | `[]` | cue の系統 `[{ "label", "color": "#rrggbb", "cues": [...] }]`。タイムラインの色分け。cue の指定は下の注を参照 |
 | `ticks` | | `[]` | 細かく何度も鳴る cue（場面の一覧で単独に扱う） |
 | `layers` | | 列名から作る | `[{ "cue", "level": [左, 右の列番号], "rate": [左, 右の列番号] or null, "colors": [...] }]`。左右の区別が無い cue は同じ列番号を 2 つ並べる。§2.1 の列名に従わない記録のときだけ書く |
-| `moment_rules` | | 制限なし | 場面の一覧の数の制限 `{ "max": { "<cue>": n }, "min_gap_s": { "<cue>": s }, "default_max": n or null }` |
+| `moment_rules` | | 制限なし | 場面の一覧の数の制限 `{ "max": { "<cue>": n }, "min_gap_s": { "<cue>": s }, "default_max": n or null }`。cue の指定は下の注を参照 |
 | `import_command` | | なし | 「ゲームへ取り込み」に表示するコマンド |
 | `record_command` | | なし | 「録画」に表示するコマンド |
+
+- `families[].cues`・`ticks`・`moment_rules` のキーには `<cue>` か `<cue>:<variant>` を書く。`<cue>` はその cue と全 variant に当たり、`<cue>:<variant>` はその variant だけに当たる。両方に当たるときは `<cue>:<variant>` を使う。
 
 ### 3.2 `viewer-data.json`
 
@@ -126,6 +128,7 @@ Studio はこの列名からループの cue とレイヤーを組み立てる�
 ## 4. 記録する側の約束
 
 1. **固定タイムステップ**: frame i のゲーム時刻は i / fps。発生の `frame` は、その cue が鳴ったフレーム。
-2. **全発生を記録する**: ゲームが cue を鳴らすたびに 1 件。variant 名、動いた側、倍率、距離を、ゲームが鳴らすときと同じ値で残す。ループの cue は §2.1 の列を毎フレーム。
+2. **全発生を記録する**: ゲームが cue を鳴らすたびに 1 件。variant 名、動いた側、倍率、距離を、ゲームが鳴らすときと同じ値で残す。ループの cue は鳴り始めに 1 件と、§2.1 の列を毎フレーム。
 3. **鳴らさない**: 記録中は Hapbeat への送信と効果音を止める。ゲームの処理（cue の判定・揺らぎの乱数など）は止めない。
 4. **全 cue を起こす**: 人がプレイするか、台本のリプレイを流す。台本は cue ごとに確実に起こる操作を並べ、意図しない cue が鳴ったら失敗にするのがよい。
+5. **画面の一時ファイル**: `frames` のフォルダは記録ごとの専用にする。`hapbeat-helper scene build` は通し映像を作った後、そのフォルダの `f<frame>.png` だけを消し、空になったフォルダを消す（`--keep-frames` で残す）。ほかのファイルには触れない。

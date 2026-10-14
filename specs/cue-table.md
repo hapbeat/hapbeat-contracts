@@ -74,7 +74,7 @@ schema: [`schemas/cue-table.schema.json`](../schemas/cue-table.schema.json)（�
 |---|---|---|
 | `sound` / `sounds` | string / string[] | 鳴らす音（★を付けた素材）。複数のときは発火ごとに 1 つを選ぶ（§5.4）。両方は書かない |
 | `alternates` | string[] | ★を付けていない控え。ゲームも Studio も鳴らさない |
-| `volume` | number 0..2 | 場面の倍率（既定 1） |
+| `volume` | number 0..2 | 場面の倍率（必須。通常は 1） |
 | `levelMap` | object | ループの cue だけ。§5.6 |
 
 ### 4.4 route（触覚）
@@ -84,14 +84,14 @@ schema: [`schemas/cue-table.schema.json`](../schemas/cue-table.schema.json)（�
 | `clip` / `clips` | string / string[] | 鳴らす clip（★を付けた素材）。`clips` は発火ごとに 1 つを選ぶ。両方は書かない |
 | `alternates` | string[] | ★を付けていない控え |
 | `at` | string | 装着位置。§4.5 |
-| `gain` | number 0..2 | 場面の倍率（既定 1） |
+| `gain` | number 0..2 | 場面の倍率（必須。通常は 1） |
 | `levelMap` | object | ループの cue だけ。§5.6 |
 
 ### 4.5 `at`（装着位置）
 
 | 値 | 鳴らす所 |
 |---|---|
-| `hand` | 発火のたびにゲームが渡す「動いた側」の手首。左なら `pos_l_wrist`、右なら `pos_r_wrist`、両手なら両方 |
+| `hand` | 発火のたびにゲームが渡す「動いた側」の手首。左なら `pos_l_wrist`、右なら `pos_r_wrist`、両手なら両方。ゲームが動いた側を渡さないときは両方 |
 | `both` | 両手首（`pos_l_wrist` と `pos_r_wrist`）。動いた側によらない |
 | `pos_*` | [`device-addressing.md`](device-addressing.md) §3 の部位（`pos_neck` など）。その部位の Hapbeat |
 
@@ -132,7 +132,7 @@ schema: [`schemas/cue-table.schema.json`](../schemas/cue-table.schema.json)（�
 | `pitchJitterSt` | 0..12 | 音のピッチを ±半音 |
 | `rateJitterPct` | 0..50 | 触覚 clip の再生速度を ±%（周波数と長さが一緒に変わる） |
 | `pick` | `random` / `roundRobin` | 複数素材の選び方（既定 `random`。`random` は直前と同じものを避ける） |
-| `paired` | boolean | true = 音と触覚を同じ番号どうしで組にして選ぶ（`sounds[i]` と各 route の `clips[i]`）。★のある音と、★のある各 route の素材の数が同じであること。音に★が無いときは、各 route が自分で選ぶ |
+| `paired` | boolean | true = 音と触覚を同じ番号どうしで組にして選ぶ（`sounds[i]` と各 route の `clips[i]`）。鳴らす sfx（引き継ぎを含む）が必要で、`null` や未定ではいけない。★のある音と、★のある各 route の素材の数が同じであること。音に★が無い（控えだけの）ときは、各 route が自分で選ぶ |
 
 - variant にも書ける（丸ごと上書き）。
 - ループの cue では `gainJitterDb` だけが効く。ループの途中で選び直さない。
@@ -171,8 +171,8 @@ schema: [`schemas/cue-table.schema.json`](../schemas/cue-table.schema.json)（�
 5. sfx: `sound` と `sounds` は片方だけ。★が無いなら `alternates` が 1 つ以上。`sounds` は空でない。参照する音が `sounds` の名前の規則に合い、WAV がある。`volume` 0..2。`alternates` に同じ名前が 2 回出ない、★の音と重ならない。
 6. route: `clip` と `clips` は片方だけ。★が無いなら `alternates` が 1 つ以上。参照する clip が `clips` にあり、その `loop` が cue の `loop` と一致する。`at` が §4.5 の値。`gain` 0..2。`alternates` は `clips` の名前で、重複・★との重なりが無い。
 7. `levelMap` はループの cue の sfx / route にだけ書け、§5.6 の形に合う。
-8. `variation` の値が §5.4 の範囲。`paired: true` なら、引き継ぎを含めて実際に鳴らす sfx と route で数がそろう。
-9. variant の `sfxVolume` / `hapticsGain` / `rampTo` は 0..2 で、引き継ぐ素材にだけ使う。`rampCurve` は `rampTo` と一緒に。`rampSteps` は 1〜64 個の 0..2 で、`rampTo` / `rampCurve` と同時に書かない。
+8. `variation` の値が §5.4 の範囲。`paired: true` なら、引き継ぎを含めて実際に鳴らす sfx がある（`null`・未定でない。★の音か控えがある）。★の音があるなら、★の素材を持つ各 route の数がその数とそろう。
+9. variant の `sfxVolume` / `hapticsGain` / `rampTo` は 0..2 で、引き継ぐ素材にだけ使う（自分の `sfx` を持つ variant に `sfxVolume` は書けない、自分の `haptics` を持つ variant に `hapticsGain` は書けない）。`rampTo` と `rampSteps` は、`sfx` か `haptics` の少なくとも一方を引き継ぐ variant にだけ書ける。`rampCurve` は `rampTo` と一緒に。`rampSteps` は 1〜64 個の 0..2 で、`rampTo` / `rampCurve` と同時に書かない。variant は `loop`・`emit`・`variants` を持てない。
 10. `distanceFalloff` は 0 ≤ nearCm < farCm、farGain 0..2、curve は §8。
 11. `emit` は単発の cue にだけ書け、`during` はループの cue、`intervalSec` 0.05..30、`jitterPct` 0..100、ほかのキーを持たない。
 12. `review` のキーは `sfx` / `haptics`、値は `tentative` / `approved`。
