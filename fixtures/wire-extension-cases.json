@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "description": "Wire extension fixtures (message-format.md 4.0, 0x10, 0x12, 0x13, 0xFF). Hex strings are whole UDP payloads: 8-byte header + payload.",
+  "caps_req": {
+    "hex": "424801120202010001",
+    "caps_version": 1
+  },
+  "caps": [
+    {
+      "name": "band_1x",
+      "description": "1.x two-channel receiver",
+      "hex": "424801130202240001000101010205312e302e3003010204010705040f20050006010207013f080403000000",
+      "expected": {
+        "caps_version": 1,
+        "generation": 1,
+        "firmware_version": "1.0.0",
+        "stream_gens": [
+          2
+        ],
+        "stream_formats": [
+          "pcm16",
+          "adpcm",
+          "opus"
+        ],
+        "lease_ttl_s": 15,
+        "lease_slots": 32,
+        "inactivity_timeout_s": 5,
+        "haptic_channels": 2,
+        "address_max_len": 63,
+        "features": [
+          "play_pan",
+          "error_reply"
+        ]
+      }
+    },
+    {
+      "name": "future_entries",
+      "description": "Unknown type 0x09, experimental 0x80, a longer stream_limits value, an empty haptic_channels value (ignored) and a duplicate generation (first wins)",
+      "hex": "4248011302021c0001000903010203010101800365787005060f20050009090600010107",
+      "expected": {
+        "caps_version": 1,
+        "generation": 1,
+        "lease_ttl_s": 15,
+        "lease_slots": 32,
+        "inactivity_timeout_s": 5
+      }
+    }
+  ],
+  "error": [
+    {
+      "name": "stream_timed_out",
+      "description": "1.x ERROR with the appended reference fields",
+      "hex": "424801ff03032700140073747265616d2074696d6564206f7574003134121008070605040302010700000029000000",
+      "expected": {
+        "error_code": 20,
+        "name": "STREAM_TIMED_OUT",
+        "message": "stream timed out",
+        "ref_command": 49,
+        "ref_seq": 4660,
+        "detail_hex": "08070605040302010700000029000000"
+      }
+    },
+    {
+      "name": "code_and_message_only",
+      "description": "ERROR without the appended fields (what 0.x readers parse)",
+      "hex": "424801ff03031800100073747265616d2067656e203220726571756972656400",
+      "expected": {
+        "error_code": 16,
+        "name": "STREAM_GEN_UNSUPPORTED",
+        "message": "stream gen 2 required"
+      }
+    }
+  ],
+  "play_trailing": {
+    "description": "PLAY with 4 bytes after pan (a future trailing field). Receivers ignore them.",
+    "hex": "4248010104042b0073616d706c652d6b69742e73696e655f313030687a000000000000000000000000803f0000803e01020304",
+    "expected": {
+      "event_id": "sample-kit.sine_100hz",
+      "target": "",
+      "target_time": 0,
+      "gain": 1.0,
+      "pan": 0.25
+    }
+  },
+  "ping_lengths": [
+    {
+      "name": "ping_8",
+      "hex": "424801100100080000401e18240a0600",
+      "lease_request": false
+    },
+    {
+      "name": "ping_16",
+      "hex": "424801100101100000401e18240a06008877665544332211",
+      "lease_request": true
+    },
+    {
+      "name": "ping_24",
+      "description": "Not allowed for senders; receivers treat it as discovery only",
+      "hex": "424801100200180000401e18240a060088776655443322110000000000000000",
+      "lease_request": false
+    }
+  ]
+}

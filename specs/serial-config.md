@@ -60,6 +60,50 @@ Desktop アプリ（hapbeat-desktop）から Hapbeat デバイスに USB serial 
 
 `stream_formats`（string 配列）: この receiver がデコード可能なストリーミング format の広告（DEC-042、`message-format.md` §11）。**フィールド不在 = pcm16/adpcm のみ対応**（Opus 未対応の旧 firmware）とみなす。
 
+`stream_protocol`（integer、stream を受ける receiver のみ）: 受け付ける Stream の世代の番号（`versioning.md` §4）。0.5.0 以降のファームは `2`（Stream Gen 2）。フィールド不在は Stream Gen 1 のファームか、stream を受けないノードを表す。1.x では `caps.stream_gens` を正とし、本フィールドは同じ値の写しとして残す。
+
+#### `caps` — 能力申告（1.x）
+
+1.x のファームは、UDP の CAPS（`message-format.md` §0x13）と共通の項目を同じ値で `caps` object に入れて返す（`versioning.md` §5.2）。`kit_schema`・`kit_clip_formats`・`ui_elements` は `caps` だけにあり、UDP の CAPS の `firmware_version` は top-level の `fw` にあたる。helper と Studio はこれを読み、版の比較で機能を判定しない。`caps` が無いファーム（0.x）は「`generation` 0、追加機能なし」として扱う。読み手は未知の項目を無視する。
+
+```json
+"caps": {
+  "caps_version": 1,
+  "generation": 1,
+  "stream_gens": [2],
+  "stream_formats": ["pcm16", "adpcm", "opus"],
+  "lease_ttl_s": 15,
+  "lease_slots": 32,
+  "inactivity_timeout_s": 5,
+  "haptic_channels": 2,
+  "address_max_len": 63,
+  "features": ["play_pan", "error_reply"],
+  "kit_schema": {"min": 2, "max": 2},
+  "kit_clip_formats": ["pcm16"],
+  "ui_elements": ["volume", "battery"]
+}
+```
+
+| 項目 | 型 | 説明 |
+|---|---|---|
+| `caps_version` | integer | CAPS の形式の版。UDP の CAPS と同じ |
+| `generation` | integer | ファームの major |
+| `stream_gens` | integer 配列 | 受け付ける Stream の世代。stream を受けないノードは `[]` |
+| `stream_formats` | string 配列 | top-level の `stream_formats` と同じ |
+| `lease_ttl_s` / `lease_slots` / `inactivity_timeout_s` | integer | `stream-session.md` の lease TTL・slot 数・inactivity timeout。stream を受けないノードは省略 |
+| `haptic_channels` | integer | 独立して駆動できる触覚出力の数 |
+| `address_max_len` | integer | 受け付ける address・target の最大 byte 数（NUL を除く） |
+| `features` | string 配列 | UDP の CAPS の `features` の bit 名（`play_pan`、`error_reply`） |
+| `kit_schema` | object | 受け付ける Kit manifest の `schema_version` の major の範囲（`kit-format.md`、`versioning.md` §11） |
+| `kit_clip_formats` | string 配列 | Kit の `install-clips/` の音声として受け付ける形式（`pcm16` / `adpcm` / `opus`）。現行の Kit は WAV（PCM16）だけなので `["pcm16"]`。形式を追加するときは、先に `kit-format.md` に定義してから値を増やす |
+| `ui_elements` | string 配列 | 描画できる表示要素の型名（`display-layout.md`）。表示器の無いノードは `[]` |
+
+上の例の値は形式の説明であり、機種ごとの値はファームが実際の対応に合わせて返す。
+
+#### `storage_incompatible` — 保存データの版の不一致（1.x）
+
+起動時に保存データの形式の版が一致しなかった場合、機体はそのデータを消さずに使わないで起動し（`versioning.md` §8）、該当する領域の名前を `storage_incompatible`（string 配列）で返す。例: `["audio_partition"]`。値は `audio_partition`（Kit の音声領域）、`kit_manifest`、`ui_config`、`nvs` のいずれか。不一致が無いときは項目を省略する。Studio は、この項目があるとき、利用者に初期化するかを確認し、同意を得たら `reset_storage`（§4.23）を送る。
+
 > wire 上はフラット構造が source of truth（firmware `tcp_server.cpp cmdGetInfo` /
 > `serial_config.cpp` と Studio の読み出しが一致。2026-06-13 監査で確認）。
 > 旧版の `data{}` ラッパー・`firmware` キーは廃止。
@@ -464,6 +508,20 @@ DuoWL v4 は **TPA6130A2 capless ヘッドホンアンプ**（v3 に無い）を
 - NVS 永続。
 
 **Response:** `{"status": "ok", "hp_db": …}`。
+
+### 4.23 reset_storage — 版の合わない保存データの初期化（1.x、全ノード）
+
+`get_info` の `storage_incompatible`（§4.1）に挙がった領域を初期化する。機体は版の合わないデータを自分からは消さない（`versioning.md` §8）。消してよいかは利用者が決め、Studio が確認を取ってから送る。
+
+**Request:**
+```json
+{"cmd": "reset_storage", "area": "audio_partition"}
+```
+
+- `area`（string、必須）: `storage_incompatible` の値のどれか。挙がっていない領域を指定した場合は error を返し、何も消さない（版の合っているデータを誤って消さないため）。
+- 初期化した領域は、そのファームの現在の形式で空の状態になる（`audio_partition` なら Kit の音声がすべて消える。Kit は入れ直す）。
+
+**Response:** `{"status": "ok", "cmd": "reset_storage", "area": "audio_partition"}`。エラー時は `{"status": "error", "cmd": "reset_storage", "message": "area is not incompatible"}`。
 
 ## 5. NVS キー一覧
 

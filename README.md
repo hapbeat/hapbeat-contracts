@@ -60,6 +60,7 @@ hapbeat-contracts 自体は他のどの repo にも依存しません。
 | `kit-format.md` | Kit マニフェスト形式・ディレクトリ構造・フィールド定義 |
 | `event-id.md` | Event ID 命名規則（`<kit-name>.<clip-name>` 形式） |
 | `message-format.md` | Wi-Fi UDP/OSC メッセージプロトコル（PLAY/STOP/STOP_ALL/CONNECT_STATUS 他、`wifi_udp` transport） |
+| `stream-session.md` | Stream Gen 2（セッション方式）: stream の識別・順序・lease・inactivity timeout・送信側の要件 |
 | `helper-streaming.md` | ブラウザ→Helper 音声 stream の世代ID・最新 transaction 所有権 |
 | `sdk-multi-stream.md` | SDK 共通の論理 source・device endpoint・endpoint session・mixing 契約 |
 | `node-roles.md` | ノード役割 / 通信モード taxonomy（receiver/sensor/broker/transmitter × wifi_udp/mqtt/espnow_stream、DEC-034） |
@@ -70,7 +71,7 @@ hapbeat-contracts 自体は他のどの repo にも依存しません。
 | `display-layout.md` | OLED display_layout.json スキーマ |
 | `serial-config.md` | シリアルコマンド仕様（全ノード共通の設定プロトコル + 役割固有コマンド） |
 | `kit-install-protocol.md` | Kit インストールプロトコル（TCP 経由の転送手順） |
-| `versioning.md` | 仕様バージョニング方針・互換性ルール |
+| `versioning.md` | 版の付け方（全製品の major を揃える）・互換の判定・変更の分類・無視と拒否の規則・0.x → 1.x の移行表（DEC-096） |
 | `release-feed.md` | ツール / SDK の最新版フィードと更新通知ポリシー（DEC-053） |
 | `demo-switch-control.md` | 独立 demo runtime 切替用 UDP 7710 control plane（logical demo ID、sequence、optional HMAC、ACK/READY/FAILED） |
 | `demo-session.md` | 独立 demo runtime を体験者が順に進める Demo Session（APK 内 descriptor、Intent で渡す session ticket、終了パネル、触覚 ON/OFF） |
@@ -83,7 +84,11 @@ JSON Schema ファイル（manifest 検証用）。
 
 ### fixtures/
 
-テスト・検証用サンプルデータ。
+テスト・検証用サンプルデータ。通信の互換（将来の形の PONG・CAPS・ERROR など）は `stream-session-cases.json` と `wire-extension-cases.json` にあり、`tests/test_wire_compat.py` がその参照実装である。各 SDK・ファームのテストもこれらを読む。
+
+### 版と変更履歴
+
+版の付け方は `specs/versioning.md`、変更履歴は [CHANGELOG.md](CHANGELOG.md)。
 
 ## 廃止済み経路
 

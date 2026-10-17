@@ -1,0 +1,416 @@
+{
+  "schema_version": 1,
+  "description": "Stream Gen 2 classification and receiver cases (stream-session.md). Hex strings are whole UDP payloads: 8-byte header + payload.",
+  "pong_classification": {
+    "ping_hex": "424801100101100000401e18240a06008877665544332211",
+    "ping": {
+      "seq": 257,
+      "timestamp": 1700000000000000,
+      "client_incarnation": "1234605616436508552"
+    },
+    "note": "Each PONG is a matched direct reply to ping_hex (same seq, echoed timestamp and incarnation). expected_1x follows stream-session.md Receiver classification; expected_0x is how 0.x SDKs classified it ('varies': Unity / Python / JS gen1, Unreal / helper ignored).",
+    "cases": [
+      {
+        "name": "no_tail",
+        "description": "Pre-Stream-Gen-2 firmware: the PONG ends at volume_wiper",
+        "hex": "4248011101013d0000401e18240a060088531e18240a0600486170626561742d4100706c617965725f312f706f735f63686573742f67726f75705f3100312e302e300008c8",
+        "expected_1x": {
+          "class": "gen1"
+        },
+        "expected_0x": "gen1"
+      },
+      {
+        "name": "tail_32",
+        "description": "Stream Gen 2 firmware (0.5.0 and 1.x): exact 32-byte tail, lease valid",
+        "hex": "4248011101015d0000401e18240a060088531e18240a0600486170626561742d4100706c617965725f312f706f735f63686573742f67726f75705f3100312e302e300008c84842533201010000887766554433221108070605040302010700000007000000",
+        "expected_1x": {
+          "class": "gen2",
+          "lease_valid": true,
+          "superseded": false,
+          "ticket": 7,
+          "high_water_ticket": 7,
+          "lease_reissued": false
+        },
+        "expected_0x": "gen2"
+      },
+      {
+        "name": "tail_superseded",
+        "description": "Stream Gen 2: lease valid but a later writer holds the high-water ticket",
+        "hex": "4248011101015d0000401e18240a060088531e18240a0600486170626561742d4100706c617965725f312f706f735f63686573742f67726f75705f3100312e302e300008c84842533201030000887766554433221108070605040302010500000007000000",
+        "expected_1x": {
+          "class": "gen2",
+          "lease_valid": true,
+          "superseded": true,
+          "ticket": 5,
+          "high_water_ticket": 7,
+          "lease_reissued": false
+        },
+        "expected_0x": "gen2"
+      },
+      {
+        "name": "tail_40",
+        "description": "Future major: 8 bytes appended after the 32-byte tail",
+        "hex": "424801110101650000401e18240a060088531e18240a0600486170626561742d4100706c617965725f312f706f735f63686573742f67726f75705f3100312e302e300008c848425332010100008877665544332211080706050403020107000000070000000001020304050607",
+        "expected_1x": {
+          "class": "gen2",
+          "lease_valid": true,
+          "superseded": false,
+          "ticket": 7,
+          "high_water_ticket": 7,
+          "lease_reissued": false
+        },
+        "expected_0x": "ignored"
+      },
+      {
+        "name": "tail_reissued",
+        "description": "1.x: lease re-issued under the re-issue rule (flag bit 2)",
+        "hex": "4248011101015d0000401e18240a060088531e18240a0600486170626561742d4100706c617965725f312f706f735f63686573742f67726f75705f3100312e302e300008c84842533201050000887766554433221108070605040302010900000007000000",
+        "expected_1x": {
+          "class": "gen2",
+          "lease_valid": true,
+          "superseded": false,
+          "ticket": 9,
+          "high_water_ticket": 7,
+          "lease_reissued": true
+        },
+        "expected_0x": "ignored"
+      },
+      {
+        "name": "tail_unknown_flag",
+        "description": "Future major: flag bit 3 set",
+        "hex": "4248011101015d0000401e18240a060088531e18240a0600486170626561742d4100706c617965725f312f706f735f63686573742f67726f75705f3100312e302e300008c84842533201090000887766554433221108070605040302010700000007000000",
+        "expected_1x": {
+          "class": "gen2",
+          "lease_valid": true,
+          "superseded": false,
+          "ticket": 7,
+          "high_water_ticket": 7,
+          "lease_reissued": false
+        },
+        "expected_0x": "ignored"
+      },
+      {
+        "name": "tail_reserved_nonzero",
+        "description": "Future major: reserved field used",
+        "hex": "4248011101015d0000401e18240a060088531e18240a0600486170626561742d4100706c617965725f312f706f735f63686573742f67726f75705f3100312e302e300008c84842533201010201887766554433221108070605040302010700000007000000",
+        "expected_1x": {
+          "class": "gen2",
+          "lease_valid": true,
+          "superseded": false,
+          "ticket": 7,
+          "high_water_ticket": 7,
+          "lease_reissued": false
+        },
+        "expected_0x": "ignored"
+      },
+      {
+        "name": "tail_ext_version_2",
+        "description": "Future major: incompatible tail (extension_version 2)",
+        "hex": "4248011101015d0000401e18240a060088531e18240a0600486170626561742d4100706c617965725f312f706f735f63686573742f67726f75705f3100312e302e300008c84842533202010000887766554433221108070605040302010700000007000000",
+        "expected_1x": {
+          "class": "ignored"
+        },
+        "expected_0x": "ignored"
+      },
+      {
+        "name": "tail_short",
+        "description": "HBS2 marker with only 24 bytes",
+        "hex": "424801110101550000401e18240a060088531e18240a0600486170626561742d4100706c617965725f312f706f735f63686573742f67726f75705f3100312e302e300008c8484253320101000088776655443322110807060504030201",
+        "expected_1x": {
+          "class": "ignored"
+        },
+        "expected_0x": "ignored"
+      },
+      {
+        "name": "other_bytes",
+        "description": "Bytes after volume_wiper that do not start with HBS2",
+        "hex": "4248011101015d0000401e18240a060088531e18240a0600486170626561742d4100706c617965725f312f706f735f63686573742f67726f75705f3100312e302e300008c85854524100000000000000000000000000000000000000000000000000000000",
+        "expected_1x": {
+          "class": "ignored"
+        },
+        "expected_0x": "gen1"
+      },
+      {
+        "name": "truncated_marker",
+        "description": "Only 'HBS' after volume_wiper",
+        "hex": "424801110101400000401e18240a060088531e18240a0600486170626561742d4100706c617965725f312f706f735f63686573742f67726f75705f3100312e302e300008c8484253",
+        "expected_1x": {
+          "class": "ignored"
+        },
+        "expected_0x": "varies"
+      },
+      {
+        "name": "non_streaming_node",
+        "description": "1.x broker / sensor: tail with flags 0 and tickets 0",
+        "hex": "4248011101015d0000401e18240a060088531e18240a0600486170626561742d4100706c617965725f312f706f735f63686573742f67726f75705f3100312e302e300008c84842533201000000887766554433221108070605040302010000000000000000",
+        "expected_1x": {
+          "class": "gen2",
+          "lease_valid": false,
+          "superseded": false,
+          "ticket": 0,
+          "high_water_ticket": 0,
+          "lease_reissued": false
+        },
+        "expected_0x": "gen2"
+      }
+    ]
+  },
+  "receiver_cases": {
+    "context": {
+      "device_boot_id": "0102030405060708",
+      "device_address": "player_1/pos_chest/group_1",
+      "leases": {
+        "A": 5,
+        "B": 7
+      },
+      "high_water": [
+        7,
+        41
+      ],
+      "high_water_end_reason": "end",
+      "active": false
+    },
+    "note": "Each case starts from the context, with its context_override applied. 'error' is the ERROR code name the receiver sends (message-format.md 0xFF), or null for silent rejection.",
+    "cases": [
+      {
+        "name": "begin_valid",
+        "description": "Greater BEGIN from the lease holder",
+        "from": "B",
+        "hex": "42480230010037000807060504030201070000002a000000803e0200000000000000803f706c617965725f312f706f735f63686573742f67726f75705f3100",
+        "expected": {
+          "accept": true,
+          "error": null
+        }
+      },
+      {
+        "name": "begin_gen1",
+        "description": "Stream Gen 1 BEGIN (protocol_version 1, no envelope)",
+        "from": "B",
+        "hex": "4248013002002700803e0200000000000000803f706c617965725f312f706f735f63686573742f67726f75705f3100",
+        "expected": {
+          "accept": false,
+          "error": "STREAM_GEN_UNSUPPORTED"
+        }
+      },
+      {
+        "name": "begin_version_3",
+        "description": "Unknown stream protocol_version",
+        "from": "B",
+        "hex": "42480330030037000807060504030201070000002a000000803e0200000000000000803f706c617965725f312f706f735f63686573742f67726f75705f3100",
+        "expected": {
+          "accept": false,
+          "error": "UNSUPPORTED_VERSION"
+        }
+      },
+      {
+        "name": "begin_target_63",
+        "description": "63-byte target: valid length, does not match this device",
+        "from": "B",
+        "hex": "4248023004005c000807060504030201070000002a000000803e0200000000000000803f70707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707000",
+        "expected": {
+          "accept": false,
+          "error": "STREAM_TARGET_MISMATCH"
+        }
+      },
+      {
+        "name": "begin_target_64",
+        "description": "64-byte target (65 with NUL): too long",
+        "from": "B",
+        "hex": "4248023005005d000807060504030201070000002a000000803e0200000000000000803f7070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707070707000",
+        "expected": {
+          "accept": false,
+          "error": "MALFORMED"
+        }
+      },
+      {
+        "name": "begin_short",
+        "description": "27-byte BEGIN payload",
+        "from": "B",
+        "hex": "4248023006001b000807060504030201070000002a000000803e020000000000000080",
+        "expected": {
+          "accept": false,
+          "error": "MALFORMED"
+        }
+      },
+      {
+        "name": "data_empty",
+        "description": "DATA with an offset and no audio bytes",
+        "from": "B",
+        "hex": "42480231070014000807060504030201070000002900000000000000",
+        "expected": {
+          "accept": false,
+          "error": "MALFORMED"
+        }
+      },
+      {
+        "name": "end_trailing",
+        "description": "END with one extra byte",
+        "from": "B",
+        "hex": "42480232080011000807060504030201070000002900000000",
+        "expected": {
+          "accept": false,
+          "error": "MALFORMED"
+        }
+      },
+      {
+        "name": "data_not_started",
+        "description": "DATA above the high-water mark whose BEGIN was lost",
+        "from": "B",
+        "hex": "42480231090018000807060504030201070000002b0000000000000000000000",
+        "expected": {
+          "accept": false,
+          "error": "STREAM_NOT_STARTED"
+        }
+      },
+      {
+        "name": "data_ended",
+        "description": "DATA for the high-water session ended by its own END",
+        "from": "B",
+        "hex": "424802310a001800080706050403020107000000290000000010000000000000",
+        "expected": {
+          "accept": false,
+          "error": "STREAM_ENDED"
+        }
+      },
+      {
+        "name": "begin_superseded",
+        "description": "BEGIN under a ticket below the high-water ticket",
+        "from": "A",
+        "hex": "424802300b00370008070605040302010500000064000000803e0200000000000000803f706c617965725f312f706f735f63686573742f67726f75705f3100",
+        "expected": {
+          "accept": false,
+          "error": "STREAM_SUPERSEDED"
+        }
+      },
+      {
+        "name": "begin_equal_ended",
+        "description": "Repeated BEGIN of the ended high-water session",
+        "from": "B",
+        "hex": "424802300c00370008070605040302010700000029000000803e0200000000000000803f706c617965725f312f706f735f63686573742f67726f75705f3100",
+        "expected": {
+          "accept": false,
+          "error": null
+        }
+      },
+      {
+        "name": "end_lower",
+        "description": "Reordered END of an older generation",
+        "from": "B",
+        "hex": "424802320d00100008070605040302010700000028000000",
+        "expected": {
+          "accept": false,
+          "error": null
+        }
+      },
+      {
+        "name": "data_older_generation",
+        "description": "Reordered DATA of the sender's own older generation",
+        "from": "B",
+        "hex": "424802310e001800080706050403020107000000280000000000000000000000",
+        "expected": {
+          "accept": false,
+          "error": null
+        }
+      },
+      {
+        "name": "data_wrong_boot",
+        "description": "DATA under another device boot",
+        "from": "B",
+        "hex": "424802310f00180011100f0e0d0c0b0a07000000290000000000000000000000",
+        "expected": {
+          "accept": false,
+          "error": "STREAM_LEASE_INVALID"
+        }
+      },
+      {
+        "name": "begin_unleased_ticket",
+        "description": "BEGIN under a ticket the sender does not hold",
+        "from": "A",
+        "hex": "424802301000370008070605040302010900000001000000803e0200000000000000803f706c617965725f312f706f735f63686573742f67726f75705f3100",
+        "expected": {
+          "accept": false,
+          "error": "STREAM_LEASE_INVALID"
+        }
+      },
+      {
+        "name": "begin_wrong_target_unleased",
+        "description": "Wrong target and an unleased ticket: the target check comes first",
+        "from": "A",
+        "hex": "424802301100250008070605040302010900000001000000803e0200000000000000803f706c617965725f3200",
+        "expected": {
+          "accept": false,
+          "error": "STREAM_TARGET_MISMATCH"
+        }
+      },
+      {
+        "name": "data_timed_out",
+        "description": "DATA for the high-water session ended by the inactivity timeout",
+        "from": "B",
+        "hex": "4248023112001800080706050403020107000000290000000010000000000000",
+        "expected": {
+          "accept": false,
+          "error": "STREAM_TIMED_OUT"
+        },
+        "context_override": {
+          "high_water_end_reason": "timeout"
+        }
+      },
+      {
+        "name": "end_after_timeout",
+        "description": "The sender's END after the inactivity timeout (a normal event)",
+        "from": "B",
+        "hex": "424802321300100008070605040302010700000029000000",
+        "expected": {
+          "accept": false,
+          "error": null
+        },
+        "context_override": {
+          "high_water_end_reason": "timeout"
+        }
+      },
+      {
+        "name": "data_stopped",
+        "description": "DATA for the high-water session ended by STOP_ALL",
+        "from": "B",
+        "hex": "4248023114001800080706050403020107000000290000000010000000000000",
+        "expected": {
+          "accept": false,
+          "error": "STREAM_STOPPED"
+        },
+        "context_override": {
+          "high_water_end_reason": "stop_all"
+        }
+      },
+      {
+        "name": "data_active_next",
+        "description": "DATA of the Active session at the expected offset",
+        "from": "B",
+        "hex": "4248023115001800080706050403020107000000290000000010000000000000",
+        "expected": {
+          "accept": true,
+          "error": null
+        },
+        "context_override": {
+          "active": true,
+          "high_water_end_reason": "active",
+          "expected_offset": 4096
+        }
+      },
+      {
+        "name": "data_active_duplicate",
+        "description": "Duplicated DATA of the Active session (offset behind the expected one)",
+        "from": "B",
+        "hex": "4248023116001800080706050403020107000000290000000000000000000000",
+        "expected": {
+          "accept": false,
+          "error": null
+        },
+        "context_override": {
+          "active": true,
+          "high_water_end_reason": "active",
+          "expected_offset": 4096
+        }
+      }
+    ]
+  }
+}

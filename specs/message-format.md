@@ -2,7 +2,7 @@
 
 ## 1. 概要
 
-本文書は、`NodeTransport.WifiUdp`（wire/config 値 `wifi_udp`）の SDK → デバイス UDP 通信と OSC 変換を定義する。Stream session v2 の識別・順序規則は [stream-session-v2.md](stream-session-v2.md) を正とする。
+本文書は、`NodeTransport.WifiUdp`（wire/config 値 `wifi_udp`）の SDK → デバイス UDP 通信と OSC 変換を定義する。Stream Gen 2（セッション方式）の識別・順序規則は [stream-session.md](stream-session.md) を正とする。版の付け方・拡張と互換の規則は [versioning.md](versioning.md) を正とする。
 
 ## 2. メッセージ層の整理
 
@@ -29,15 +29,43 @@ SDK は既知デバイスへ unicast し、既知デバイスが 0 台のとき�
 | オフセット | フィールド | 型 | サイズ | 説明 |
 |---|---|---|---|---|
 | 0 | magic | uint16 | 2 bytes | 固定値 `0x4842`（ASCII "HB"） |
-| 2 | protocol_version | uint8 | 1 byte | 非streamは `0x01`、STREAM_BEGIN/DATA/END は `0x02` |
+| 2 | protocol_version | uint8 | 1 byte | コマンドの形式の版。非 stream は `0x01`、STREAM_BEGIN/DATA/END は `0x02`（Stream Gen 2）。下記参照 |
 | 3 | command_type | uint8 | 1 byte | コマンド種別（後述） |
-| 4 | seq | uint16 | 2 bytes | シーケンス番号（重複検出用） |
+| 4 | seq | uint16 | 2 bytes | シーケンス番号（§7） |
 | 6 | payload_length | uint16 | 2 bytes | payload のバイト長 |
 | 8 | payload | variable | payload_length bytes | コマンド固有のデータ |
 
 ヘッダサイズは固定 8 bytes である。
 
+- **`protocol_version` はコマンドごとの形式の版であり、製品の版ではない。** 1.x の間、値は上表のまま変えない（`versioning.md` §7.4）。既存コマンドの拡張は §4.0 の規則で行い、版は上げない。STREAM_BEGIN/DATA/END の値 `0x02` は Stream Gen 2 を表し、`0x01` は Stream Gen 1（0.4.x 以前のファーム、本書「Stream Gen 1」節）を表す。
+- 受信側は、知っている command_type で知らない `protocol_version` のパケットを、状態を変えずに捨て、送信元へ ERROR `UNSUPPORTED_VERSION` を返す（Stream Gen 2 専用の受信機が Stream Gen 1 を受けた場合は `STREAM_GEN_UNSUPPORTED`。§0xFF）。
+- 受信側は `payload_length` で payload の範囲を決める。datagram のそれより後ろの byte は無視する。ただし Stream Gen 2 のパケットは、datagram の長さが `8 + payload_length` と一致しなければならない（一致しなければ MALFORMED。`stream-session.md`）。
+
 ## 4. コマンド定義（WifiUdp）
+
+### 4.0 拡張の規則と command_type の割当
+
+既存コマンドを拡張するときは、`protocol_version` を上げずに次のいずれかで行う（`versioning.md` §6・§7）。
+
+1. **末尾への省略可能な項目の追加**（前例: PLAY の `pan`、DEC-055）。
+   - 受信側は、定義より後ろの余りの byte を無視する。存在しない末尾の項目は、その項目の既定値として扱う。
+   - 送信側は、自分が知っている項目をすべて付けて送る。
+   - 末尾に追加できるのは非 stream のコマンドだけである。PING・PONG と Stream Gen 2 のパケットは凍結している（§0x10・§0x11、`stream-session.md`）。
+   - PLAY・STOP・STOP_ALL に項目を足すときは、MQTT の対応する payload（`mqtt-transport.md`）にも同じ項目を同時に足す。
+2. **新しいコマンドの追加**。末尾への追加で表せない変更（項目の意味の変更・途中への挿入・応答の追加）は、新しい command_type にする。旧受信機は未知のコマンドを無視する。
+3. **能力に依存する機能**。送信側は、機体が能力申告（§0x13 CAPS）で申告した機能だけを使う。申告を持たない機体（0.x のファーム）は、追加機能を持たないものとして扱う。
+
+command_type の割当:
+
+| 範囲 | 用途 | 定義済み |
+|---|---|---|
+| 0x01–0x0F | 再生の制御 | 0x01 PLAY、0x02 STOP、0x03 STOP_ALL |
+| 0x10–0x1F | 探索・能力 | 0x10 PING、0x11 PONG、0x12 CAPS_REQ、0x13 CAPS |
+| 0x20–0x2F | 状態の通知 | 0x20 CONNECT_STATUS |
+| 0x30–0x3F | stream | 0x30 STREAM_BEGIN、0x31 STREAM_DATA、0x32 STREAM_END |
+| 0x40–0xEF | 予約（contracts で割り当てる） | |
+| 0xF0–0xFE | 実験用（製品に載せない。受信側は未知のコマンドとして扱う） | |
+| 0xFF | ERROR | 0xFF ERROR |
 
 ### 0x01 PLAY
 
@@ -83,6 +111,8 @@ gain_r = gain × (pan >= 0 ? 1.0 : 1.0 + pan)
 |---|---|---|
 | target | null-terminated string | ターゲットアドレス（空文字 = 全台） |
 
+STOP_ALL は stream を含む全ての再生を止める。target が一致した受信機は、Stream Gen 2 の Active な session を、送信元に関係なく END と同じ扱いで終える（`stream-session.md` の Receiver ordering）。その session の送信側には、以後の DATA に対して ERROR `STREAM_STOPPED` を返す（§0xFF）。
+
 ### 0x10 PING
 
 デバイスの接続確認に使用する。
@@ -91,9 +121,11 @@ gain_r = gain × (pan >= 0 ? 1.0 : 1.0 + pan)
 |---|---|---|
 | timestamp | int64 | 送信時のタイムスタンプ（マイクロ秒） |
 
-stream v2対応SDKは続けて非ゼロの`client_incarnation`（uint64）を付加し、
-payloadを16 bytesにする。通常の8-byte PINGは探索のみでleaseを発行しない。
-詳細は [stream-session-v2.md](stream-session-v2.md)。
+Stream Gen 2 に対応した SDK は、続けて非ゼロの `client_incarnation`（uint64）を付加し、
+payload を 16 bytes にする（拡張 PING）。通常の 8 byte の PING は探索だけで、lease を発行しない。
+詳細は [stream-session.md](stream-session.md)。
+
+**PING の形式は凍結している**（`versioning.md` §7.4）。payload は 8 bytes（探索）か 16 bytes（lease の要求）だけとし、送信側は他の長さを送ってはならない。受信側は 16 bytes 以外の PING を探索だけの PING として扱う。能力の問い合わせは §0x12 CAPS_REQ で行う。
 
 ### 0x11 PONG
 
@@ -118,11 +150,13 @@ PING に対するデバイスの応答。
 | volume_level | uint8 | 現在の音量レベル |
 | volume_wiper | uint8 | 現在のwiper値 |
 
-16-byte PINGへの直接応答のみ、この後に32-byteのstream lease tailを付ける。
-形式・照合条件・再起動時の扱いは [stream-session-v2.md](stream-session-v2.md) に従う。
-unsolicited PONGはtailを持たず、確立済みのleaseを消去しない。
+16 byte の PING への直接応答だけ、この直後に 32 byte の stream lease tail（印 `HBS2`）を付ける。
+形式・照合条件・再起動時の扱いは [stream-session.md](stream-session.md) に従う。
+unsolicited PONG は tail を持たず、確立済みの lease を消去しない。
 
 受信側は `payload_length` を確認して、基本 PONG（16 bytes）と拡張 PONG（16 bytes + 可変長）を区別する。
+
+**PONG の形式は凍結している**（`versioning.md` §7.4）。1.x のファームは、直接応答にも unsolicited PONG にも、上表と tail 以外の byte を付けてはならない。新しい情報は §0x13 CAPS で申告する。1.x の SDK の tail の読み方（将来の major で tail の後ろに byte が増えても読めること）は `stream-session.md` の Receiver classification に従う。
 
 デバイスは `set_address`、address を変えるボタン操作、`set_name` など、PONG に含む識別情報の
 変更を成功させた後、浅い main loop から unsolicited PONG を送る。SDK はこの PONG を endpoint
@@ -147,6 +181,53 @@ endpoint 再解決を成立させる。
 endpoint registry・liveness・表示用 identity の更新には使用するが、RTT（Round-Trip Time）や
 device time offset の計算には使用してはならない。通常の PING 応答（元の PING timestamp が非 0）
 だけが RTT / time-sync sample になる。
+
+### 0x12 CAPS_REQ
+
+SDK → デバイス。デバイスの能力申告を求める（`versioning.md` §5.2）。
+
+| フィールド | 型 | 説明 |
+|---|---|---|
+| caps_version | uint8 | 要求側が読める CAPS の形式の版。現在 `1` |
+
+- exact unicast で送る（broadcast で送らない。多数の機体が同時に応答するのを避けるため）。
+- 送る時機: その endpoint の最初の照合済み PONG の後と、PONG の `firmware_version` または lease tail の `device_boot_id` が変わった後。
+- 応答が無ければ 500 ms 間隔で計 3 回まで送る。3 回とも応答が無ければ、その機体を「能力申告なし」（0.x のファーム。`generation` 0、追加機能なし）として扱い、その boot の間は再要求しない。
+- 0.x のファームは未知のコマンドとして無視する（応答しない）。
+
+### 0x13 CAPS
+
+デバイス → SDK。CAPS_REQ の送信元 (IPv4, UDP port) へ unicast で返す。header の `seq` は CAPS_REQ の `seq` をそのまま写す。
+
+| オフセット | フィールド | 型 | 説明 |
+|---|---|---|---|
+| 0 | caps_version | uint8 | 形式の版。現在 `1`。要求の caps_version より大きい値は返さない |
+| 1 | reserved | uint8 | `0` |
+| 2 | entries | TLV の並び | payload の末尾まで |
+
+各 entry は `type`（uint8）・`length`（uint8）・`value`（`length` bytes）の並びである。
+
+- 読み手は未知の `type` を `length` で読み飛ばす。既知の `type` の `length` が定義より長ければ定義された先頭部分だけを読み、短ければその entry を無視する。同じ `type` が複数あれば、長さが足りている最初のものを使う。payload の末尾で途切れた entry は無視する。
+- `type` の 0x01–0x7F は contracts が定義する。0x80–0xFF は実験用で、製品に載せない。
+- payload は 504 bytes 以内とする（コマンドパケットの上限 512 bytes、§10）。
+
+caps_version 1 の `type`:
+
+| type | 名前 | 値 | 説明 |
+|---|---|---|---|
+| 0x01 | generation | uint8 | ファームの major（`versioning.md` §3.2）。1.x なら `1` |
+| 0x02 | firmware_version | UTF-8（NUL なし、31 bytes 以内） | PONG の `firmware_version` と同じ値 |
+| 0x03 | stream_gens | uint8 bitmap | 受け付ける Stream の世代。bit0 = Gen 1、bit1 = Gen 2。stream を受けないノード（broker・sensor）は `0` |
+| 0x04 | stream_formats | uint8 bitmap | デコードできる形式。bit0 = PCM16、bit1 = IMA ADPCM、bit2 = Opus（STREAM_BEGIN の `format` の値 0 / 1 / 2 の順） |
+| 0x05 | stream_limits | 4 bytes | `lease_ttl_s`（uint8）、`lease_slots`（uint8）、`inactivity_timeout_s`（uint8）、reserved（uint8 = 0）。値の意味は `stream-session.md` |
+| 0x06 | haptic_channels | uint8 | 独立して駆動できる触覚出力の数（1 = 片側のみ、2 = 左右） |
+| 0x07 | address_max_len | uint8 | 受け付ける address・target の最大 byte 数（NUL を除く） |
+| 0x08 | features | uint32 bitmap | 追加機能。bit0 = `play_pan`（PLAY の `pan` を左右へ適用する）、bit1 = `error_reply`（§0xFF の ERROR を返す）。他の bit は予約（`0`） |
+
+- 1.x のファームは 0x01–0x08 をすべて返す。ただし stream を受けないノードは 0x05 を省略する。
+- `get_info` の `caps` object（`serial-config.md` §4.1）は、共通の項目を同じ値で JSON に持つ。`firmware_version` は UDP の CAPS だけにあり（get_info では top-level の `fw`）、`kit_schema`・`kit_clip_formats`・`ui_elements` は get_info だけにある（SDK は使わない）。
+- SDK は、`generation` が自分の major より大きい機体を見つけたら、SDK の更新を促す警告を 1 回出す（`versioning.md` §3.3）。
+- Stream の世代の判定には CAPS を使わない（`stream-session.md` の Receiver classification、`versioning.md` §5.3）。
 
 ### 0x20 CONNECT_STATUS
 
@@ -175,20 +256,20 @@ UDP オーディオストリーミングの開始を通知する。**ADPCM デ�
 
 STREAM_BEGIN/DATA/END には **event_id フィールドを含まない**。device が管理するのは送信側の論理 source ではなく、device endpoint ごとの wire session である。複数 source の分離・mixing・endpoint への割当は SDK の責務とし、共通契約は `sdk-multi-stream.md` に定める。Kit manifest の `stream_events` のキーは SDK 内部で AudioClip / binding を紐付けるラベルとしてのみ使用される。
 
-#### STREAM_END / STREAM_BEGIN の順序制約（v2）
+#### Stream Gen 2（セッション方式）の順序制約
 
-- 全streamはexact unicast。全payload先頭に16-byte `device_boot_id/lease_ticket/generation` envelopeを付ける。
-- 古いBEGIN/DATA/ENDはデバイスの世代判定で拒否する。END後の固定300 ms待ちは撤廃する。詳細とPING/PONGのlease拡張は `stream-session-v2.md`。
-- 経路変更だけなら同一device boot/leaseを確認してsessionとcursorを維持してよい。device再起動・lease更新では新しい識別でBEGINし直す。
-- 以下のBEGIN/DATAの表はenvelopeの**後ろのbody**を示す。BEGIN固定長はenvelopeを含め28 bytes。v2受信機はv1 streamを受理しない。
-- SDKはv2非対応（旧）ファームの機器にだけ、下記「v1 stream（旧ファーム向け）」で送る。判定は `stream-session-v2.md` の Legacy receiver fallback。
+- 全 stream は exact unicast。全 payload の先頭に 16 byte の `device_boot_id / lease_ticket / generation` envelope を付ける。
+- 古い BEGIN / DATA / END はデバイスの世代判定で拒否する。END 後の固定 300 ms 待ちは無い。詳細と PING / PONG の lease 拡張は `stream-session.md`。
+- 経路の変更だけなら、同じ device boot・lease であることを確認して session と cursor を維持してよい。デバイスの再起動・lease の更新では、新しい識別で BEGIN し直す。
+- 以下の BEGIN / DATA の表は envelope の**後ろの body** を示す。BEGIN は envelope を含めて 28 bytes 以上（target を付けるとその分長い）。Stream Gen 2 の受信機は Stream Gen 1 を受理しない。
+- SDK は Stream Gen 2 に対応しない（0.4.x 以前の）ファームの機器にだけ、下記「Stream Gen 1」で送る。判定は `stream-session.md` の Legacy receiver fallback。
 
-#### v1 stream（旧ファーム向け・SDKの後方互換）
+#### Stream Gen 1（セッションなし方式、0.4.x 以前のファーム向け）
 
-- header protocol_version=`0x01`。BEGIN/DATAのpayloadは下表のbodyそのもの（envelopeなし）、ENDはペイロードなし。
-- 旧ファームは古いENDを判別できない。STREAM_END と STREAM_BEGIN を broadcast / unicast または異なる宛先集合をまたいで連続送信しない（DTIMで遅延したbroadcastのENDが新sessionを止める）。
-- 経路だけを変える場合、END / BEGIN の再送は不要。旧ファームはSTREAM_DATAの送信元経路をsession識別に使わない。
-- END の後に BEGIN が不可避な場合は、同一経路・同一宛先へ送り、300 ms 以上空ける（その機器だけに適用し、v2機器は待たない）。
+- header protocol_version=`0x01`。BEGIN / DATA の payload は下表の body そのもの（envelope なし）、END は payload なし。
+- このファームは古い END を判別できない。STREAM_END と STREAM_BEGIN を broadcast / unicast または異なる宛先集合をまたいで連続送信しない（DTIM で遅延した broadcast の END が新しい session を止める）。
+- 経路だけを変える場合、END / BEGIN の再送は不要。このファームは STREAM_DATA の送信元経路を session の識別に使わない。
+- END の後に BEGIN が不可避な場合は、同じ経路・同じ宛先へ送り、300 ms 以上空ける（その機器だけに適用し、Stream Gen 2 の機器は待たない）。
 
 | フィールド | 型 | 説明 |
 |---|---|---|
@@ -197,7 +278,7 @@ STREAM_BEGIN/DATA/END には **event_id フィールドを含まない**。devic
 | format | uint8 | オーディオフォーマット（0=PCM16, 1=IMA_ADPCM, **2=OPUS**） |
 | total_samples | uint32 | 総サンプル数（0=不明。情報用、省略可） |
 | gain | float32 | 再生ゲイン（0.0 〜 1.0）。intensity × SDK_gain × binding を SDK 側で計算した値 |
-| target | null-terminated string | optional。ターゲットアドレス（省略時は全台）。詳細は `device-addressing.md` 参照 |
+| target | null-terminated string | optional。ターゲットアドレス（省略時は全台）。NUL を含め 64 bytes 以内。詳細は `device-addressing.md` 参照 |
 
 固定部分のサイズは 12 bytes (既存 8 + gain 4)。`target` は可変長（省略時は 0 bytes、存在する場合は null 終端文字列）。
 
@@ -217,7 +298,7 @@ STREAM_BEGIN/DATA/END には **event_id フィールドを含まない**。devic
 
 | フィールド | 型 | 説明 |
 |---|---|---|
-| offset | uint32 | バイトオフセット。v2では重複・逆順DATAを拒否する（uint32 wrap規則は `stream-session-v2.md`） |
+| offset | uint32 | バイトオフセット。Stream Gen 2 では重複・逆順の DATA を拒否する（uint32 の wrap の規則は `stream-session.md`） |
 | data | variable | オーディオデータ（PCM16 raw bytes、ADPCM encoded bytes、または Opus フレーム列） |
 
 - PCM16: raw interleaved 16-bit LE samples
@@ -235,18 +316,55 @@ STREAM_BEGIN/DATA/END には **event_id フィールドを含まない**。devic
 
 ### 0x32 STREAM_END
 
-ストリーミング終了のヒント。v2の16-byte session envelopeだけを持つ（旧ファーム向けv1 streamではペイロードなし）。リングバッファは自然にドレインされる。ACK は返さない。ENDが失われても、v2受信機は受理DATAが5秒途絶えたsessionをENDと同じ扱いで終了する（`stream-session-v2.md` Inactivity timeout）。送信側はsessionを開いている間、無音を含めDATAを送り続ける。
+ストリーミング終了のヒント。Stream Gen 2 では 16 byte の session envelope だけを持つ（Stream Gen 1 では payload なし）。リングバッファは自然にドレインされる。ACK は返さない。END が失われても、Stream Gen 2 の受信機は、受理した DATA が 5 秒途絶えた session を END と同じ扱いで終了する（`stream-session.md` Inactivity timeout）。送信側は session を開いている間、無音を含め DATA を送り続ける。
 
 受信側は有効なsession世代を検証してからENDを適用する。遅れた旧世代のENDで新世代を停止してはならない。
 
 ### 0xFF ERROR
 
-エラー通知。デバイスから SDK に送信される。
+デバイス → 送信元。受け付けなかったパケットの理由を知らせる。header の `protocol_version` は `0x01`、`seq` はデバイス自身の送信番号とする。
 
 | フィールド | 型 | 説明 |
 |---|---|---|
-| error_code | uint16 | エラーコード |
-| message | null-terminated string | 人間が読めるエラーメッセージ |
+| error_code | uint16 | 下表 |
+| message | null-terminated string | 人が読む説明（ASCII、NUL を含め 64 bytes 以内）。判定には使わない |
+| ref_command | uint8 | 原因のパケットの command_type（以下 3 項目は §4.0 の末尾の追加） |
+| ref_seq | uint16 | 原因のパケットの seq |
+| detail_length | uint8 | `detail` の byte 数 |
+| detail | bytes | code ごとの詳細。0x0011–0x0017 は原因のパケットの 16 byte の envelope。他の code は空（`detail_length` = 0） |
+
+0.x の SDK は `error_code` と `message` だけを読む。
+
+送る規則:
+
+- 原因のパケットの送信元 (IPv4, UDP port) へ unicast で送る。以下「送信元」はこの (IPv4, UDP port) の組を指す。
+- 同じ送信元・同じ `error_code` には、1 秒に 1 回までとする（毎 10 ms の DATA が拒否され続けても、1 秒に 1 通）。
+- 機体全体でも 1 秒に 10 通までとする。頻度を数える表が満杯のときは、新しい送信元へは送らない。
+- 送信元の UDP port が 0 のとき、送信元の address が broadcast・multicast のときは送らない。（hapbeat-helper は UDP 7700 から送るので、port 7700 は除外しない。機体どうしの往復は、機体が ERROR・PONG・CAPS に ERROR を返さないことで起きない）
+- ERROR・PONG・CAPS に対して ERROR を送らない。`stream-session.md` の Errors に挙げた正常な事象（古い END、同じ BEGIN の再送など）には送らない。
+- 定義済みのコマンドのうち、そのノードが役割上扱わないもの（例: broker・sensor が受けた PLAY・STREAM・CONNECT_STATUS）は、黙って無視する（UNKNOWN_COMMAND を返さない）。
+- 1.x のファームは送る（CAPS の `features` bit1）。0.x のファームは送らない。
+
+受ける規則（SDK）:
+
+- 自分が送った先の機体の address と UDP port 7700 から届いた ERROR だけを扱う。stream の code（0x0011–0x0017）は、`detail` が自分の追跡している session（現在のもの、または直前に終えたもの）の envelope と一致するときだけ扱う。それ以外は無視する（他の送信者の偽装による停止を防ぐ。信頼された LAN の前提の範囲での対策であり、認証ではない）。
+- 扱いは endpoint ごとに決める（ある機体の ERROR で、他の機体への送信を変えない）。
+
+| code | 名前 | 原因 | 送信側の扱い |
+|---|---|---|---|
+| 0x0001 | UNSUPPORTED_VERSION | 知っている command_type で、知らない `protocol_version` | ログに出す |
+| 0x0002 | UNKNOWN_COMMAND | 知らない command_type | その endpoint でその機能を使わない |
+| 0x0003 | MALFORMED | 長さの不足・不一致、必須項目の欠落、範囲外の値、長すぎる target | ログに出す |
+| 0x0010 | STREAM_GEN_UNSUPPORTED | Stream Gen 2 専用の受信機が Stream Gen 1 を受けた | 1.x の SDK: その endpoint の分類が古い（機体が更新された）ので、拡張 PING を unicast で送って分類し直す。`message` は Stream Gen 1 しか送れない旧い SDK の利用者向けに、SDK の更新を促す文にする |
+| 0x0011 | STREAM_LEASE_INVALID | lease が無い・期限切れ・送信元の束縛が違う・`device_boot_id` が違う | 拡張 PING で lease を取り直し、新しい世代で始め直す |
+| 0x0012 | STREAM_SUPERSEDED | BEGIN・DATA の ticket が high-water の ticket より小さい（別の lease の session が後から始まった） | その機体を保留し、自動で奪い返さない |
+| 0x0013 | STREAM_NOT_STARTED | high-water より新しい tuple の DATA で、その BEGIN を受けていない | 同じ BEGIN を再送する |
+| 0x0014 | STREAM_TIMED_OUT | inactivity timeout で終えた session への DATA | session を続けるなら、新しい世代で BEGIN する |
+| 0x0015 | STREAM_STOPPED | STOP_ALL で終えた session への DATA | その機体から source を外し、同じ Playback ではその機体に再参加しない（`sdk-multi-stream.md` §6.13） |
+| 0x0016 | STREAM_ENDED | END で終えた session への DATA | ログに出す（送信側の不具合） |
+| 0x0017 | STREAM_TARGET_MISMATCH | BEGIN の target がこの機体に一致しない | endpoint を再解決する |
+
+stream の code の詳細な条件は `stream-session.md` の Receiver ordering と Errors に従う。
 
 ## 5. エンディアン
 
@@ -293,8 +411,9 @@ OSC メッセージの引数は、対応する UDP コマンドの payload フ�
 - 送信側が 1 コマンドごとに seq をインクリメントする限り、連打や高速な再発火では
   seq が異なるので誤抑制は起きない。同一 seq が短時間に複数届くのは
   「同じコマンドが複数経路で来た」場合に限られる
-- **STREAM 系（0x30 / 0x31 / 0x32）は対象外**。これらの seq は「ストリーム内の位置」を
-  意味し、コマンドの同一性を表さないため重複排除を適用しない
+- **STREAM 系（0x30 / 0x31 / 0x32）は対象外**。送信側は STREAM 系にも送信ごとに増やした seq を
+  付けるが、受信側は STREAM 系の seq を重複排除にも順序の判定にも使わない。Stream Gen 2 の
+  順序は envelope と DATA の offset で判定する（`stream-session.md`）
 - 記憶期間を過ぎた同一 seq は通常どおり発火する（送信アプリ再起動で seq が
   巻き戻った場合に恒久的に無視されることを避けるため）
 
@@ -322,8 +441,8 @@ OSC メッセージの引数は、対応する UDP コマンドの payload フ�
 ## 10. パケットサイズ制限
 
 - コマンドパケット（PLAY, STOP, PING 等）: 最大 **512 bytes**（ヘッダ + payload の合計）
-- ストリーミングパケット（STREAM_DATA）: 最大 **1500 bytes**（Ethernet MTU）
-- UDP MTU を考慮した制限値であり、IP フラグメンテーションを防止する
+- ストリーミングパケット（STREAM_DATA）: 送信側は **1472 bytes 以下**（ヘッダ + payload の合計。推奨は 1400 bytes 以下）、受信側は **1500 bytes まで**受理する
+- 1472 bytes は、Ethernet MTU 1500 から IPv4 ヘッダ 20 bytes と UDP ヘッダ 8 bytes を引いた、IP フラグメンテーションを起こさない UDP payload の上限である。VPN やトンネルを経由する経路では MTU が小さくなるため、1400 bytes 以下を推奨する
 
 ## 11. ストリーミングプロファイルの対応広告（get_info）
 
@@ -336,9 +455,12 @@ OSC メッセージの引数は、対応する UDP コマンドの payload フ�
 - 値は format 単位（`"pcm16"` / `"adpcm"` / `"opus"`）。profile（LD/Q）の区別は wire format が同一（format=2）のため広告しない — フレーム長/ビットレートは STREAM_BEGIN が自己記述する。
 - Opus 未対応の firmware（旧 build）は `stream_formats` を返さない。送信側は**フィールド不在 = pcm16/adpcm のみ対応**とみなす。
 - Helper は本フィールドを get_info passthrough で Studio/SDK に透過する。
+- 1.x のファームは同じ内容を、UDP の CAPS（§0x13 の `stream_formats`）と get_info の `caps.stream_formats`（`serial-config.md` §4.1）でも申告する。UDP だけを使う SDK は CAPS を読む。
 
 ## 12. 関連文書
 
+- `versioning.md` — 版の付け方、変更の分類、無視・拒否の規則、凍結している形式（DEC-096）
+- `stream-session.md` — Stream Gen 2（セッション方式）の識別・順序・lease・timeout
 - `espnow-stream.md` — ESP-NOW transport 上の Opus profile（`P-audio-LD` 相当）のパケット形式
 - `../docs/decision-log.md` DEC-042 — Opus 採用確定の判断
 - `../docs/instructions-opus-streaming-plan-202607040323.md` — プロファイル設計・遅延バジェット・実装フェーズの計画書（本文書の §0x30/§0x31 拡張の元仕様）

@@ -101,8 +101,8 @@ manifest.json は Kit のメタデータと Event ID からクリップファイ
 
 | フィールド | 型 | 必須 | 説明 |
 |-----------|-----|------|------|
-| `firmware_version_min` | string | はい | 対応する最小ファームウェアバージョン |
-| `firmware_version_max` | string | いいえ | 対応する最大ファームウェアバージョン（省略時は上限なし） |
+| `firmware_version_min` | string | はい | 対応するファームの major の下限。1.x の書き手は `<major>.0.0` を書き、読み手は major だけを比べる（`versioning.md` §11） |
+| `firmware_version_max` | string | いいえ | 照合しない（読み手は無視し、1.x の書き手は書かない。`versioning.md` §11） |
 | `board` | string | いいえ | 想定基板識別子（例: `duo_wl_v3`、`neck_wl_v2`）。Kit 作者が「この基板で調整した」というコンテキストを保存するためのもの。ファームウェア側のメタ情報と一致しない場合の警告判定に利用してよい |
 | `volume_level` | integer | いいえ | Kit 作者がチューニング時に使ったデバイス音量レベル（例: 0–N）。再現性のためのコンテキスト情報 |
 | `volume_wiper` | integer | いいえ | デバイスの MCP4018 wiper 値（0–127）。`volume_level` より低レベルの値で、wiper 直接指定が必要な再現に使う |
@@ -365,7 +365,8 @@ build → validate → install → activate → 差し替え / 削除
 
 - manifest.json 自体のスキーマバージョンを示す。
 - スキーマに互換性のない変更が加えられた場合、メジャーバージョンが上がる。
-- デバイスファームウェアは対応する schema_version の範囲を持ち、非対応バージョンの Kit はロードを拒否する。
+- デバイスファームウェアは対応する schema_version の範囲を持ち、非対応バージョンの Kit はロードを拒否する。範囲は 1.x のファームが `get_info` の `caps.kit_schema`（major の min / max）で申告する（`serial-config.md` §4.1）。Kit を書き込むツール（Studio・helper）も書込みの前に照合する（`versioning.md` §11）。0.x のファームは schema_version を照合していない。
+- 機体が受け付ける `install-clips/` の音声の形式は `caps.kit_clip_formats` で申告する。現行の形式は WAV（PCM16）だけである。
 
 ## 10. 制約事項
 

@@ -2,7 +2,7 @@
 
 ## 1. Scope
 
-本仕様は、Hapbeat SDK が WifiUdp の `STREAM_BEGIN / STREAM_DATA / STREAM_END` を用いて、1 アプリから複数の論理 source を複数の target へ同時送信するための共通契約を定める。wire format は `message-format.md` と `stream-session-v2.md` に従う。
+本仕様は、Hapbeat SDK が WifiUdp の `STREAM_BEGIN / STREAM_DATA / STREAM_END` を用いて、1 アプリから複数の論理 source を複数の target へ同時送信するための共通契約を定める。wire format は `message-format.md` と `stream-session.md`（Stream Gen 2）に従う。
 
 EspNowStreamSource / EspNowStreamReceiver / EspNowStreamRepeater は会場向け連続音声 transport であり、本仕様の SDK sender session には含めない。Python SDK を利用する TouchDesigner / VRChat integration は Python SDK の実装を共有し、独自の mixer や wire session を複製しない。
 
@@ -26,12 +26,14 @@ playStream(source, options) -> Playback
 Playback:
   id
   status = Deferred | Active | Stopped
-  deferredReason = NoResolvedEndpoint | None
+  deferredReason = NoResolvedEndpoint | UnknownClass | LeaseUnavailable | Superseded | None
   gain
   pan
   loop
   stop()  // idempotent
 ```
+
+`deferredReason` の `UnknownClass`（照合済みの PONG がまだ無い）・`LeaseUnavailable`（lease が無い・失効した）・`Superseded`（別のアプリが後から再生した）は 1.x で追加する（`stream-session.md` Sender requirements 6）。0.x の SDK は `NoResolvedEndpoint` だけを持つ。
 
 既存の `playClip`、`streamPcm`、`openStream`、generator helper 等の利便 API は残してよい。ただし、それぞれが独自の単一 session を管理してはならず、同じ StreamHub に source を登録する薄い入口にする。
 
@@ -99,16 +101,16 @@ rightGain = gain * (pan >= 0 ? 1 : 1 + pan)
 
 ## 6. Lifecycle
 
-1. endpoint session は最初の source が active になった時に BEGIN を 1 回送る。
-2. source の追加・削除・gain / pan 変更だけでは BEGIN / END を送らない。
+1. endpoint session は最初の source が active になった時に始める（新しい世代の BEGIN）。1.x では、同じ BEGIN を `stream-session.md` の Sender requirements 2 のとおり再送する（同じ tuple の再送であり、新しい session ではない）。
+2. source の追加・削除・gain / pan 変更だけでは新しい session を始めず、END も送らない。
 3. endpoint session の最後の source が停止または完了した時に END を 1 回送る。
 4. 1 source の stop は同じ endpoint session の sibling source を停止してはならない。
 5. Playback の stop は複数回呼んでも結果が変わらない。
 6. live push source が Deferred の間、SDK は入力を無制限に保持してはならない。SDK は未解決中の write を drop するか、bounded buffer / backpressure を提供し、その方針を API 文書へ明記する。
 7. 最後の source を外した endpoint session は、実装が既に持つ linger を適用してから END を送ってよい。
    linger 中も外れた source の DATA を送ってはならない。
-8. `stream-session-v2.md` のdevice-issued leaseとgenerationを全streamに付ける。END後の300 ms cooldownは持たず、次世代を即開始できる。lingerとcooldownを混同しない。
-9. v2非対応（旧）ファームの機器には `stream-session-v2.md` の Legacy receiver fallback に従い、その機器だけv1 streamと300 ms END→BEGIN guardで送る。SDKだけの更新で旧ファームの機器を無音にしない。
+8. `stream-session.md` の device-issued lease と generation を全 stream に付ける（Stream Gen 2）。END 後の 300 ms cooldown は持たず、次の世代を即開始できる。linger と cooldown を混同しない。
+9. Stream Gen 2 に対応しない（0.4.x 以前の）ファームの機器には、`stream-session.md` の Legacy receiver fallback に従い、その機器だけ Stream Gen 1 と 300 ms の END→BEGIN guard で送る。SDK だけの更新で旧いファームの機器を無音にしない。
 10. **有限 source の完了**: 有限 source は、一致する全 endpoint で最後まで再生した時点で完了する。
     legacy endpoint の END→BEGIN guard を待っている endpoint は「未再生（保留）」として数え、guard 明けに
     frame 0 から再生してから完了とする。保留中の endpoint が消えた（expiry）・target に一致しなくなった
@@ -116,17 +118,25 @@ rightGain = gain * (pan >= 0 ? 1 : 1 + pan)
     保留の間、他 endpoint で再生済みでも Playback は Active のまま扱ってよい。
 11. legacy guard は endpoint（IPv4, UDP port, device address の組）単位で掛ける。同じ address を持つ
     別の機器へ波及させない。
+12. session を開いている間は、無音を含めて DATA を送り続ける。live source に新しい入力が無い間は、
+    その source を無音として混合する（DATA を止めない。`stream-session.md` の Inactivity timeout）。
+13. **[1.x] STOP_ALL による停止**: ある endpoint の session が STOP_ALL で終わったこと（ERROR
+    `STREAM_STOPPED`、`message-format.md` §0xFF）を受けたら、その時点でその endpoint に一致していた
+    source を、その endpoint から外す。外した source は、同じ Playback のうちはその endpoint に
+    再参加しない（新しい世代の BEGIN を自動で送らない）。他の endpoint での再生は続ける。その
+    endpoint で Playback が残らなければ、その Playback の状態は §6.10 の完了の判定に従う（外した endpoint は「再生済み」として数える）。新しい
+    `playStream` で作った Playback は、その endpoint にも通常どおり参加する。
 
 ## 7. Conformance cases
 
 各 SDK の memory / fake transport test は最低限、次を確認する。
 
 1. 異なる 2 endpoint の source が別 endpoint session へ送られ、全 STREAM packet が exact unicast である。
-2. 同じ endpoint の 2 source が 1 session で混合され、BEGIN は 1 回だけである。
+2. 同じ endpoint の 2 source が 1 session で混合され、session（BEGIN の tuple）は 1 つだけである（同じ BEGIN の再送は数えない）。
 3. source ごとの gain / pan / stop が sibling source に影響しない。
 4. endpoint 未解決時は packet を送らず Deferred となり、PONG 後に source 先頭から Active になる。
 5. 最後の source 停止時だけ END が 1 回送られる。
-6. broadcast の STREAM packet が存在しない。v2機器では、旧世代END/BEGIN/DATAを遅延・並替えしても、新世代の再生を停止・再初期化・汚染しない。終了直後の新世代に300 msの待ちが入らない。旧ファームの機器にはv1 streamで送り、300 ms guardはその機器だけに掛かる。
+6. broadcast の STREAM packet が存在しない。Stream Gen 2 の機器では、旧い世代の END / BEGIN / DATA を遅延・並替えしても、新しい世代の再生を停止・再初期化・汚染しない。終了直後の新しい世代に 300 ms の待ちが入らない。Stream Gen 1 の機器には Stream Gen 1 で送り、300 ms guard はその機器だけに掛かる。
 7. Active source の Address Override は即時に endpoint membership を Reconcile し、旧 endpoint
    への DATA を停止する。最後の source の END は linger 方針に従い、既知の新 endpoint は frame 0
    で即参加する。caller が Playback を再発行せず、未知の新 target は即時 PING と PONG 後の自動参加
@@ -138,6 +148,8 @@ rightGain = gain * (pan >= 0 ? 1 : 1 + pan)
    attack の最初の 2 block を除き ±32767 に張り付くサンプルは生じず（soft knee により < FS）、ピークは
    0.85〜0.95·FS に収まり、block 境界に段差がない。attack 中の block は係数が 1.0 から線形に下がるため、
    block 前半で knee の上限に達してよい。
+
+10. live source に入力が無い間も、開いている session の DATA（無音）が途切れない（§6.12）。
 
 共通 fixture は `../fixtures/sdk-multi-stream-routing.json` を用いる。
 
