@@ -61,6 +61,7 @@ hapbeat-contracts 自体は他のどの repo にも依存しません。
 | `event-id.md` | Event ID 命名規則（`<kit-name>.<clip-name>` 形式） |
 | `message-format.md` | Wi-Fi UDP/OSC メッセージプロトコル（PLAY/STOP/STOP_ALL/CONNECT_STATUS 他、`wifi_udp` transport） |
 | `stream-session.md` | Stream Gen 2（セッション方式）: stream の識別・順序・lease・inactivity timeout・送信側の要件 |
+| `helper-ws.md` | Helper の WebSocket の最初のメッセージ `helper_hello` と、能力（`types`・`features`）による機能の判定 |
 | `helper-streaming.md` | ブラウザ→Helper 音声 stream の世代ID・最新 transaction 所有権 |
 | `sdk-multi-stream.md` | SDK 共通の論理 source・device endpoint・endpoint session・mixing 契約 |
 | `node-roles.md` | ノード役割 / 通信モード taxonomy（receiver/sensor/broker/transmitter × wifi_udp/mqtt/espnow_stream、DEC-034） |

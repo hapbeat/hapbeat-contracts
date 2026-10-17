@@ -12,6 +12,8 @@
 - `stream-session.md`: 1.x の要件（拡張 PING は unicast で TTL/3 以下、lease slot は 32 以上、再発行の規則と tail の flag bit 2 `lease_reissued`、stream を受けないノードの tail、受信側の判定順と ERROR、送信側の要件、診断の項目）と、1.x の SDK の PONG の分類規則（32 byte 以上の tail を読み、予約と未知の flag を無視する）。superseded の保留を解くのは `lease_reissued` の応答だけ。
 - `sdk-multi-stream.md`: `deferredReason` の値の追加、BEGIN の再送、live source の無入力時の無音、STOP_ALL で止まった endpoint の扱い（§6.13）。
 - `helper-streaming.md`: 既存の `stream_ack`・`stream_displaced` の定義、`stream_lost` と `stream_begin.takeover`（1.x）。
+- `helper-ws.md`（新規）: `helper_hello` の `generation`・`types`・`features` と、Studio・ブラウザの client が能力で機能を判定する規則。
+- `sdk-multi-stream.md` §6.14 差し替え（re-splice、Unity SDK の実装を契約にした）と §6.15 モーター 1 個の endpoint では pan を適用しない混合。`message-format.md`: モーター 1 個の受信機は stereo の stream を (L+R)/2 で鳴らす、`haptic_channels` はモーターの数、BEGIN の flush の閾値 32 ms を契約として扱う。
 - `kit-format.md`: `caps.kit_schema` と `caps.kit_clip_formats` による照合。
 - fixture `stream-session-cases.json`（PONG の分類と受信側の判定）、`wire-extension-cases.json`（CAPS・ERROR・PLAY の末尾・PING の長さ）と、その参照テスト `tests/test_wire_compat.py`。
 

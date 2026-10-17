@@ -91,7 +91,7 @@ gain_r = gain × (pan >= 0 ? 1.0 : 1.0 + pan)
 - 受信側は `pan` を `[-1.0, +1.0]` にクランプしてから適用する
 - **mono クリップ**: 1 サンプルを L/R に複製したうえで上式を掛ける（mono 音源 + コマンドで左右差を付けるのが主用途）
 - **stereo クリップ**: 既存の L/R にそれぞれ `gain_l` / `gain_r` を掛ける（バランス。真のパンニングではない）
-- **出力が 1 系統の実装**（片側アクチュエータ / mono I2S）は `pan` を無視し、中央（`gain` のみ）として再生する
+- **出力が 1 系統の実装**（モーター 1 個、CAPS の `haptic_channels` = 1）は `pan` を無視し、中央（`gain` のみ）として再生する。回路の出力が stereo でもモーターが 1 個なら 1 系統として扱う
 - equal-power を採らない理由: Hapbeat の左右アクチュエータは身体上で物理的に分離しており両耳加算のような合成は起きないため、equal-power の √½ 補正は中央定位のクリップを mono 相当より約 3 dB 弱めるだけで利点が無い（SDK の StreamClip と同じ判断）
 
 ### 0x02 STOP
@@ -220,7 +220,7 @@ caps_version 1 の `type`:
 | 0x03 | stream_gens | uint8 bitmap | 受け付ける Stream の世代。bit0 = Gen 1、bit1 = Gen 2。stream を受けないノード（broker・sensor）は `0` |
 | 0x04 | stream_formats | uint8 bitmap | デコードできる形式。bit0 = PCM16、bit1 = IMA ADPCM、bit2 = Opus（STREAM_BEGIN の `format` の値 0 / 1 / 2 の順） |
 | 0x05 | stream_limits | 4 bytes | `lease_ttl_s`（uint8）、`lease_slots`（uint8）、`inactivity_timeout_s`（uint8）、reserved（uint8 = 0）。値の意味は `stream-session.md` |
-| 0x06 | haptic_channels | uint8 | 独立して駆動できる触覚出力の数（1 = 片側のみ、2 = 左右） |
+| 0x06 | haptic_channels | uint8 | 機体が駆動するモーター（触覚出力）の数。1 = モーター 1 個（mono。PLAY の pan を無視し、stereo の stream を (L+R)/2 で鳴らす）、2 = 左右（stereo）。ファームは board ごとのビルド設定として持つ（例: DuoWL v4 は 2、Band v2〜v4 は 1） |
 | 0x07 | address_max_len | uint8 | 受け付ける address・target の最大 byte 数（NUL を除く） |
 | 0x08 | features | uint32 bitmap | 追加機能。bit0 = `play_pan`（PLAY の `pan` を左右へ適用する）、bit1 = `error_reply`（§0xFF の ERROR を返す）。他の bit は予約（`0`） |
 
@@ -251,6 +251,8 @@ UDP オーディオストリーミングの開始を通知する。**ADPCM デ�
 
 - **残差 ≤ 32 ms（短い末尾）**: クリアせず**自然ドレイン**。直前の one-shot を最後まで鳴らし、rapid STREAM_END→STREAM_BEGIN による切り詰めを防ぐ。
 - **残差 > 32 ms（前ストリームがまだ再生中＝Live Audio のソース切替等）**: リングバッファを**フラッシュ**して再開し、古いコンテンツの長い尾を断つ。
+
+この閾値（32 ms）は受信機の内部の値だが、SDK の差し替え（`sdk-multi-stream.md` §6.14）がこの挙動に依存するため契約として扱う。値を変えるときは先に contracts を変える。同じ tuple の BEGIN の再送（`stream-session.md`）はこの処理を行わない（冪等）。
 
 したがって**連続変調**を続ける場合は、STREAM_END を挟まず STREAM_DATA を流し続ければ STREAM_BEGIN は最初の 1 回のみとなり、リングが枯渇しない限り 1 本のストリームとして途切れず再生される。ストリーミングは voice ミキサーと並行して動作し、ローカルクリップの再生を停止しない。
 
@@ -301,6 +303,7 @@ STREAM_BEGIN/DATA/END には **event_id フィールドを含まない**。devic
 | offset | uint32 | バイトオフセット。Stream Gen 2 では重複・逆順の DATA を拒否する（uint32 の wrap の規則は `stream-session.md`） |
 | data | variable | オーディオデータ（PCM16 raw bytes、ADPCM encoded bytes、または Opus フレーム列） |
 
+- **触覚出力が 1 系統の受信機**（モーターが 1 個。CAPS の `haptic_channels` = 1）は、stereo の stream を (L+R)/2 で mono にして鳴らす（片方の channel だけを鳴らさない）。1.x の SDK はそうした endpoint へ pan を適用しない混合を送る（`sdk-multi-stream.md` §6.15）。
 - PCM16: raw interleaved 16-bit LE samples
 - ADPCM mono: 2 samples per byte (low nibble first)
 - ADPCM stereo: 1 frame per byte (L=low nibble, R=high nibble)

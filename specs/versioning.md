@@ -122,7 +122,7 @@ Stream の世代は、能力申告ではなく、拡張 PING への照合済み�
 
 - Studio は、ファームを書き込む前に、書き込む image の major と機体の現在の major を比べ、異なる場合は互換の変化を案内する（書込みは止めない）。
 - Kit を書き込むツールは、`caps` の `kit_schema` と `kit_clip_formats` を Kit と照合し、対応しない Kit は書き込まない（§11）。
-- helper と Studio の間の互換も、版ではなく helper が申告する能力で判定する（helper と Studio の間の申告の形式は別途定める）。
+- helper と Studio の間の互換も、版ではなく helper が申告する能力（`helper_hello` の `types`・`features`、`helper-ws.md`）で判定する。
 
 ### 5.5 表を写さない
 

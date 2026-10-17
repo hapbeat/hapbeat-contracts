@@ -91,7 +91,7 @@ Desktop アプリ（hapbeat-desktop）から Hapbeat デバイスに USB serial 
 | `stream_gens` | integer 配列 | 受け付ける Stream の世代。stream を受けないノードは `[]` |
 | `stream_formats` | string 配列 | top-level の `stream_formats` と同じ |
 | `lease_ttl_s` / `lease_slots` / `inactivity_timeout_s` | integer | `stream-session.md` の lease TTL・slot 数・inactivity timeout。stream を受けないノードは省略 |
-| `haptic_channels` | integer | 独立して駆動できる触覚出力の数 |
+| `haptic_channels` | integer | 機体が駆動するモーター（触覚出力）の数。1 = mono、2 = 左右（`message-format.md` §0x13） |
 | `address_max_len` | integer | 受け付ける address・target の最大 byte 数（NUL を除く） |
 | `features` | string 配列 | UDP の CAPS の `features` の bit 名（`play_pan`、`error_reply`） |
 | `kit_schema` | object | 受け付ける Kit manifest の `schema_version` の major の範囲（`kit-format.md`、`versioning.md` §11） |

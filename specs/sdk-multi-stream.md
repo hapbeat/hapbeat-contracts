@@ -117,7 +117,7 @@ rightGain = gain * (pan >= 0 ? 1 : 1 + pan)
 ## 6. Lifecycle
 
 1. endpoint session は最初の source が active になった時に始める（新しい世代の BEGIN）。1.x では、同じ BEGIN を `stream-session.md` の Sender requirements 2 のとおり再送する（同じ tuple の再送であり、新しい session ではない）。
-2. source の追加・削除・gain / pan 変更だけでは新しい session を始めず、END も送らない。
+2. source の追加・削除・gain / pan 変更だけでは新しい session を始めず、END も送らない。例外は §6.14 の差し替え（Stream Gen 2 の endpoint だけ）。
 3. endpoint session の最後の source が停止または完了した時に END を 1 回送る。
 4. 1 source の stop は同じ endpoint session の sibling source を停止してはならない。
 5. Playback の stop は複数回呼んでも結果が変わらない。
@@ -141,6 +141,25 @@ rightGain = gain * (pan >= 0 ? 1 : 1 + pan)
     再参加しない（新しい世代の BEGIN を自動で送らない）。他の endpoint での再生は続ける。その
     endpoint で Playback が残らなければ、その Playback の状態は §6.10 の完了の判定に従う（外した endpoint は「再生済み」として数える）。loop・live の source が全 endpoint から外れた場合は `Stopped` にする。新しい
     `playStream` で作った Playback は、その endpoint にも通常どおり参加する。
+14. **[1.x] 差し替え（re-splice）**: SDK は send-ahead の分だけ先にブロックを送っている。新しい source の
+    開始がすでに送ったブロックの中に入る場合、何もしなければその source は次の未送信のブロックから
+    混ざり、send-ahead の分だけ遅れて鳴る（他の source の有無で遅れが変わる）。これを避けるため、
+    Stream Gen 2 の endpoint では次のとおり session を差し替える（Unity SDK の実装、DEC-093）。
+    - 条件: endpoint が Stream Gen 2 で、session の BEGIN と DATA を送り済みで、新しい source の開始より後の
+      送り済みの音が機体に 40 ms 以上たまっている見込みのとき（受信機の BEGIN の flush の閾値 32 ms
+      （`message-format.md` §0x30）に、通信中の packet の余裕を足した値）。条件を満たさないときは、
+      source は次の未送信のブロックから混ざる。
+    - 手順: 新しい source の開始を含むブロックまで、他の source の cursor を戻す（loop の source は周期で
+      巻き戻す。そのブロックより後に始まる source は開始前の位置にする）。新しい source は先頭から入れる。
+      今の世代の END を送り、同じ lease で新しい世代の BEGIN を送り、作り直したブロックをすぐに送る。
+      受信機は、32 ms を超えてたまった音をその BEGIN で捨てるので、作り直した混合に置き換わる。
+    - 送り直す範囲の中で終わった one-shot は、送り直さない（その最後の数 ms は鳴らない）。
+    - Stream Gen 1 の endpoint では行わない（300 ms の guard があるため）。
+    - これは §6.2 の例外であり、新しい世代は同じ lease の中で上げる。
+15. **[1.x] 触覚出力が 1 系統の endpoint**: CAPS の `haptic_channels` が 1 の endpoint（モーターが 1 個の
+    機体）では、source の pan を適用せずに混合する（左右に同じ値を入れる）。受信機は stereo の stream を
+    (L+R)/2 で mono にして鳴らすので（`message-format.md` §0x31）、pan で片側に寄せた音が弱く・無音に
+    ならない。能力申告の無い機体（0.x）は `haptic_channels` が分からないので、今どおり pan を適用する。
 
 ## 7. Conformance cases
 
@@ -165,6 +184,10 @@ rightGain = gain * (pan >= 0 ? 1 : 1 + pan)
    block 前半で knee の上限に達してよい。
 
 10. live source に入力が無い間も、開いている session の DATA（無音）が途切れない（§6.12）。
+11. **[1.x]** 送り済みのブロックの中に始まる source を足すと、条件（§6.14）を満たす Stream Gen 2 の endpoint では
+    END と新しい世代の BEGIN の後に作り直したブロックが続き、新しい source は先頭から入る。条件を満たさない
+    場合と Stream Gen 1 の endpoint では、session は変わらず次の未送信のブロックから混ざる。
+12. **[1.x]** `haptic_channels` が 1 の endpoint では、pan を付けた source でも左右の PCM が同じになる（§6.15）。
 
 共通 fixture は `../fixtures/sdk-multi-stream-routing.json` を用いる。
 
