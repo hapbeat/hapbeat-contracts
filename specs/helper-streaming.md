@@ -37,7 +37,7 @@ a client that ignores them cannot tell that its stream went silent.
 |---|---|---|
 | `stream_ack` | `stream_id` (when the begin carried one), `status`, `targets` (IPs started), optional `deferred` (IPs not started) | `status` `ok`: started on `targets`; the destinations in `deferred` were not ready in time (unknown class, no lease, superseded). `no_target`: started on none. `error`: rejected (`message` says why). `no_session`: sent once when data/end arrive for a transaction that holds no destination (displaced or never begun), so the client can begin again |
 | `stream_displaced` | `stream_id`, `targets` (IPs), `by` (the newer `stream_id`), `same_client` (bool) | A newer `stream_begin` took these destinations. `same_client` true means the client replaced its own stream |
-| `stream_lost` **[1.x]** | `stream_id`, `targets` (IPs), `reason` | Helper ended the transaction on these destinations because of the device side. `reason`: `device_rebooted`, `lease_changed`, `superseded`, `timed_out`, `stopped` (STOP_ALL), `unreachable` |
+| `stream_lost` **[1.x]** | `stream_id`, `targets` (IPs), `reason` | Helper ended the transaction on these destinations because of the device side. `reason`: `device_rebooted`, `lease_changed`, `superseded`, `stopped` (STOP_ALL), `target_mismatch`, `unreachable` (recovery below failed) |
 
 A client whose every destination is displaced, lost or deferred treats its
 playback as lost (Studio's `LiveStreamLoss`), and may start a new transaction.
@@ -52,8 +52,15 @@ destination of an active transaction:
   (`device_rebooted` or `lease_changed`). It does not keep sending DATA under the
   retired identity.
 - When the device reports a stream error (`message-format.md` §0xFF) for the
-  session, Helper acts as an SDK would (`stream-session.md` Sender requirements 5)
-  and sends `stream_lost` with the matching `reason`.
+  session, Helper acts as an SDK would (`stream-session.md` Sender requirements 5).
+  It recovers STREAM_LEASE_INVALID, STREAM_TIMED_OUT and STREAM_NOT_STARTED by
+  itself (renew the lease, begin a new generation or resend BEGIN, and keep
+  forwarding the client's data) without telling the client; if that recovery fails,
+  it sends `stream_lost` with `unreachable`. STREAM_SUPERSEDED, STREAM_STOPPED and
+  STREAM_TARGET_MISMATCH end the transaction on that destination with `stream_lost`
+  (`superseded`, `stopped`, `target_mismatch`).
+- Helper may use a separate client incarnation per destination, so that a takeover
+  on one device does not change Helper's leases on the others.
 
 ## Takeover [1.x]
 

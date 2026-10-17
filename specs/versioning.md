@@ -230,7 +230,8 @@ Arduino SDK はできる範囲で Gen 2 を入れ、入った時点で 1.0 と�
 
 - Kit manifest の `schema_version` の major が、機体の `caps.kit_schema` の範囲外なら、Kit を書き込むツールと機体は拒否する（§7.2）。
 - Kit の音声の形式は、機体の `caps.kit_clip_formats` に含まれるものだけを使う。
-- `target_device.firmware_version_min` は major の下限として扱う（§5.1 の「major だけを比べる」に従う）。1.x の書き手は `<major>.0.0`（例 `1.0.0`）を書き、1.x の読み手は major だけを比べて、Kit の major が機体の major 以下なら受け付ける。既存の Kit の `0.1.0` などは major 0 なので、1.x の機体は受け付ける。0.x のファームは semver 全体で比べるため、`1.0.0` と書いた Kit を拒否する（古いファームに新しい Kit を入れない）。
+- `target_device.firmware_version_min` は major の下限として扱う（§5.1 の「major だけを比べる」に従う）。1.x の読み手は major だけを比べ、Kit の major が機体の major 以下なら受け付ける。
+- 書き手は、その Kit が必要とする最も低い major を書く。現行の形式（WAV の音声）だけを使う Kit は 0.x のファームでも使えるので、従来どおり `0.1.0` を書く。1.x で増えた機能（例: 将来の Opus の音声）を使う Kit だけ `1.0.0` を書く。0.x のファームは semver 全体で比べるため、`1.0.0` の Kit は拒否し、`0.1.0` の Kit は受け付ける。既存の Kit（`0.1.0` など）は 1.x の機体でも使える。
 - 新しい機能に依存する Kit は、版ではなく能力（`caps.kit_clip_formats` など）で判定する（§3.4）。
 - `target_device.firmware_version_max` は照合しない（読み手は無視する。書き手は書かない）。
 
