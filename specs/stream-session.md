@@ -317,9 +317,12 @@ capture.
 1. **Keep DATA flowing.** While a session is open, send DATA continuously,
    including silence. A live source with no new input contributes silence; it must
    not stop the session's DATA (see Inactivity timeout).
-2. **[1.x] Repeat BEGIN.** Send the session's BEGIN again with each of the first
-   three DATA blocks, and resend it at least every 500 ms while the session is open
-   (equal BEGIN is idempotent). On STREAM_NOT_STARTED, resend it at once. This
+2. **[1.x] Repeat BEGIN.** Send the session's BEGIN at least three times in total
+   before the session's third DATA block (the first BEGIN counts), and then resend
+   it at least every 500 ms while the session is open (equal BEGIN is idempotent).
+   On STREAM_NOT_STARTED, resend it at once. A repeated BEGIN carries the
+   endpoint's current device address as its target (an address that changed during
+   the session would otherwise be rejected with STREAM_TARGET_MISMATCH). This
    recovers a lost BEGIN, which would otherwise silence the whole session.
 3. **[1.x] Detect own gaps.** If the sender could not send DATA for 3 s or more
    (process suspended, debugger break, sleep), it ends the session and begins a

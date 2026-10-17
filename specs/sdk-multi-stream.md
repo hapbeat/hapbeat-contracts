@@ -35,6 +35,21 @@ Playback:
 
 `deferredReason` の `UnknownClass`（照合済みの PONG がまだ無い）・`LeaseUnavailable`（lease が無い・失効した）・`Superseded`（別のアプリが後から再生した）は 1.x で追加する（`stream-session.md` Sender requirements 6）。0.x の SDK は `NoResolvedEndpoint` だけを持つ。
 
+- 一致する endpoint ごとに理由が違うときは、`Superseded` > `LeaseUnavailable` > `UnknownClass` > `NoResolvedEndpoint` の順で 1 つを報告する。1 つでも再生中の endpoint があれば `Active` とする。
+- Stream Gen 1 の endpoint の 300 ms guard を待つ間は Deferred にしない（§6.10 のとおり Active のまま扱ってよい）。
+
+1.x の SDK は、endpoint ごとの状態も公開する（名前は各言語の規則に従う）:
+
+```text
+streamEndpoints() -> list of StreamEndpointInfo
+StreamEndpointInfo:
+  address           // PONG が報告した完全な device address
+  ip
+  streamClass = Gen1 | Gen2 | Unknown
+  leaseState  = Valid | Unavailable | Superseded | None   // Gen2 のみ。他は None
+onStreamEndpointChanged(StreamEndpointInfo)   // class・leaseState が変わったとき
+```
+
 既存の `playClip`、`streamPcm`、`openStream`、generator helper 等の利便 API は残してよい。ただし、それぞれが独自の単一 session を管理してはならず、同じ StreamHub に source を登録する薄い入口にする。
 
 ## 4. Endpoint resolution
@@ -124,7 +139,7 @@ rightGain = gain * (pan >= 0 ? 1 : 1 + pan)
     `STREAM_STOPPED`、`message-format.md` §0xFF）を受けたら、その時点でその endpoint に一致していた
     source を、その endpoint から外す。外した source は、同じ Playback のうちはその endpoint に
     再参加しない（新しい世代の BEGIN を自動で送らない）。他の endpoint での再生は続ける。その
-    endpoint で Playback が残らなければ、その Playback の状態は §6.10 の完了の判定に従う（外した endpoint は「再生済み」として数える）。新しい
+    endpoint で Playback が残らなければ、その Playback の状態は §6.10 の完了の判定に従う（外した endpoint は「再生済み」として数える）。loop・live の source が全 endpoint から外れた場合は `Stopped` にする。新しい
     `playStream` で作った Playback は、その endpoint にも通常どおり参加する。
 
 ## 7. Conformance cases
