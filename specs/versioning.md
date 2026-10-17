@@ -13,7 +13,7 @@
 ## 2. 版の形式
 
 - [Semantic Versioning](https://semver.org/) の `MAJOR.MINOR.PATCH` を用いる。manifest・release feed・PONG・get_info に載せる版は先頭に `v` を付けない正準形とする。
-- 開発版は `<次の版>-d<N>`（UPM・npm）または `<次の版>d<N>`（PEP 440 の Python パッケージ・ファーム）とする。比較の前に接尾辞を除く（`release-feed.md` §4）。
+- 開発版は、UPM・npm では `<次の版>-d<N>`、Python パッケージのメタデータ（`pyproject.toml`）では PEP 440 の `<次の版>.dev<N>`、ファームの `FIRMWARE_VERSION` と、実行時に表示するだけの版の文字列（helper の `__version__` など）では `<次の版>d<N>` とする。比較の前に接尾辞を除く（`release-feed.md` §4）。
 - MAJOR・MINOR・PATCH の意味は §3 と §6 で定める。semver の「MAJOR = 互換の無い公開 API の変更」に対し、Hapbeat では通信の形（本 contracts の仕様）と各 SDK の公開 API の両方を公開 API とする。
 
 ## 3. major の規則

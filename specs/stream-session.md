@@ -345,6 +345,12 @@ capture.
    Gen 2, unknown) and why a Playback is deferred (no resolved endpoint, unknown
    class, lease unavailable, superseded) through their public API, not only logs.
 7. **Same socket** for extended PINGs and every packet of a session (Assumptions).
+8. **[1.x] Continue interrupted sources.** When the SDK replaces a session that
+   ended while its sources were still playing — a ticket change, STREAM_LEASE_INVALID,
+   STREAM_TIMED_OUT or the own-gap rule — the new session continues each finite
+   source from its current cursor; it does not restart it from frame 0 (that would
+   play a one-shot twice). Sources removed by STREAM_STOPPED do not continue
+   (`sdk-multi-stream.md` §6.13).
 
 ## Legacy receiver fallback (SDK)
 
