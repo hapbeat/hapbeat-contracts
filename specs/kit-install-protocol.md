@@ -127,6 +127,11 @@ payload は空である。
 | 0x04 | ERR_INVALID_STATE | プロトコル状態不正（例: FILE_DATA が FILE_BEGIN の前に来た） |
 | 0x05 | ERR_KIT_NOT_FOUND | 指定 Kit が見つからない |
 | 0x06 | ERR_INVALID_FRAME | フレーム解析エラー |
+| 0x07 | ERR_FIRMWARE_TOO_OLD | Kit の `target_device.firmware_version_min` を機体が満たさない（0.x のファームが既に使っている値。1.x は major だけを比べる、`versioning.md` §11） |
+| 0x08 | ERR_SCHEMA_UNSUPPORTED | **[1.x]** manifest の `schema_version` の major が機体の `caps.kit_schema` の範囲外 |
+| 0x09 | ERR_STORAGE_INCOMPATIBLE | **[1.x]** 音声領域の版が合わず使えない（`get_info` の `storage_incompatible`。`reset_storage` で初期化してから入れ直す、`serial-config.md` §4.23） |
+
+拒否した Kit は、機体に残さない（次の起動で読み込まれないようにする）。
 
 ### 0xC2 KIT_LIST_RESPONSE
 
