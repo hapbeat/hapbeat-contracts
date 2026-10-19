@@ -242,5 +242,36 @@
         }
       }
     ]
+  },
+  "unsigned_demo_settings_get": {
+    "version": 1,
+    "type": "DEMO_SETTINGS_GET",
+    "controller_id": "remote-pixel",
+    "nonce": "0123456789abcdef",
+    "target": "boxing"
+  },
+  "unsigned_demo_settings": {
+    "version": 1,
+    "type": "DEMO_SETTINGS",
+    "controller_id": "remote-pixel",
+    "nonce": "0123456789abcdef",
+    "revision": 4,
+    "target": "boxing",
+    "installed": true,
+    "settings": {
+      "haptics_db": "2",
+      "round": "55"
+    }
+  },
+  "unsigned_demo_settings_set": {
+    "version": 1,
+    "type": "DEMO_SETTINGS_SET",
+    "controller_id": "remote-pixel",
+    "seq": 48,
+    "demo_id": "demo_hub",
+    "target": "boxing",
+    "settings": {
+      "haptics_db": "4"
+    }
   }
 }

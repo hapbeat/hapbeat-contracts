@@ -17,6 +17,7 @@
 - `kit-format.md`: `caps.kit_schema` と `caps.kit_clip_formats` による照合。
 - fixture `stream-session-cases.json`（PONG の分類と受信側の判定）、`wire-extension-cases.json`（CAPS・ERROR・PLAY の末尾・PING の長さ）と、その参照テスト `tests/test_wire_compat.py`。
 - `display-layout.md`「UI 設定のボタンと画面の向き」（DEC-098）: UI 設定（ui-config）の `display.orientation` と `display.button_actions`。ボタンの ID は画面の文字が読める向きで見た位置（Band は左・中央・右、Duo は 3 個の列の上・中・下と 2 個の列の上・下）で、機器が向きに応じて物理スイッチへ割り当てる。Wi-Fi 選択画面の操作も位置で固定する。
+- `demo-session.md`「デモごとの設定」と descriptor の option の `scope`（`session` / `device`）、`demo-switch-control.md`「Demo settings」の `DEMO_SETTINGS_GET` / `DEMO_SETTINGS` / `DEMO_SETTINGS_SET`（DEC-099）。schema と fixture（`descriptor_boxing`、`unsigned_demo_settings_*`）。
 
 ### 破壊
 

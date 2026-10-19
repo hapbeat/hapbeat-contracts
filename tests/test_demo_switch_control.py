@@ -121,7 +121,15 @@ CANONICAL = {
     'HUB_SETTINGS_SET': ('COMMAND', ['version', 'type', 'controller_id', 'seq', 'demo_id', 'haptics_ui', 'recenter_ui',
                                      'hand_style', 'narration_volume', 'staff_waiting', 'visible_demos']),
     'HUB_START': ('COMMAND', ['version', 'type', 'controller_id', 'seq', 'demo_id', 'steps']),
+    'DEMO_SETTINGS_GET': ('DEMO_SETTINGS_GET', ['version', 'type', 'controller_id', 'nonce', 'target']),
+    'DEMO_SETTINGS': ('DEMO_SETTINGS', ['version', 'type', 'controller_id', 'nonce', 'revision', 'target', 'installed',
+                                        'settings']),
+    'DEMO_SETTINGS_SET': ('COMMAND', ['version', 'type', 'controller_id', 'seq', 'demo_id', 'target', 'settings']),
 }
+
+def canonical_settings(settings):
+    """`settings` HMAC value of DEMO_SETTINGS / DEMO_SETTINGS_SET (sorted by option ID, ordinal)."""
+    return '|'.join(f'{key}={value}' for key, value in sorted(settings.items()))
 
 def canonical_value(name, value):
     if name == 'steps':
@@ -130,6 +138,8 @@ def canonical_value(name, value):
         return canonical_demos(value)
     if name == 'visible_demos':
         return '|'.join(value)
+    if name == 'settings':
+        return canonical_settings(value)
     if isinstance(value, bool):
         return 'true' if value else 'false'
     return str(value)
@@ -241,6 +251,61 @@ class HubParityTests(unittest.TestCase):
         partial = canonical_bytes(FIXTURES['unsigned_state_partial'])
         self.assertTrue(partial.endswith(b'step_count=1:3\nscreen=10:completion\n'))
         self.assertNotIn(b'device_model=', partial)
+
+class DemoSettingsTests(unittest.TestCase):
+    NAMES = ['unsigned_demo_settings_get', 'unsigned_demo_settings', 'unsigned_demo_settings_set']
+
+    def test_fixtures_valid_and_within_datagram(self):
+        validator = Draft202012Validator(SCHEMA)
+        for name in self.NAMES:
+            with self.subTest(name=name):
+                validator.validate(FIXTURES[name])
+                self.assertLessEqual(len(json.dumps(FIXTURES[name], ensure_ascii=False, separators=(',', ':')).encode('utf-8')), 1024)
+        settings = {f'option{i}': 'v' for i in range(8)}
+        validator.validate(dict(FIXTURES['unsigned_demo_settings'], settings=settings))
+        validator.validate(dict(FIXTURES['unsigned_demo_settings'], installed=False, settings={}))
+        validator.validate(dict(FIXTURES['unsigned_demo_settings_set'], settings=settings))
+
+    def test_rejects_invalid(self):
+        validator = Draft202012Validator(SCHEMA)
+        nine = {f'option{i}': 'v' for i in range(9)}
+        cases = {
+            'unsigned_demo_settings_get': [dict(target='Boxing'), dict(seq=1), dict(nonce='xyz'), dict(extra=1)],
+            'unsigned_demo_settings': [dict(revision=-1), dict(installed='yes'), dict(installed=False),
+                                       dict(settings={'haptics_db': 2}), dict(settings={'haptics_db': 'a|b'}),
+                                       dict(settings={'Haptics': '2'}), dict(settings=nine), dict(extra=1)],
+            'unsigned_demo_settings_set': [dict(demo_id='boxing'), dict(seq=0), dict(settings={}), dict(settings=nine),
+                                           dict(settings={'haptics_db': '4=5'}), dict(target='../x'),
+                                           dict(nonce='0123456789abcdef')],
+        }
+        for name, changes_list in cases.items():
+            for changes in changes_list:
+                with self.subTest(name=name, changes=changes):
+                    self.assertFalse(validator.is_valid(dict(FIXTURES[name], **changes)))
+            for field in CANONICAL[FIXTURES[name]['type']][1]:
+                value = copy.copy(FIXTURES[name])
+                del value[field]
+                self.assertFalse(validator.is_valid(value), (name, field))
+
+    def test_canonical_settings(self):
+        self.assertEqual(canonical_settings(FIXTURES['unsigned_demo_settings']['settings']), 'haptics_db=2|round=55')
+        self.assertIn(b'settings=21:haptics_db=2|round=55\n', canonical_bytes(FIXTURES['unsigned_demo_settings']))
+        self.assertIn(b'installed=4:true\n', canonical_bytes(FIXTURES['unsigned_demo_settings']))
+        self.assertIn(b'settings=0:\n', canonical_bytes(dict(FIXTURES['unsigned_demo_settings'], installed=False, settings={})))
+        self.assertTrue(canonical_bytes(FIXTURES['unsigned_demo_settings_set']).startswith(b'HAPBEAT-DEMO-SWITCH/1\nCOMMAND\n'))
+        self.assertTrue(canonical_bytes(FIXTURES['unsigned_demo_settings_set']).endswith(b'target=6:boxing\nsettings=12:haptics_db=4\n'))
+        self.assertEqual(canonical_settings({'b': '1', 'a_': '2', 'a': '3'}), 'a=3|a_=2|b=1')
+
+    def test_hmac_reference_values(self):
+        expected = {
+            'unsigned_demo_settings_get': 'bbd39a11d9b607e9ce63b1541d102768c294f93b8d64b6e192147f0810d00c40',
+            'unsigned_demo_settings': 'bcbd4b9a0a15ede79e48bedf1ab30fdc7c636c81c3bf2735d0af67354ae0a8a5',
+            'unsigned_demo_settings_set': '0e18d85624c98c0f63b39291176219c48a1e560e452a5398ddc28b05c3f3571e',
+        }
+        for name, digest in expected.items():
+            with self.subTest(name=name):
+                self.assertEqual(sign(FIXTURES[name]), digest)
+                Draft202012Validator(SCHEMA).validate(dict(FIXTURES[name], auth=digest))
 
 if __name__ == '__main__':
     unittest.main()

@@ -47,6 +47,15 @@
     },
     {
       "$ref": "#/$defs/hub_start"
+    },
+    {
+      "$ref": "#/$defs/demo_settings_get"
+    },
+    {
+      "$ref": "#/$defs/demo_settings"
+    },
+    {
+      "$ref": "#/$defs/demo_settings_set"
     }
   ],
   "$defs": {
@@ -925,6 +934,153 @@
           "items": {
             "$ref": "#/$defs/preset_step"
           }
+        },
+        "auth": {
+          "$ref": "#/$defs/auth"
+        }
+      }
+    },
+    "demo_settings_values": {
+      "description": "Option ID -> value of one demo (demo-switch-control.md, Demo settings).",
+      "type": "object",
+      "maxProperties": 8,
+      "propertyNames": {
+        "$ref": "#/$defs/identifier"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9._-]{0,31}$"
+      }
+    },
+    "demo_settings_get": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "type",
+        "controller_id",
+        "nonce",
+        "target"
+      ],
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "controller_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "nonce": {
+          "$ref": "#/$defs/nonce"
+        },
+        "type": {
+          "const": "DEMO_SETTINGS_GET"
+        },
+        "target": {
+          "$ref": "#/$defs/identifier"
+        },
+        "auth": {
+          "$ref": "#/$defs/auth"
+        }
+      }
+    },
+    "demo_settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "type",
+        "controller_id",
+        "nonce",
+        "revision",
+        "target",
+        "installed",
+        "settings"
+      ],
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "controller_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "nonce": {
+          "$ref": "#/$defs/nonce"
+        },
+        "type": {
+          "const": "DEMO_SETTINGS"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "The HUB_SETTINGS revision counter"
+        },
+        "target": {
+          "$ref": "#/$defs/identifier"
+        },
+        "installed": {
+          "type": "boolean"
+        },
+        "settings": {
+          "$ref": "#/$defs/demo_settings_values",
+          "description": "Every option of the target descriptor with its stored value; empty when not installed"
+        },
+        "auth": {
+          "$ref": "#/$defs/auth"
+        }
+      },
+      "if": {
+        "properties": {
+          "installed": {
+            "const": false
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "settings": {
+            "maxProperties": 0
+          }
+        }
+      }
+    },
+    "demo_settings_set": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "type",
+        "controller_id",
+        "seq",
+        "demo_id",
+        "target",
+        "settings"
+      ],
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "controller_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "demo_id": {
+          "const": "demo_hub"
+        },
+        "type": {
+          "const": "DEMO_SETTINGS_SET"
+        },
+        "target": {
+          "$ref": "#/$defs/identifier"
+        },
+        "settings": {
+          "$ref": "#/$defs/demo_settings_values",
+          "minProperties": 1,
+          "description": "1-8 option IDs of the target descriptor; only these change"
         },
         "auth": {
           "$ref": "#/$defs/auth"

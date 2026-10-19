@@ -128,6 +128,97 @@
     },
     "options": []
   },
+  "descriptor_boxing": {
+    "version": 1,
+    "demo_id": "boxing",
+    "title": {
+      "ja": "ボクシング",
+      "en": "Boxing"
+    },
+    "minutes": 2,
+    "supports": {
+      "haptics_toggle": true
+    },
+    "options": [
+      {
+        "id": "round",
+        "label": {
+          "ja": "ラウンド",
+          "en": "Round"
+        },
+        "default": "55",
+        "values": [
+          {
+            "value": "30",
+            "label": {
+              "ja": "30秒",
+              "en": "30 s"
+            }
+          },
+          {
+            "value": "55",
+            "label": {
+              "ja": "55秒",
+              "en": "55 s"
+            }
+          }
+        ]
+      },
+      {
+        "id": "haptics_db",
+        "label": {
+          "ja": "触覚の強さ",
+          "en": "Haptics level"
+        },
+        "default": "2",
+        "scope": "device",
+        "values": [
+          {
+            "value": "0",
+            "label": {
+              "ja": "0 dB",
+              "en": "0 dB"
+            }
+          },
+          {
+            "value": "2",
+            "label": {
+              "ja": "-2 dB",
+              "en": "-2 dB"
+            }
+          },
+          {
+            "value": "4",
+            "label": {
+              "ja": "-4 dB",
+              "en": "-4 dB"
+            }
+          },
+          {
+            "value": "6",
+            "label": {
+              "ja": "-6 dB",
+              "en": "-6 dB"
+            }
+          },
+          {
+            "value": "9",
+            "label": {
+              "ja": "-9 dB",
+              "en": "-9 dB"
+            }
+          },
+          {
+            "value": "12",
+            "label": {
+              "ja": "-12 dB",
+              "en": "-12 dB"
+            }
+          }
+        ]
+      }
+    ]
+  },
   "ticket": {
     "version": 1,
     "session_id": "0f3a9c2e7b1d4a56",
