@@ -17,6 +17,7 @@ Quest 上の独立 demo runtime（Unity / Unreal の別 APK）を、体験者が
 - Schema: [`demo-session-descriptor.schema.json`](../schemas/demo-session-descriptor.schema.json)。例: [`sample-demo-session.json`](../fixtures/sample-demo-session.json) の `descriptor_*`。
 - `demo_id` は Demo Switch と同じ identifier 規則（`[a-z0-9][a-z0-9._-]{0,63}`）。
 - `options` は列挙型だけを持つ。各 option は `id`、`label`、`values`（`value` と `label`）、`default` を持つ。`value` は文字列。`when` を持つ option は、指定した別 option の値がいずれかに一致するときだけ有効で、それ以外では ticket に含めない。
+- `scope`（任意、既定 `session`）は option の種類。`session` は体験ごとに選ぶもの（プリセットや plan の step が持つ）。`device` はその端末でのデモごとの調整（例: Boxing の触覚の強さ `haptics_db`）で、step は持たず、Hub の「デモごとの設定」から ticket に入る（下の [デモごとの設定](#デモごとの設定)）。
 - `supports.haptics_toggle` が true の demo は、実行中の触覚 ON/OFF（下記）を実装する。
 - `minutes` は 1 step の目安時間（分、表示用）。
 
@@ -112,7 +113,7 @@ session mode の runtime は、demo 固有の完了イベントで、体験者�
 
 - Hub は起動 Intent の String extra `com.hapbeat.demo_hub.start` を受け付ける。値は JSON 1 個（最大 4096 bytes）:
   - `{"version":1,"preset":1}` … Hub のプリセット 1〜3 の plan で session を開始。
-  - `{"version":1,"demo_id":"handdemo","options":{"tutorial":"on"}}` … そのデモ 1 本の session（options は省略可、未指定・未知値は descriptor の既定値、retry=true、finish=Hub、`haptics_ui` / `recenter_ui` / `hand_style` は Hub の管理画面の設定）。
+  - `{"version":1,"demo_id":"handdemo","options":{"tutorial":"on"}}` … そのデモ 1 本の session（options は省略可、未指定・未知値はデモごとの設定の値、retry=true、finish=Hub、`haptics_ui` / `recenter_ui` / `hand_style` は Hub の管理画面の設定）。
   - `{"version":1,"steps":[{"demo_id":"handdemo","options":{"tutorial":"on"}},{"demo_id":"trex-encounter","retry":false}]}` … 外部（リモコン）で組んだ plan の session。`steps` は 1〜32 件、各 step は `demo_id`（必須）、`options`（任意、規則は 1 本指定と同じ）、`retry`（任意、既定 true）だけを持つ。`haptics_ui` / `recenter_ui` / `hand_style` と `finish` は 1 本指定と同じく Hub が決める。未インストール・不正な step が 1 つでもあれば全体を開始しない。Hub のプリセット 1〜3 は変えない（外部の plan は保存しない）。
   - `preset` / `demo_id` / `steps` はどれか 1 つだけ。未知フィールドは不正。
 - 受け付けたら Hub は自分のトップ画面を出さずに ticket を作って 1 本目を起動する（起動遷移の規則は同じ）。不正・未インストールなら Hub のトップを開いてステータス行に理由を出す。
@@ -143,12 +144,23 @@ Web のデモ紹介ページ（devtools-site のショーケース）で組ん�
   - 取り込んだ step は `options` と `retry` を含めて保存し、Hub に渡すときは検証済みの値から JSON を組み立て直す（受け取った文字列をそのまま使わない）。`name` は表示と保存にだけ使い、コマンドや JSON の組み立てに入れない。Hub へのコマンドに値を埋め込む実装（adb の `am start ... '<json>'` 等）は、pattern の検証に加えて、シェルの引用を正しくエスケープする。
   - 取り込む各プリセットについて、書き込む Hub の枠（1〜3）を利用者が選ぶ。中身のある枠には上書きになることを明示する。書き込みは `PRESET_SET`（`visible` は true）で行う。Hub が前面でない・応答しないときは、取り込んだプリセットをリモコン内に「未書き込み」として保存し（アプリを閉じても残す）、Hub が前面になったあとの利用者の操作で書き込む。書き込めたものはリモコンから消す。未書き込みのプリセットも、書き込む前に中身を確認・削除できる。
 
+## デモごとの設定
+
+端末（Hub）ごとに、各デモの option の値を 1 組ずつ持つ。どこから起動しても（プリセット、タイル、外部からの起動、ticket なしの直接起動）同じ調整で動かすため。
+
+- Hub は、カタログの各 demo について、その descriptor の option ごとの値（デモごとの設定）を持ち、端末に保存する（再起動しても残る）。Hub の管理画面と Demo Switch の [Demo settings](demo-switch-control.md#demo-settings) で変更する。初期値は descriptor の `default`。descriptor が変わって保存した値が無効になったものは、`default` に戻して警告ログを出す。
+- Hub が ticket を作るとき（プリセット、タイル、外部からの起動、`HUB_START` / `PRESET_START`）:
+  - `scope` が `device` の option には、常にデモごとの設定の値を入れる。step が同じ option を持っていたら使わず、警告ログを出す。
+  - `scope` が `session` の option には、step が持つ値を使い、持たなければデモごとの設定の値を使う。タイルと 1 本指定の外部起動（`demo_id`）は、保存した設定で始まる。
+- プリセット（Hub の管理画面、`PRESET_SET`）、外部の plan、リモコンが取り込んだプリセットは、`scope` が `device` の option を持たない。Hub とリモコンは書き込み・取り込みのときに外し、確認画面で外したことを示す。
+- `scope` が `device` の option を宣言した runtime は、ticket で受け取ったその値を端末内（アプリの保存領域）に保存し、ticket なしで起動されたとき（Quest のアプリ一覧、Demo Switch の `SWITCH`）は保存した値を使う（無ければ descriptor の `default`）。保存するのは device の option の値だけで、session mode は永続化しない（「受け取り」の 2）。
+
 ## Hub
 
 - Hub は自身の `demo_id` を `demo_hub` とし、descriptor を持たない。
 - ticket なしで起動された場合は待機 / plan 編集画面。`index == len(steps)` の ticket で起動された場合は終了画面（ヘッドセットを外す案内と、同じ plan での再開操作）を出す。
 - Hub はプリセット 1〜3 を持つ。各プリセットは名前（空可）、トップ画面に出すか（`visible`）、steps を持ち、Hub の管理画面と、Demo Switch の [Hub presets](demo-switch-control.md#hub-presets)（リモコンからの読み書き・開始）で変更する。リモコンが取り込んだプリセット（上の QR / リンク）は `PRESET_SET` で Hub の枠へ書き込む。
-- Hub 全体の設定（`haptics_ui`、`recenter_ui`、`hand_style`、スタッフ待機モード、トップに出すデモのタイル）は、Hub の管理画面と Demo Switch の [Hub settings](demo-switch-control.md#hub-settings) で変更する。管理画面を閉じる・終了画面の操作（トップへ、最初から）は `CONTROL` の `hub_top` / `hub_replay` でもできる。Hub の管理画面でできることは、端末の宛先（adb で書く）を除いてすべてリモコンからもできる。
+- Hub 全体の設定（`haptics_ui`、`recenter_ui`、`hand_style`、スタッフ待機モード、トップに出すデモのタイル）は、Hub の管理画面と Demo Switch の [Hub settings](demo-switch-control.md#hub-settings) で、[デモごとの設定](#デモごとの設定) は管理画面と [Demo settings](demo-switch-control.md#demo-settings) で変更する。管理画面を閉じる・終了画面の操作（トップへ、最初から）は `CONTROL` の `hub_top` / `hub_replay` でもできる。Hub の管理画面でできることは、端末の宛先（adb で書く）を除いてすべてリモコンからもできる。
 - plan の保存形式と編集 UI は Hub 実装に委ねる。
 
 ## ナレーションの音量

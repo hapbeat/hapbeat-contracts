@@ -318,6 +318,41 @@ manage screen offers can be done from the controller. Like the Hub presets, only
   視線をリセット button, the top or staff waiting screen) and sends `READY`; a storage failure returns `FAILED/launch_failed`.
 - The device address is not written here (it is pushed with adb, see Demo Session).
 
+## Demo settings
+
+A controller may read and change the Hub's [per-demo settings](demo-session.md#デモごとの設定) (the value of every
+descriptor option of one installed demo, used for every launch of that demo from this Hub). Like the Hub settings, only
+the Hub handles these messages.
+
+```json
+{"version":1,"type":"DEMO_SETTINGS_GET","controller_id":"remote-pixel","nonce":"0123456789abcdef","target":"boxing"}
+```
+
+```json
+{"version":1,"type":"DEMO_SETTINGS","controller_id":"remote-pixel","nonce":"0123456789abcdef","revision":4,"target":"boxing","installed":true,"settings":{"haptics_db":"2","round":"55"}}
+```
+
+- `DEMO_SETTINGS_GET` is answered like `HUB_SETTINGS_GET` (no sequence, a fresh `nonce`, answered while not foreground
+  too). `target` is the demo's `demo_id`.
+- `settings`: every option of the target's descriptor (both scopes, also those inactive by `when`) with the stored value.
+  The reply must fit in 1024 bytes: when the Hub loads a descriptor whose `DEMO_SETTINGS` could exceed it (long option IDs
+  or values), it logs a warning and keeps that demo out of the per-demo settings (its launches use the descriptor
+  defaults as before). Descriptor authors keep option IDs and values short. For a demo that is not installed,
+  `installed` is false and `settings` is empty.
+- `revision` is the same counter as in `HUB_SETTINGS` (it increases with every save of the Hub's settings, presets or
+  per-demo settings).
+
+```json
+{"version":1,"type":"DEMO_SETTINGS_SET","controller_id":"remote-pixel","seq":48,"demo_id":"demo_hub","target":"boxing","settings":{"haptics_db":"4"}}
+```
+
+- `DEMO_SETTINGS_SET` follows the `HUB_SETTINGS_SET` rules (CONTROL rules, refused with `FAILED/not_allowed` while the
+  manage screen is open or a launch is in progress). `settings` holds 1–8 option IDs of the target's descriptor, each with
+  one of its `values[].value`; only these options change. A target that is not installed returns `FAILED/not_allowed`, an
+  unknown option or value `FAILED/invalid_payload`, with the offending ID in `message`, and nothing is stored.
+- On success the Hub sends `ACK`, stores the settings (increasing `revision`) and sends `READY`; a storage failure returns
+  `FAILED/launch_failed`. The next launch of that demo uses them.
+
 ## Hub start
 
 `HUB_START` starts a Demo Session from steps sent by the controller, like the Hub start extra `steps`
@@ -335,7 +370,7 @@ manage screen offers can be done from the controller. Like the Hub presets, only
 
 ## Authentication of the Hub settings and Hub start
 
-With a shared secret all four carry `auth`, with the field encoding above:
+With a shared secret all of them carry `auth`, with the field encoding above:
 
 - `HUB_SETTINGS_GET`: header `HAPBEAT-DEMO-SWITCH/1\nHUB_SETTINGS_GET\n`, fields `version`, `type`, `controller_id`,
   `nonce`, `from`.
@@ -350,3 +385,11 @@ With a shared secret all four carry `auth`, with the field encoding above:
   IDs joined with `|` in the order sent (empty for none).
 - `HUB_START`: header `HAPBEAT-DEMO-SWITCH/1\nCOMMAND\n`, fields `version`, `type`, `controller_id`, `seq`, `demo_id`,
   `steps` (encoded like `PRESET_SET`).
+- `DEMO_SETTINGS_GET`: header `HAPBEAT-DEMO-SWITCH/1\nDEMO_SETTINGS_GET\n`, fields `version`, `type`, `controller_id`,
+  `nonce`, `target`.
+- `DEMO_SETTINGS`: header `HAPBEAT-DEMO-SWITCH/1\nDEMO_SETTINGS\n`, fields `version`, `type`, `controller_id`, `nonce`,
+  `revision`, `target`, `installed`, `settings`. The `settings` value is its entries sorted by option ID (ordinal) and
+  joined with `|`, each `<id>=<value>` (both match the identifier / value patterns, so they contain neither `|` nor `=`);
+  the example above signs `settings=21:haptics_db=2|round=55`.
+- `DEMO_SETTINGS_SET`: header `HAPBEAT-DEMO-SWITCH/1\nCOMMAND\n`, fields `version`, `type`, `controller_id`, `seq`,
+  `demo_id`, `target`, `settings` (encoded like `DEMO_SETTINGS`).
