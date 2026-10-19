@@ -78,7 +78,7 @@
           "ja": "点数",
           "en": "Points"
         },
-        "default": "3",
+        "default": "4",
         "when": {
           "scene": [
             "block",
@@ -91,6 +91,12 @@
             "value": "3",
             "label": {
               "ja": "3点先取"
+            }
+          },
+          {
+            "value": "4",
+            "label": {
+              "ja": "4点先取"
             }
           },
           {
@@ -130,12 +136,12 @@
     "steps": [
       {
         "demo_id": "volley",
-        "title": "バレー ブロック 3点",
+        "title": "バレー ブロック 4点",
         "package": "jp.hapbeat.volley",
         "activity": "com.unity3d.player.UnityPlayerGameActivity",
         "options": {
           "scene": "block",
-          "points": "3"
+          "points": "4"
         },
         "retry": true
       },
