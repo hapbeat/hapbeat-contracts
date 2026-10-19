@@ -102,7 +102,7 @@ session mode の runtime は、demo 固有の完了イベントで、体験者�
 
 複数の HMD を同時に使う展示で、HMD ごとに触覚の宛先（player / group）を分けるための端末単位の設定。アプリを開いて個別に変える手間をなくすため、インストール時に operator の PC から書き込む。
 
-- 置き場所: 各 demo runtime（Hub を含む）の app-specific external files directory 直下の `hapbeat-device.json`（Android の `Context.getExternalFilesDir(null)`。Quest では `/sdcard/Android/data/<package>/files/`）。runtime は追加の権限なしで読める。adb から `adb push` で書ける。
+- 置き場所: 各 demo runtime（Hub を含む）の app-specific external files directory 直下の `hapbeat-device.json`（Android の `Context.getExternalFilesDir(null)`。Quest では `/sdcard/Android/data/<package>/files/`）。runtime は追加の権限なしで読める。adb から `adb push`（または adb shell での書き込み）で書ける。書くのは operator の PC（`hapbeat-demos/tools/install-demos.ps1 -Group n`）か、Wi-Fi adb でつないだ Android リモコン（その HMD に入っている全 demo の分を一度に書き換える）。
 - 形式: `{"version":1,"player":<int>,"group":<int>}`。値は 1〜99、または -1（その軸は指定しない）。schema: [`demo-device-address.schema.json`](../schemas/demo-device-address.schema.json)。最大 1024 bytes。
 - 適用: runtime は起動時、Hapbeat SDK の初期化後に 1 回読み、-1 でない軸を SDK の address override（`SetAddressOverride(player, group, persist: false)`）に設定する。ビルドで固定された軸（Unity `HapbeatConfig.buildOverride*`、Unreal `ForcedOverride*`）はそちらが優先し、ファイルでは変わらない。ファイルの値は、端末に保存された override（PlayerPrefs 等）より優先する。実行中に runtime の UI や API で変えるのは自由。
 - ファイルが無い・壊れている場合は何もしない（不正なら警告ログ）。適用結果をログ `HAPBEAT_DEVICE_ADDRESS player=<n> group=<n>` で出す。
