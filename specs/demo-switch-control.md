@@ -330,7 +330,7 @@ the Hub handles these messages.
 ```
 
 ```json
-{"version":1,"type":"DEMO_SETTINGS","controller_id":"remote-pixel","nonce":"0123456789abcdef","revision":4,"target":"boxing","installed":true,"settings":{"haptics_db":"2","round":"55"}}
+{"version":1,"type":"DEMO_SETTINGS","controller_id":"remote-pixel","nonce":"0123456789abcdef","hub_id":"5c1e0a9b7d3f2468","revision":4,"target":"boxing","installed":true,"settings":{"haptics_db":"2","round":"55"}}
 ```
 
 - `DEMO_SETTINGS_GET` is answered like `HUB_SETTINGS_GET` (no sequence, a fresh `nonce`, answered while not foreground
@@ -341,6 +341,9 @@ the Hub handles these messages.
   defaults as before; its `DEMO_SETTINGS` has `installed` true and empty `settings`, and `DEMO_SETTINGS_SET` for it returns
   `FAILED/not_allowed`). Descriptor authors keep option IDs and values short. For a demo that is not installed,
   `installed` is false and `settings` is empty.
+- `hub_id`: 16 lowercase hex the Hub generates once (at its first start, from a secure random source) and stores with
+  its settings. It identifies this Hub (headset) to a controller that keeps local copies of its per-demo settings, so the
+  copies follow the headset and not its IP address or adb serial. It changes only when the Hub's data is cleared.
 - `revision` is the same counter as in `HUB_SETTINGS` (it increases with every save of the Hub's settings, including a
   preset's `visible`, and of the per-demo settings; saving a preset's name or steps does not change it).
 
@@ -390,7 +393,7 @@ With a shared secret all of them carry `auth`, with the field encoding above:
 - `DEMO_SETTINGS_GET`: header `HAPBEAT-DEMO-SWITCH/1\nDEMO_SETTINGS_GET\n`, fields `version`, `type`, `controller_id`,
   `nonce`, `target`.
 - `DEMO_SETTINGS`: header `HAPBEAT-DEMO-SWITCH/1\nDEMO_SETTINGS\n`, fields `version`, `type`, `controller_id`, `nonce`,
-  `revision`, `target`, `installed`, `settings`. The `settings` value is its entries sorted by option ID (ordinal) and
+  `hub_id`, `revision`, `target`, `installed`, `settings`. The `settings` value is its entries sorted by option ID (ordinal) and
   joined with `|`, each `<id>=<value>` (both match the identifier / value patterns, so they contain neither `|` nor `=`);
   the example above signs `settings=21:haptics_db=2|round=55`.
 - `DEMO_SETTINGS_SET`: header `HAPBEAT-DEMO-SWITCH/1\nCOMMAND\n`, fields `version`, `type`, `controller_id`, `seq`,

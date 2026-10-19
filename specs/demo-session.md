@@ -151,7 +151,8 @@ Web のデモ紹介ページ（devtools-site のショーケース）で組ん�
 - Hub は、カタログの各 demo について、その descriptor の option ごとの値（デモごとの設定）を持ち、端末に保存する（再起動しても残る）。Hub の管理画面と Demo Switch の [Demo settings](demo-switch-control.md#demo-settings) で変更する。初期値は descriptor の `default`。descriptor が変わって保存した値が無効になったものは、`default` に戻して警告ログを出す。
 - Hub が ticket を作るとき（プリセット、タイル、外部からの起動、`HUB_START` / `PRESET_START`）:
   - `scope` が `device` の option には、常にデモごとの設定の値を入れる。step が同じ option を持っていたら使わず、警告ログを出す。
-  - `scope` が `session` の option には、step が持つ値を使い、持たなければデモごとの設定の値を使う。タイルと 1 本指定の外部起動（`demo_id`）は、保存した設定で始まる。
+  - `scope` が `session` の option には、step が持つ値を使い、持たなければ descriptor の `default` を使う（プリセットと plan の中身は step だけで決まり、編集画面に出る値のとおりに始まる）。step を持たない起動、つまりタイルと 1 本指定の外部起動（`demo_id`。`options` で指定しなかった option）だけは、デモごとの設定の値を使う。
+- 古い Hub で保存したプリセットが `scope` が `device` の option を持っていたら、Hub は読み込むときに外して警告ログを出す（値は移さない。device の値はデモごとの設定だけが持つ）。
 - プリセット（Hub の管理画面、`PRESET_SET`）、外部の plan、リモコンが取り込んだプリセットは、`scope` が `device` の option を持たない。Hub とリモコンは書き込み・取り込みのときに外し、確認画面で外したことを示す。
 - `scope` が `device` の option を宣言した runtime は、ticket で受け取ったその値を端末内（アプリの保存領域）に保存し、ticket なしで起動されたとき（Quest のアプリ一覧、Demo Switch の `SWITCH`）は保存した値を使う（無ければ descriptor の `default`）。保存するのは device の option の値だけで、session mode は永続化しない（「受け取り」の 2）。
 
