@@ -16,11 +16,13 @@
 - `sdk-multi-stream.md` §6.14 差し替え（re-splice、Unity SDK の実装を契約にした）と §6.15 モーター 1 個の endpoint では pan を適用しない混合。`message-format.md`: モーター 1 個の受信機は stereo の stream を (L+R)/2 で鳴らす、`haptic_channels` はモーターの数、BEGIN の flush の閾値 32 ms を契約として扱う。
 - `kit-format.md`: `caps.kit_schema` と `caps.kit_clip_formats` による照合。
 - fixture `stream-session-cases.json`（PONG の分類と受信側の判定）、`wire-extension-cases.json`（CAPS・ERROR・PLAY の末尾・PING の長さ）と、その参照テスト `tests/test_wire_compat.py`。
+- `display-layout.md`「UI 設定のボタンと画面の向き」（DEC-098）: UI 設定（ui-config）の `display.orientation` と `display.button_actions`。ボタンの ID は画面の文字が読める向きで見た位置（Band は左・中央・右、Duo は 3 個の列の上・中・下と 2 個の列の上・下）で、機器が向きに応じて物理スイッチへ割り当てる。Wi-Fi 選択画面の操作も位置で固定する。
 
 ### 破壊
 
 - なし。0.x のうち Stream Gen 2 に対応した SDK（`versioning.md` §9）は、1.x のファームとつながる（PING・PONG と Stream Gen 2 のパケットの形は変えていない）。0.x の SDK は、1.x のファームが送る ERROR を無視するかログに出すだけで、`lease_reissued` の付いた応答は不正な tail として無視する（0.5.0 と同じく保留のまま）。実機で確認する。
 - Kit の `firmware_version_min` は major だけを比べ、`firmware_version_max` は照合しない（`versioning.md` §11）。0.x のファームは semver 全体で比べるため、1.x の書き手が `1.0.0` と書いた Kit を 0.x の機体は拒否する（意図どおり）。
+- UI 設定のボタンの ID の意味（DEC-098）: これまで機器は ID を回転させない向きの物理位置として割り当てていた。`orientation: "flipped"` の UI 設定では、左右（Duo は列の上下と左右）の働きが入れ替わる。Studio の表示も見た目の位置に揃える。
 
 ### 修正
 

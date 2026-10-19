@@ -124,6 +124,61 @@ Hapbeat デバイスに搭載される OLED ディスプレイ（128x64 ピク�
 | `toggle_display` | ディスプレイの表示/非表示を切り替える |
 | `none` | 何もしない |
 
+この節の `button_actions` は Kit の `display-layout.json` に書く、機器全体で 1 組の割り当てである。ボタンごとの割り当ては、次節の UI 設定に書く。
+
+## UI 設定のボタンと画面の向き
+
+Hapbeat Studio が機器へ書き込む UI 設定（ui-config。TCP の `write_ui_config`、USB シリアルの `ui_config_begin` / `ui_config_chunk` / `ui_config_commit`）の `display` に、画面の向きとボタンごとの割り当てを書く。
+
+```json
+{
+  "display": {
+    "orientation": "flipped",
+    "button_actions": {
+      "btn_l": { "short_press": "group_dec",   "hold": "volume_down", "hold_mode": "latch" },
+      "btn_c": { "short_press": "toggle_page", "hold": "wifi_select", "hold_mode": "latch" },
+      "btn_r": { "short_press": "group_inc",   "hold": "volume_up",   "hold_mode": "latch" }
+    }
+  }
+}
+```
+
+### 画面の向き
+
+`orientation` は `"normal"`（既定）または `"flipped"`（画面を 180° 回して表示する）。
+
+### ボタンの ID は見た目の位置
+
+`button_actions` のキー（ボタンの ID）は、**画面の文字が正しい向きに読める状態で、利用者から見たボタンの位置**を表す。物理的なスイッチの番号ではない。機器は `orientation` に応じて、それぞれの位置にある物理スイッチへ割り当てる。画面を 180° 回して使っても、割り当ては見た目の位置に付いていく（例: 「右 = プラス」は回しても右のボタンに付く）。
+
+| 機種 | ID | 位置 |
+|------|----|------|
+| Band（`band_wl_v3`〜`band_wl_v5`） | `btn_l` / `btn_c` / `btn_r` | 左 / 中央 / 右 |
+| Band（`band_wl_v2`） | `btn_l` / `btn_r` | 左 / 右（中央のスイッチは起動用で使えない） |
+| Duo（`duo_wl_v3`、`duo_wl_v4`） | `btn_1` / `btn_2` / `btn_3` | 3 個並んだ列の 上 / 中 / 下 |
+| | `btn_4` / `btn_5` | 2 個並んだ列の 上 / 下 |
+
+Duo の 3 個並んだ列は、`normal` では左側、`flipped` では右側に来る。どちらの向きでも、上・中・下は利用者から見た上下である。
+
+機器は `normal` の向きでの物理スイッチとの対応を機種ごとに持ち、`flipped` では次のように入れ替える。
+
+| 機種 | `flipped` での入れ替え |
+|------|------------------------|
+| Band | `btn_l` ⇄ `btn_r`（`btn_c` はそのまま） |
+| Duo | `btn_1` ⇄ `btn_3`、`btn_4` ⇄ `btn_5`（`btn_2` はそのまま） |
+
+UI 設定を適用するときは、`orientation` を先に反映してから `button_actions` を割り当てる。`orientation` を省いた UI 設定は、機器の今の向きのまま割り当てる。
+
+### Wi-Fi 選択画面の操作
+
+`wifi_select` で入る保存済み Wi-Fi の選択画面の操作は、機器が位置で固定する（UI 設定では変えない）。端まで進めると反対の端へ戻る。
+
+| 機種 | 次へ | 前へ | 決定 |
+|------|------|------|------|
+| Band（v3〜v5） | `btn_r` | `btn_l` | `btn_c` |
+| Band（v2） | `btn_r` | （なし） | `btn_l` |
+| Duo | `btn_3`（下） | `btn_1`（上） | `btn_2`（中） |
+
 ## テンプレート
 
 よく使われるレイアウトパターンをテンプレートとして提供する。ユーザーはテンプレートを選択してからカスタマイズすることで、効率的にレイアウトを作成できる。
