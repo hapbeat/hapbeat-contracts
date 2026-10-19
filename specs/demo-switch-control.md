@@ -303,7 +303,8 @@ manage screen offers can be done from the controller. Like the Hub presets, only
   (0–64) is their number. Paging works like `PRESET`: `from` (0–63) is the first demo wanted, the reply carries as many as
   fit in 1024 bytes, and the controller asks again from `from + demos.length` while that is below `demo_count`.
 - `revision` increases whenever the Hub saves its settings (its manage screen or `HUB_SETTINGS_SET`, including a preset's
-  `visible`). If it differs between the pages, the controller starts reading again from 0.
+  `visible`) or its [per-demo settings](#demo-settings). If it differs between the pages, the controller starts reading again
+  from 0.
 
 ```json
 {"version":1,"type":"HUB_SETTINGS_SET","controller_id":"remote-pixel","seq":46,"demo_id":"demo_hub","haptics_ui":false,"recenter_ui":true,"hand_style":"skin","narration_volume":60,"staff_waiting":false,"visible_demos":["volley"]}
@@ -339,8 +340,8 @@ the Hub handles these messages.
   or values), it logs a warning and keeps that demo out of the per-demo settings (its launches use the descriptor
   defaults as before). Descriptor authors keep option IDs and values short. For a demo that is not installed,
   `installed` is false and `settings` is empty.
-- `revision` is the same counter as in `HUB_SETTINGS` (it increases with every save of the Hub's settings, presets or
-  per-demo settings).
+- `revision` is the same counter as in `HUB_SETTINGS` (it increases with every save of the Hub's settings, including a
+  preset's `visible`, and of the per-demo settings; saving a preset's name or steps does not change it).
 
 ```json
 {"version":1,"type":"DEMO_SETTINGS_SET","controller_id":"remote-pixel","seq":48,"demo_id":"demo_hub","target":"boxing","settings":{"haptics_db":"4"}}
