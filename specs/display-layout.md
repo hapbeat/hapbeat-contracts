@@ -179,6 +179,19 @@ UI 設定を適用するときは、`orientation` を先に反映してから `b
 | Band（v2） | `btn_r` | （なし） | `btn_l` |
 | Duo | `btn_3`（下） | `btn_1`（上） | `btn_2`（中） |
 
+### 装着位置の切り替え（`position_cycle`）
+
+UI 設定の `ui.position_cycle` に、ボタンで切り替える装着位置の並びを書く。値は `device-addressing.md` §3 の Position 語彙。知らない名前は無視する。空の配列または省略は「並びなし」。
+
+```json
+{
+  "ui": { "position_cycle": ["pos_r_wrist", "pos_l_wrist"] },
+  "display": { "button_actions": { "btn_c": { "short_press": "position_cycle" } } }
+}
+```
+
+ボタンの動作 `position_cycle` は、機器の装着位置を並びの次へ進める。今の位置が並びに無ければ先頭へ、末尾の次は先頭へ戻る。機器は `set_address` で position を変えたときと同じく、アドレスを正準形に組み直して保存し、PONG で知らせる。並びが無いときは何もしない（画面に短く知らせてよい）。
+
 ## テンプレート
 
 よく使われるレイアウトパターンをテンプレートとして提供する。ユーザーはテンプレートを選択してからカスタマイズすることで、効率的にレイアウトを作成できる。
