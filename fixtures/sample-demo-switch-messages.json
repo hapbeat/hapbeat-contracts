@@ -255,6 +255,7 @@
     "type": "DEMO_SETTINGS",
     "controller_id": "remote-pixel",
     "nonce": "0123456789abcdef",
+    "hub_id": "5c1e0a9b7d3f2468",
     "revision": 4,
     "target": "boxing",
     "installed": true,

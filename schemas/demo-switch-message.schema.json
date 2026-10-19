@@ -991,6 +991,7 @@
         "type",
         "controller_id",
         "nonce",
+        "hub_id",
         "revision",
         "target",
         "installed",
@@ -1005,6 +1006,11 @@
         },
         "nonce": {
           "$ref": "#/$defs/nonce"
+        },
+        "hub_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{16}$",
+          "description": "Identifies this Hub (headset): 16 lowercase hex generated once at its first start"
         },
         "type": {
           "const": "DEMO_SETTINGS"

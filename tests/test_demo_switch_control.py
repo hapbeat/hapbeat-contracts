@@ -122,8 +122,8 @@ CANONICAL = {
                                      'hand_style', 'narration_volume', 'staff_waiting', 'visible_demos']),
     'HUB_START': ('COMMAND', ['version', 'type', 'controller_id', 'seq', 'demo_id', 'steps']),
     'DEMO_SETTINGS_GET': ('DEMO_SETTINGS_GET', ['version', 'type', 'controller_id', 'nonce', 'target']),
-    'DEMO_SETTINGS': ('DEMO_SETTINGS', ['version', 'type', 'controller_id', 'nonce', 'revision', 'target', 'installed',
-                                        'settings']),
+    'DEMO_SETTINGS': ('DEMO_SETTINGS', ['version', 'type', 'controller_id', 'nonce', 'hub_id', 'revision', 'target',
+                                        'installed', 'settings']),
     'DEMO_SETTINGS_SET': ('COMMAND', ['version', 'type', 'controller_id', 'seq', 'demo_id', 'target', 'settings']),
 }
 
@@ -271,7 +271,7 @@ class DemoSettingsTests(unittest.TestCase):
         nine = {f'option{i}': 'v' for i in range(9)}
         cases = {
             'unsigned_demo_settings_get': [dict(target='Boxing'), dict(seq=1), dict(nonce='xyz'), dict(extra=1)],
-            'unsigned_demo_settings': [dict(revision=-1), dict(installed='yes'), dict(installed=False),
+            'unsigned_demo_settings': [dict(hub_id='5C1E0A9B7D3F2468'), dict(hub_id='5c1e0a9b7d3f246'), dict(hub_id=1), dict(revision=-1), dict(installed='yes'), dict(installed=False),
                                        dict(settings={'haptics_db': 2}), dict(settings={'haptics_db': 'a|b'}),
                                        dict(settings={'Haptics': '2'}), dict(settings=nine), dict(extra=1)],
             'unsigned_demo_settings_set': [dict(demo_id='boxing'), dict(seq=0), dict(settings={}), dict(settings=nine),
@@ -299,7 +299,7 @@ class DemoSettingsTests(unittest.TestCase):
     def test_hmac_reference_values(self):
         expected = {
             'unsigned_demo_settings_get': 'bbd39a11d9b607e9ce63b1541d102768c294f93b8d64b6e192147f0810d00c40',
-            'unsigned_demo_settings': 'bcbd4b9a0a15ede79e48bedf1ab30fdc7c636c81c3bf2735d0af67354ae0a8a5',
+            'unsigned_demo_settings': '0f4a3edbb7b34747ce095a8a96e608b7ac2d2bd9eeaebb06276be4ceff3bf519',
             'unsigned_demo_settings_set': '0e18d85624c98c0f63b39291176219c48a1e560e452a5398ddc28b05c3f3571e',
         }
         for name, digest in expected.items():
