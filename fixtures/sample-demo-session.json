@@ -30,7 +30,7 @@
             "value": "match",
             "label": {
               "ja": "6人制の試合",
-              "en": "6 v 6 match"
+              "en": "6 v 6 Match"
             }
           },
           {
@@ -43,15 +43,46 @@
         ]
       },
       {
+        "id": "tutorial",
+        "label": {
+          "ja": "チュートリアル",
+          "en": "Tutorial"
+        },
+        "default": "on",
+        "values": [
+          {
+            "value": "on",
+            "label": {
+              "ja": "あり",
+              "en": "On"
+            }
+          },
+          {
+            "value": "off",
+            "label": {
+              "ja": "なし",
+              "en": "Off"
+            }
+          }
+        ],
+        "when": {
+          "scene": [
+            "block",
+            "receive"
+          ]
+        }
+      },
+      {
         "id": "points",
         "label": {
           "ja": "点数",
           "en": "Points"
         },
-        "default": "7",
+        "default": "3",
         "when": {
           "scene": [
             "block",
+            "receive",
             "match"
           ]
         },
@@ -72,33 +103,6 @@
             "value": "7",
             "label": {
               "ja": "7点先取"
-            }
-          }
-        ]
-      },
-      {
-        "id": "balls",
-        "label": {
-          "ja": "球数",
-          "en": "Balls"
-        },
-        "default": "10",
-        "when": {
-          "scene": [
-            "receive"
-          ]
-        },
-        "values": [
-          {
-            "value": "10",
-            "label": {
-              "ja": "10球"
-            }
-          },
-          {
-            "value": "20",
-            "label": {
-              "ja": "20球"
             }
           }
         ]
