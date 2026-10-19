@@ -338,7 +338,8 @@ the Hub handles these messages.
 - `settings`: every option of the target's descriptor (both scopes, also those inactive by `when`) with the stored value.
   The reply must fit in 1024 bytes: when the Hub loads a descriptor whose `DEMO_SETTINGS` could exceed it (long option IDs
   or values), it logs a warning and keeps that demo out of the per-demo settings (its launches use the descriptor
-  defaults as before). Descriptor authors keep option IDs and values short. For a demo that is not installed,
+  defaults as before; its `DEMO_SETTINGS` has `installed` true and empty `settings`, and `DEMO_SETTINGS_SET` for it returns
+  `FAILED/not_allowed`). Descriptor authors keep option IDs and values short. For a demo that is not installed,
   `installed` is false and `settings` is empty.
 - `revision` is the same counter as in `HUB_SETTINGS` (it increases with every save of the Hub's settings, including a
   preset's `visible`, and of the per-demo settings; saving a preset's name or steps does not change it).
