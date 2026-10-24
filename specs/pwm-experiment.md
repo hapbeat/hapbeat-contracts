@@ -9,6 +9,12 @@ The MCU-direct haptic path has two persisted signed DC-bias profiles:
 - `idle`: standing bias while no playback source owns the motor.
 - `play`: bias while local FIRE/PLAY, streamed CLIP, or a diagnostic tone is active.
 
+A device with no saved profile (new, or after a full flash erase) uses
+`idle` = -10 % and `play` = -30 % of full-scale duty (`idle_duty` -0.10,
+`duty` -0.30), with `bias_enabled` = `true`. Writing either profile
+(`set_pwm_bias` / `set_pwm_play_bias`) saves both, and the saved values win
+from then on.
+
 The two profile values have the same sign. A playback stop first keeps `play`
 for `post_play_hold_ms`, then transitions to `idle` over
 `post_play_return_ms`. A new playback before or during the return cancels the
