@@ -1,6 +1,8 @@
-# BandWL v4 MCU-PWM experiment — bias return configuration
+# BandWL MCU-PWM experiment — bias return configuration
 
-Status: experimental device configuration for the `band_v4_pwm` firmware only.
+Status: experimental device configuration for the `band_v4_pwm` and `band_v3_pwm`
+firmware only (the same MCU-PWM rework on BandWL v4 / v3; the board id stays
+`band_wl_v4` / `band_wl_v3`, and `get_info` carries `haptic_pwm`).
 
 The MCU-direct haptic path has two persisted signed DC-bias profiles:
 

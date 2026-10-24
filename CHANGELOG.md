@@ -18,6 +18,7 @@
 - fixture `stream-session-cases.json`（PONG の分類と受信側の判定）、`wire-extension-cases.json`（CAPS・ERROR・PLAY の末尾・PING の長さ）と、その参照テスト `tests/test_wire_compat.py`。
 - `display-layout.md`「UI 設定のボタンと画面の向き」（DEC-098）: UI 設定（ui-config）の `display.orientation` と `display.button_actions`。ボタンの ID は画面の文字が読める向きで見た位置（Band は左・中央・右、Duo は 3 個の列の上・中・下と 2 個の列の上・下）で、機器が向きに応じて物理スイッチへ割り当てる。Wi-Fi 選択画面の操作も位置で固定する。
 - `display-layout.md`「装着位置の切り替え」（DEC-100）: UI 設定の `ui.position_cycle`（装着位置の並び）とボタンの動作 `position_cycle`（押すたびに並びの次の位置へ）。`device-addressing.md` §7 の存在しない `position_inc/dec` を `position_cycle` に改めた。
+- `pwm-experiment.md`: 対象のファームに `band_v3_pwm`（BandWL v3 で band_v4_pwm と同じ MCU-PWM の改造をした基板）を加えた。board は `band_wl_v3` のまま、`get_info` の `haptic_pwm` で見分ける。
 
 ### 破壊
 
