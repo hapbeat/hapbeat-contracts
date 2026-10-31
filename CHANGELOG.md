@@ -18,6 +18,7 @@
 - fixture `stream-session-cases.json`（PONG の分類と受信側の判定）、`wire-extension-cases.json`（CAPS・ERROR・PLAY の末尾・PING の長さ）と、その参照テスト `tests/test_wire_compat.py`。
 - `display-layout.md`「UI 設定のボタンと画面の向き」（DEC-098）: UI 設定（ui-config）の `display.orientation` と `display.button_actions`。ボタンの ID は画面の文字が読める向きで見た位置（Band は左・中央・右、Duo は 3 個の列の上・中・下と 2 個の列の上・下）で、機器が向きに応じて物理スイッチへ割り当てる。Wi-Fi 選択画面の操作も位置で固定する。
 - `scene-recording.md` §2 の `takes`、§5 記録のログ（JSON Lines の `start` / `take` / `take_end` / `cue` / `level` / `fail` / `end`、印 `HAPBEAT_SCENE `）、§6 プロジェクトの設定 `hapbeat-scene.json`、§7 記録と cue 表の突き合わせ。`cue-table.md` §10 イベントの一覧（`inventory.json`）と Event Map から cue 表の初版を作る規則（DEC-101）。schema `scene-log-record`・`scene-project`・`cue-inventory` と `scene-session` の `takes`、fixture `sample-scene-log.jsonl`・`sample-scene-project.json`・`sample-cue-inventory.json`。
+- `scene-recording.md`: 動画のプロジェクト（ゲームの記録を使わず、映像に触覚を付ける。`viewer-data.json` が原本）、§3.2.1 `viewer-data.json` の任意の `chapters`（映像の区切り。選んで再生・範囲で繰り返す目印）、§3.3 映像の音声トラックは任意で、動画のプロジェクトでは再生する側が番組の音として流してよい。schema `scene-viewer-data` の `chapters`。
 - `demo-session.md`「デモごとの設定」と descriptor の option の `scope`（`session` / `device`）、`demo-switch-control.md`「Demo settings」の `DEMO_SETTINGS_GET` / `DEMO_SETTINGS` / `DEMO_SETTINGS_SET`（DEC-099）。`DEMO_SETTINGS` の `hub_id`。schema と fixture（`descriptor_boxing`、`unsigned_demo_settings_*`）。
 
 ### 破壊

@@ -146,6 +146,15 @@ class SceneTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertFalse(data.is_valid(changed(SCENE['viewer_data'], path, value)))
 
+    def test_viewer_chapters(self):
+        v = VALIDATORS['scene-viewer-data']
+        chapters = [{'start': 0, 'end': 4.5, 'label': 'approach'}, {'start': 4, 'end': 8, 'label': 'grab'}]
+        v.validate(changed(SCENE['viewer_data'], ['chapters'], chapters))       # overlap and gaps are allowed
+        for item in [{'start': 0, 'end': 4.5}, {'start': -1, 'end': 4.5, 'label': 'x'},
+                     {'start': 0, 'end': 0, 'label': 'x'}, {'start': 0, 'end': 4.5, 'label': ''}]:
+            with self.subTest(item=item):
+                self.assertFalse(v.is_valid(changed(SCENE['viewer_data'], ['chapters'], [item])))
+
 
 class SceneLogTests(unittest.TestCase):
     V = VALIDATORS['scene-log-record']

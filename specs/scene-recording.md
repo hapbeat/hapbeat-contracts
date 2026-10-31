@@ -22,6 +22,7 @@ schema: [`schemas/scene-session.schema.json`](../schemas/scene-session.schema.js
 - `<プロジェクト>` はゲームのプロジェクトのルート（Unreal は `.uproject` のあるフォルダ、Unity は `Assets` の親）。`Saved/` はバージョン管理と、エンジンの資産取り込みの対象外にする。
 - Studio は `Saved/HapticViewer/` だけを読み、cue 表と WAV は `viewer-lib.json` の `paths` から読み書きする。
 - 記録する側が `session.json` を直接書いてもよい（§5 のログを使わない）。その場合も `hapbeat-helper scene check` で §7 の突き合わせができる。
+- **動画のプロジェクト**: ゲームの記録を使わず、ある映像（スポーツの中継、VR デモの画面収録など）に触覚を付けるときも、同じ配置（`<プロジェクト>/Saved/HapticViewer/` と §3 の形式）を使う。`viewer-data.json` は記録の出力ではなく、人や AI が書く原本になる。そのプロジェクトでは `Saved/HapticViewer/` の JSON をバージョン管理に入れ、映像は権利と大きさに応じて入れない。
 
 ## 2. 記録（`session.json`）
 
@@ -112,16 +113,32 @@ Studio はこの列名からループの cue とレイヤーを組み立てる�
   "frames": 5400,                    // 通し映像のフレーム数
   "video": "full_replay.mp4",
   "events": [ { "t": 4.0, "name": "footstep:approach", "hand": "left", "gain": 1.0, "dist": 830 } ],
-  "levels": { "columns": [...], "rows": [[...], ...] }   // §2 と同じ。ループの cue が無ければ省略
+  "levels": { "columns": [...], "rows": [[...], ...] },  // §2 と同じ。ループの cue が無ければ省略
+  "chapters": [ { "start": 0, "end": 25, "label": "テニス" } ]   // 任意。§3.2.1
 }
 ```
 
 - `events[].t` = `frame / fps`（秒）。`name` は §2 の `cue`。`hand` / `gain` / `dist` / `note` は §2 と同じ。
 - cue ごとに事前に切り出した動画は持たない。場面の一覧は Studio が発生時刻から作る（§3.4）。
 
+#### 3.2.1 `chapters`（任意）
+
+映像の中の区切り（スポーツの種目、デモの段など）。再生する側が、区切りを選んで再生する・その範囲で繰り返すための目印で、触覚の鳴り方は変えない。
+
+| フィールド | 必須 | 意味 |
+|---|---|---|
+| `start` | ✓ | 始まり（秒、0 以上） |
+| `end` | ✓ | 終わり（秒、`start` より大きく、`frames / fps` 以下） |
+| `label` | ✓ | 表示名（1 文字以上） |
+
+- 配列の順が表示の順。区切りどうしは重なってよく、隙間があってよい。
+- 範囲で繰り返すときは、`end` に達したら `start` へ戻る。区切りの外の発生も、映像の時刻がそこを通れば鳴る。
+- §3.4 の場面の一覧（発生時刻から Studio が作る）とは別のもの。
+
 ### 3.3 `full_replay.mp4`
 
-- H.264（yuv420p）、フレームレート一定 = `fps`。frame i が時刻 i / fps。音声トラックは不要（Studio が cue 表から鳴らす）。
+- H.264（yuv420p）、フレームレート一定 = `fps`。frame i が時刻 i / fps。
+- 音声トラックは任意。ゲームの記録には入れない（効果音は Studio が cue 表から鳴らす）。映像そのものに音がある動画のプロジェクト（§1）では入れてよく、再生する側はそれを番組の音として流してよい。その場合、cue 表の `sfx` は `null` にする（効果音を二重に鳴らさない）。
 
 ### 3.4 場面の一覧（Studio の動作、参考）
 

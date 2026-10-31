@@ -25,6 +25,19 @@
         }
       }
     },
-    "levels": { "$ref": "https://hapbeat.com/schemas/scene-session.schema.json#/$defs/levels" }
+    "levels": { "$ref": "https://hapbeat.com/schemas/scene-session.schema.json#/$defs/levels" },
+    "chapters": {
+      "description": "Optional sections of the video for choosing and looping playback (specs/scene-recording.md section 3.2.1). end > start and end <= frames / fps are checked by readers.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["start", "end", "label"],
+        "properties": {
+          "start": { "type": "number", "minimum": 0 },
+          "end": { "type": "number", "exclusiveMinimum": 0 },
+          "label": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
   }
 }
