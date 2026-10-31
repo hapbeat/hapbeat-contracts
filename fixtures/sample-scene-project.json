@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "project": "sample-scene",
+  "fps": 30,
+  "frames": "Saved/HapticRecord/frames",
+  "log": "Saved/HapticRecord/events.jsonl",
+  "capture": "both",
+  "lib": {
+    "schema_version": 1,
+    "title": "Sample scene",
+    "project_name": "sample-scene",
+    "paths": { "cues": "Content/Hapbeat/sample-cues.json", "clips": "Content/Hapbeat/stream-clips", "sounds": "Content/Hapbeat/sounds" }
+  },
+  "bindings": [
+    { "source": "unity:d7dd66801f2a4c0e9b3a5c6d7e8f9012/ce65e997e9d54d2eabde0d646dea67c7", "cue": "grab", "hand": "right" },
+    { "source": "unity:d7dd66801f2a4c0e9b3a5c6d7e8f9012/0b1f4e2a8c3d4b5e9f60718293a4b5c6", "cue": "grab", "hand": "left" }
+  ]
+}

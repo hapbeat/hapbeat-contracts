@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "engine": "unity",
+  "project": "sample-scene",
+  "maps": [
+    { "path": "Assets/Samples/DinoEventMap.asset", "id": "d7dd66801f2a4c0e9b3a5c6d7e8f9012", "referenced": true },
+    { "path": "Assets/Samples/OldDinoEventMap.asset", "id": "35f4a02a6b7c4d8e9f0a1b2c3d4e5f60", "referenced": false }
+  ],
+  "events": [
+    {
+      "map": "d7dd66801f2a4c0e9b3a5c6d7e8f9012",
+      "source": "unity:d7dd66801f2a4c0e9b3a5c6d7e8f9012/ce65e997e9d54d2eabde0d646dea67c7",
+      "name": "Grab",
+      "loop": false,
+      "target": "player_1/pos_r_wrist",
+      "gain": 0.8,
+      "wav": "Assets/Samples/Clips/grab.wav",
+      "intensity": 0.6,
+      "where": ["DinoScene.unity: Right Hand/Grab (HapbeatUnityEventTrigger)"],
+      "note": ""
+    },
+    {
+      "map": "d7dd66801f2a4c0e9b3a5c6d7e8f9012",
+      "source": "unity:d7dd66801f2a4c0e9b3a5c6d7e8f9012/0b1f4e2a8c3d4b5e9f60718293a4b5c6",
+      "name": "Grab",
+      "loop": false,
+      "target": "player_1/pos_l_wrist",
+      "gain": 0.8,
+      "wav": "Assets/Samples/Clips/grab.wav",
+      "intensity": 0.6,
+      "where": ["DinoScene.unity: Left Hand/Grab (HapbeatUnityEventTrigger)"]
+    },
+    {
+      "map": "d7dd66801f2a4c0e9b3a5c6d7e8f9012",
+      "source": "unity:d7dd66801f2a4c0e9b3a5c6d7e8f9012/5a6b7c8d9e0f41a2b3c4d5e6f7a8b9c0",
+      "name": "Roar",
+      "loop": false,
+      "target": "",
+      "gain": 1.0,
+      "wav": "Assets/Samples/Clips/roar.wav",
+      "where": ["DinoScene.unity: Dino/Roar (HapbeatUnityEventTrigger)"]
+    },
+    {
+      "map": "d7dd66801f2a4c0e9b3a5c6d7e8f9012",
+      "source": "unity:d7dd66801f2a4c0e9b3a5c6d7e8f9012/1f2e3d4c5b6a47980a1b2c3d4e5f6a7b",
+      "name": "RubLoop",
+      "cue": "rub",
+      "loop": true,
+      "target": "player_1/pos_r_wrist",
+      "gain": 1.0,
+      "wav": "Assets/Samples/Clips/rub-loop.wav",
+      "intensity": 0.5,
+      "levelMap": { "points": [[1, 1]], "intercept": 0.1 },
+      "where": ["DinoScene.unity: Right Hand/Rub (HapbeatUnityLoopTrigger)"]
+    },
+    {
+      "map": "d7dd66801f2a4c0e9b3a5c6d7e8f9012",
+      "source": "unity:d7dd66801f2a4c0e9b3a5c6d7e8f9012/9c8b7a6f5e4d43c2b1a0f9e8d7c6b5a4",
+      "name": "FootstepNear",
+      "cue": "footstep:approach",
+      "loop": false,
+      "target": "player_1/pos_neck",
+      "gain": 0.7,
+      "wav": "Assets/Samples/Clips/footstep.wav",
+      "where": []
+    },
+    {
+      "map": "d7dd66801f2a4c0e9b3a5c6d7e8f9012",
+      "source": "unity:d7dd66801f2a4c0e9b3a5c6d7e8f9012/3e4f5a6b7c8d49e0f1a2b3c4d5e6f7a8",
+      "name": "Purr",
+      "loop": false,
+      "target": "player_1/pos_neck",
+      "gain": 1.0,
+      "note": "no clip in the project yet"
+    }
+  ],
+  "warnings": ["DinoScene.unity: Tail/Bite (HapbeatUnityEventTrigger) has no event id"]
+}

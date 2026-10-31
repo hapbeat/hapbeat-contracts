@@ -1,0 +1,18 @@
+{"t":"start","schema_version":1,"project":"sample-scene","fps":30}
+{"t":"take","frame":0,"label":"take 1: the dinosaur walks in and roars","expect":["footstep","roar"],"allow":["footstep:approach"]}
+{"t":"cue","frame":30,"cue":"footstep:approach","dist":1800}
+{"t":"cue","frame":75,"cue":"footstep:approach","dist":1200}
+{"t":"cue","frame":120,"cue":"roar","dist":900}
+{"t":"cue","frame":140,"cue":"footstep","dist":800}
+{"t":"take_end","frame":150}
+{"t":"take","frame":150,"label":"take 2: grab the bone and rub it","expect":["grab","rub"],"allow":["purr"]}
+{"t":"cue","frame":180,"source":"unity:d7dd66801f2a4c0e9b3a5c6d7e8f9012/ce65e997e9d54d2eabde0d646dea67c7","gain":0.9,"note":"right hand on the bone"}
+{"t":"cue","frame":190,"source":"unity:d7dd66801f2a4c0e9b3a5c6d7e8f9012/0b1f4e2a8c3d4b5e9f60718293a4b5c6"}
+{"t":"cue","frame":200,"cue":"rub","hand":"both"}
+{"t":"level","frame":200,"values":{"rub:level:left":0.4,"rub:level:right":0.2}}
+{"t":"level","frame":210,"values":{"rub:level:right":0.9}}
+{"t":"cue","frame":215,"cue":"purr"}
+{"t":"level","frame":230,"values":{"rub:level:left":0,"rub:level:right":0}}
+{"t":"take_end","frame":240}
+{"t":"fail","frame":250,"reason":"the bite did not happen within 10 s"}
+{"t":"end","frames":270}
