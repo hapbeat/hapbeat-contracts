@@ -45,7 +45,7 @@ my-game/               ← Kit folder (= kit-name)
       "id": "my-game.sword-hit",
       "clip": "sword-hit.wav",
       "mode": "command",
-      "intensity": 0.8
+      "clip_gain": 0.8
     }
   ]
 }
@@ -56,7 +56,7 @@ my-game/               ← Kit folder (= kit-name)
 | `name` | Kit name; becomes the Event ID prefix. |
 | `id` | Event ID in `<kit-name>.<clip-name>` form. |
 | `mode` | `command` (FIRE) or `stream_clip` (CLIP). |
-| `intensity` | Baseline intensity from 0.0 to 1.0; multiplied by SDK Gain. |
+| `clip_gain` | The clip's own gain (0.0 to 1.0), paired with the WAV; the sender multiplies it by the app gain (`app_gain`). See "Strength formula" in `kit-format.md`. |
 
 Create and edit Kits in **Studio**, then deploy them to Hapbeat through Helper.
 

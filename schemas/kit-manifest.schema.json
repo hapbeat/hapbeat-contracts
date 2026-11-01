@@ -113,9 +113,9 @@
               "description": "再生パラメータ",
               "additionalProperties": false,
               "properties": {
-                "intensity": {
+                "clip_gain": {
                   "type": "number",
-                  "description": "制作者が意図した基準強度。WAV フル振幅に対する倍率。SDK gain=1.0 でこの強度で再生される。",
+                  "description": "素材の強さの補正（クリップゲイン）。WAV と 1 組で、app_gain = 1 の時にこのイベントが鳴らす強さ。送る側が app_gain と掛け、本体は読まない（kit-format.md「強さの式（正本）」）。",
                   "minimum": 0.0,
                   "maximum": 1.0,
                   "default": 1.0
@@ -172,9 +172,9 @@
               "description": "再生パラメータ。stream_events では device_wiper は対象外。",
               "additionalProperties": false,
               "properties": {
-                "intensity": {
+                "clip_gain": {
                   "type": "number",
-                  "description": "制作者が意図した基準強度。SDK 側 gain への乗算基準値として使われる。",
+                  "description": "素材の強さの補正（クリップゲイン）。SDK が app_gain と掛けて source の PCM に掛ける（kit-format.md「強さの式（正本）」）。",
                   "minimum": 0.0,
                   "maximum": 1.0,
                   "default": 1.0

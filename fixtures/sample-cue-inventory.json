@@ -15,7 +15,7 @@
       "target": "player_1/pos_r_wrist",
       "gain": 0.8,
       "wav": "Assets/Samples/Clips/grab.wav",
-      "intensity": 0.6,
+      "clip_gain": 0.6,
       "where": ["DinoScene.unity: Right Hand/Grab (HapbeatUnityEventTrigger)"],
       "note": ""
     },
@@ -27,7 +27,7 @@
       "target": "player_1/pos_l_wrist",
       "gain": 0.8,
       "wav": "Assets/Samples/Clips/grab.wav",
-      "intensity": 0.6,
+      "clip_gain": 0.6,
       "where": ["DinoScene.unity: Left Hand/Grab (HapbeatUnityEventTrigger)"]
     },
     {
@@ -49,7 +49,7 @@
       "target": "player_1/pos_r_wrist",
       "gain": 1.0,
       "wav": "Assets/Samples/Clips/rub-loop.wav",
-      "intensity": 0.5,
+      "clip_gain": 0.5,
       "levelMap": { "points": [[1, 1]], "intercept": 0.1 },
       "where": ["DinoScene.unity: Right Hand/Rub (HapbeatUnityLoopTrigger)"]
     },

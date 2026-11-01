@@ -33,9 +33,10 @@ schema: [`schemas/cue-table.schema.json`](../schemas/cue-table.schema.json)（�
   "schema_version": 1,
   "kit": "trex-kit",
   // syncMs = その素材の同期点（ファイル先頭からの ms、省略 = 0）。§7
-  "clips":  { "<clip>":  { "intensity": 0..1, "loop": bool, "description": "...", "syncMs": 0.. } },
-  // 音ファイルごとの基準の強さ（省略 = 1）
-  "sounds": { "<Sound>": { "intensity": 0..1, "syncMs": 0.. } },
+  // clip_gain = 素材の強さの補正（§9）。この欄だけ Kit の manifest と同じ snake_case
+  "clips":  { "<clip>":  { "clip_gain": 0..1, "loop": bool, "description": "...", "syncMs": 0.. } },
+  // 音ファイルごとの素材の強さの補正（省略 = 1）
+  "sounds": { "<Sound>": { "clip_gain": 0..1, "syncMs": 0.. } },
   "cues": {
     "<cue>": {
       "description": "...",
@@ -56,7 +57,7 @@ schema: [`schemas/cue-table.schema.json`](../schemas/cue-table.schema.json)（�
 
 | フィールド | 型 | 必須 | 意味 |
 |---|---|---|---|
-| `intensity` | number 0..1 | ✓ | 基準の強さ。Kit の `intensity` と同じ意味（WAV はフルスケールで書き、強さはここで持つ） |
+| `clip_gain` | number 0..1 | ✓ | 素材の強さの補正。Kit の manifest の `clip_gain` と同じ意味（WAV はフルスケールで書き、強さはここで持つ）。Kit を持つプロジェクトでは Kit の値の写し（§9.1）。cue 表のほかの欄は camelCase だが、Kit の manifest と同じ値だと読めるよう、この欄は `clip_gain` |
 | `loop` | boolean | ✓ | ループ再生する clip。ループの cue だけが使え、単発の cue は `loop: false` の clip だけを使う |
 | `description` | string | | 説明 |
 | `syncMs` | number 0..600000 | | 同期点（§7） |
@@ -65,7 +66,7 @@ schema: [`schemas/cue-table.schema.json`](../schemas/cue-table.schema.json)（�
 
 | フィールド | 型 | 必須 | 意味 |
 |---|---|---|---|
-| `intensity` | number 0..1 | ✓ | 基準の強さ。エントリの無い音の強さは 1 |
+| `clip_gain` | number 0..1 | ✓ | 音の素材の強さの補正（§9）。エントリの無い音は 1 |
 | `syncMs` | number 0..600000 | | 同期点（§7） |
 
 ### 4.3 sfx（効果音）
@@ -74,7 +75,7 @@ schema: [`schemas/cue-table.schema.json`](../schemas/cue-table.schema.json)（�
 |---|---|---|
 | `sound` / `sounds` | string / string[] | 鳴らす音（★を付けた素材）。複数のときは発火ごとに 1 つを選ぶ（§5.4）。両方は書かない |
 | `alternates` | string[] | ★を付けていない控え。ゲームも Studio も鳴らさない |
-| `volume` | number 0..2 | 場面の倍率（必須。通常は 1） |
+| `volume` | number 0..2 | アプリの倍率（`app_gain` の部品。§9。必須。通常は 1） |
 | `levelMap` | object | ループの cue だけ。§5.6 |
 
 ### 4.4 route（触覚）
@@ -84,7 +85,7 @@ schema: [`schemas/cue-table.schema.json`](../schemas/cue-table.schema.json)（�
 | `clip` / `clips` | string / string[] | 鳴らす clip（★を付けた素材）。`clips` は発火ごとに 1 つを選ぶ。両方は書かない |
 | `alternates` | string[] | ★を付けていない控え |
 | `at` | string | 装着位置。§4.5 |
-| `gain` | number 0..2 | 場面の倍率（必須。通常は 1） |
+| `gain` | number 0..2 | アプリの倍率（`app_gain` の部品。§9。必須。通常は 1） |
 | `levelMap` | object | ループの cue だけ。§5.6 |
 
 ### 4.5 `at`（装着位置）
@@ -165,8 +166,8 @@ schema: [`schemas/cue-table.schema.json`](../schemas/cue-table.schema.json)（�
 ## 6. 検証の規則（schema の外）
 
 1. `kit` は Kit 名の規則に合う。
-2. `clips` の名前・`intensity`・`loop`・`syncMs` が §3 / §4.1 に合い、`<clip>.wav` が clip フォルダにある。
-3. `sounds` の名前・`intensity`・`syncMs` が §3 / §4.2 に合い、`<Sound>.wav` が sound フォルダにある。
+2. `clips` の名前・`clip_gain`・`loop`・`syncMs` が §3 / §4.1 に合い、`<clip>.wav` が clip フォルダにある。
+3. `sounds` の名前・`clip_gain`・`syncMs` が §3 / §4.2 に合い、`<Sound>.wav` が sound フォルダにある。
 4. cue と variant の名前が §3 に合う。
 5. sfx: `sound` と `sounds` は片方だけ。★が無いなら `alternates` が 1 つ以上。`sounds` は空でない。参照する音が `sounds` の名前の規則に合い、WAV がある。`volume` 0..2。`alternates` に同じ名前が 2 回出ない、★の音と重ならない。
 6. route: `clip` と `clips` は片方だけ。★が無いなら `alternates` が 1 つ以上。参照する clip が `clips` にあり、その `loop` が cue の `loop` と一致する。`at` が §4.5 の値。`gain` 0..2。`alternates` は `clips` の名前で、重複・★との重なりが無い。
@@ -197,8 +198,20 @@ t ∈ [0, 1] → [0, 1]:
 
 ## 9. 出力の強さ
 
-- WAV = 形（常にピーク約 −0.5 dBFS に正規化）、`intensity` = 素材の基準の強さ、`gain` / `volume`（と variant・距離・ramp・levelMap の倍率）= 場面の倍率。
-- 最終出力 = WAV × intensity × 場面の倍率 × デバイス音量（[`kit-format.md`](kit-format.md) の WAV × intensity × SDK gain × 音量 に対応）。
+- 式は [`kit-format.md`](kit-format.md)「強さの式（正本）」: `output = clip × app_gain × device_volume`、`clip = WAV × clip_gain`。
+- WAV = 形（常にピーク約 −0.5 dBFS に正規化）、`clip_gain` = 素材の強さの補正（WAV と 2 つで 1 組）。
+- `app_gain` = 再生するアプリが掛ける倍率の積。cue 表では route の `gain`・sfx の `volume`、variant の `hapticsGain`・`sfxVolume`・ramp（`rampTo`・`rampSteps`）、`distanceFalloff`、`levelMap` の出力、`gainJitterDb` の乱数がその部品で、ゲームが発生ごとに掛ける倍率（SDK の API の `gain` 引数、Scene の記録の `events[].gain`）も掛ける。どれも名前は変えない。
+- 触覚の送る値は `clamp(clip_gain × app_gain, 0, 1)`（掛けるのは送る側だけ。本体は `clip_gain` を知らない）。音（sfx）も同じ式で、音の `clip_gain` に `app_gain` を掛ける。
+- Studio の画面では、3 つの枠を「クリップ（素材）」「アプリ」「本体」と呼ぶ。素材の強さ（`clip_gain`）を変えるのは Studio のエディタ（Kit）で、Scene は `app_gain` の部品だけを変える。
+
+### 9.1 素材の強さの元
+
+- **Kit を持つプロジェクト**（`kit` の Kit がプロジェクトにある）: 触覚の素材の強さの元は、Kit の manifest の Event ID `<kit>.<clip>` のイベントの `parameters.clip_gain`（`events` にあればその値、無ければ `stream_events` の値。省略 = 1）。Studio のエディタで決める。
+  - cue 表の `clips.<clip>.clip_gain` は、その**写し**。再生する側（Studio の Scene など）は Kit の値を使う。
+  - Studio は写しを Kit の値にそろえる（cue 表を書く時に写す）。写しが Kit と違っていれば、Kit の状態として出す。
+  - Kit に無い clip は、cue 表の値を使う。
+- **Kit の無いプロジェクト**（ゲームの記録を PC から流すだけなど）: cue 表の `clips.<clip>.clip_gain` が元。
+- 音（`sounds`）の素材の強さの元は、常に cue 表の `sounds.<Sound>.clip_gain`（Kit は音を持たない）。
 
 ## 10. イベントの一覧と、Event Map からの初版
 
@@ -224,7 +237,7 @@ schema: [`schemas/cue-inventory.schema.json`](../schemas/cue-inventory.schema.js
       "target": "player_1/pos_l_wrist",
       "gain": 1.0,
       "wav": "Assets/Samples/Clips/grab-right.wav",
-      "intensity": 0.08,
+      "clip_gain": 0.08,
       "where": ["HandsDemoScene.unity: Left Hand/Grab (HapbeatUnityEventTrigger)"],
       "note": ""
     }
@@ -256,7 +269,7 @@ schema: [`schemas/cue-inventory.schema.json`](../schemas/cue-inventory.schema.js
 | `target` | ✓ | SDK の項目の宛先の文字列（[`device-addressing.md`](device-addressing.md)）。空 = 全員（broadcast） |
 | `gain` | ✓ | SDK の項目の倍率（0 以上） |
 | `wav` | | 触覚の WAV（プロジェクトのルートからの相対パス）。無い = 手元に素材が無い |
-| `intensity` | | 素材の基準の強さ 0..1（Kit の manifest の値）。省略 = 1 |
+| `clip_gain` | | 素材の強さの補正 0..1（Kit の manifest の `clip_gain`）。SDK の項目の `gain` には焼き込まず、別に書く。省略 = 1 |
 | `levelMap` | | ループの項目の入力 → 出力（§5.6 の形）。SDK の binding から直せたとき（§10.4 の 2） |
 | `where` | | この項目を鳴らす所（シーン・prefab の中の GameObject と trigger など）。空 = 見つからない（コードから鳴らしている場合がある） |
 | `note` | | 自由記述 |
@@ -276,7 +289,7 @@ schema: [`schemas/cue-inventory.schema.json`](../schemas/cue-inventory.schema.js
 
 まとめてよいのは、鳴り方が変わらないときだけ:
 
-1. 部位・部位のほかの宛先・`loop`・`gain`・WAV の中身・`intensity`・`levelMap` が全部同じ → route 1 つ。
+1. 部位・部位のほかの宛先・`loop`・`gain`・WAV の中身・`clip_gain`・`levelMap` が全部同じ → route 1 つ。
 2. 左右の手首の組: 部位が `pos_l_wrist` の項目と `pos_r_wrist` の項目がどちらもあり、部位のほかは 1 と同じ → `at: "hand"` の route 1 つ。
 
 まとめられないとき:
@@ -293,7 +306,7 @@ schema: [`schemas/cue-inventory.schema.json`](../schemas/cue-inventory.schema.js
    - 宛先が全員（`target` が空）か、部位が決まらないとき、`wav` が無いとき: route を作らない。cue は `haptics` を未定（§5.1）にする。variant は `"haptics": []`（キーを書かないと元の cue の route を引き継いで、別の所で鳴るため）にし、`review.haptics` を `tentative` にする。どちらも初版の報告に書き、人が決める。
    - `gain` = 項目の `gain`。2 を超えたら 2 にする（警告）。
    - `levelMap` = 項目の `levelMap`（ループの cue のときだけ）。入力は、SDK の binding が曲線に渡す値（Unity は binding の `inputMin` を 0、`inputMax` を 1 に直し、0..1 に収めた値）。記録の `level`（scene-recording §5.2）も同じ物差しで書く。入力をそのまま出す形も `"points": [[1, 1]]` と書く。同じ項目に形の違う binding が複数あるときは書かず、警告する。
-3. **clip**: 名前は cue の名前（variant は `<cue>_<variant>`）。clip のフォルダ（`hapbeat-scene.json` の `lib.paths.clips`）にその名前の WAV が中身の違うもので既にあるか、表にその名前の clip が既にあるときは、`_2`、`_3` … を付ける（名前は一覧の順に決める）。`intensity` = 項目の `intensity`（省略 = 1）、`loop` = cue の `loop`、`description` = `from <wav>`。WAV を clip のフォルダに `<clip>.wav` として写す（元が写す先と同じファイルなら写さない）。
+3. **clip**: 名前は cue の名前（variant は `<cue>_<variant>`）。clip のフォルダ（`hapbeat-scene.json` の `lib.paths.clips`）にその名前の WAV が中身の違うもので既にあるか、表にその名前の clip が既にあるときは、`_2`、`_3` … を付ける（名前は一覧の順に決める）。`clip_gain` = 項目の `clip_gain`（省略 = 1）、`loop` = cue の `loop`、`description` = `from <wav>`。WAV を clip のフォルダに `<clip>.wav` として写す（元が写す先と同じファイルなら写さない）。
 4. **variant**: `<cue>:<variant>` の項目は、その variant に自分の `haptics` を書く。元の cue の名前だけの項目が無ければ、元の cue の `haptics` は未定のまま。
 5. **review**: `haptics` を書いた cue と variant に `{ "haptics": "tentative" }`。
 6. **新しい表**: `kit` は `<project>-kit`（`project` が無ければ道具に渡した名前）、`sounds` は `{}`。

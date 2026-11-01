@@ -87,7 +87,7 @@
             "type": "string",
             "minLength": 1
           },
-          "intensity": {
+          "clip_gain": {
             "type": "number",
             "minimum": 0,
             "maximum": 1

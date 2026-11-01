@@ -60,10 +60,12 @@ class CueTableTests(unittest.TestCase):
             (['schema_version'], 2),
             (['kit'], 'Sample_Kit'),
             (['cues', 'foot-step'], {}),
-            (['clips', 'Footstep'], {'intensity': 1, 'loop': False}),
-            (['clips', 'grab', 'intensity'], 1.5),
+            (['clips', 'Footstep'], {'clip_gain': 1, 'loop': False}),
+            (['clips', 'grab', 'clip_gain'], 1.5),
+            (['clips', 'grab'], {'intensity': 0.6, 'loop': False}),  # the old name (DEC-103)
+            (['sounds', 'Roar_A'], {'intensity': 1}),
             (['clips', 'grab', 'loop'], DELETE),
-            (['sounds', 'Roar-C'], {'intensity': 1}),
+            (['sounds', 'Roar-C'], {'clip_gain': 1}),
             (['cues', 'grab', 'haptics', 0, 'clips'], ['grab']),          # clip and clips
             (['cues', 'purr', 'haptics', 0, 'alternates'], []),           # nothing starred, no alternates
             (['cues', 'grab', 'haptics', 0, 'at'], 'pos_foot'),
@@ -254,7 +256,7 @@ class CueInventoryTests(unittest.TestCase):
             (['events', 0, 'target'], DELETE),
             (['events', 0, 'gain'], -1),
             (['events', 0, 'cue'], 'GrabLight'),
-            (['events', 0, 'intensity'], 1.5),
+            (['events', 0, 'clip_gain'], 1.5),
             (['events', 3, 'levelMap', 'points'], [[0, 1]]),
             (['maps', 0, 'referenced'], DELETE),
             (['schema_version'], 2),
@@ -262,6 +264,21 @@ class CueInventoryTests(unittest.TestCase):
         for path, value in cases:
             with self.subTest(path=path, value=value):
                 self.assertFalse(self.V.is_valid(changed(INVENTORY, path, value)))
+
+
+class KitManifestTests(unittest.TestCase):
+    """The material strength is `parameters.clip_gain` (DEC-103); the old `intensity` is not accepted."""
+    V = Draft202012Validator(load('schemas/kit-manifest.schema.json'))
+    KIT = load('fixtures/sample-kit-manifest.json')
+
+    def test_valid(self):
+        self.V.validate(self.KIT)
+
+    def test_rejects_old_name(self):
+        event = next(iter(self.KIT['events']))
+        for value in ({'intensity': 0.5}, {'clip_gain': 1.5}):
+            with self.subTest(value=value):
+                self.assertFalse(self.V.is_valid(changed(self.KIT, ['events', event, 'parameters'], value)))
 
 
 if __name__ == '__main__':

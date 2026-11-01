@@ -45,7 +45,7 @@ my-game/               ← Kit フォルダ（= kit-name）
       "id": "my-game.sword-hit",
       "clip": "sword-hit.wav",
       "mode": "command",
-      "intensity": 0.8
+      "clip_gain": 0.8
     }
   ]
 }
@@ -56,7 +56,7 @@ my-game/               ← Kit フォルダ（= kit-name）
 | `name` | Kit 名（Event ID のプレフィックスになる） |
 | `id` | Event ID（`<kit-name>.<clip-name>` 形式） |
 | `mode` | `command`（FIRE）または `stream_clip`（CLIP） |
-| `intensity` | 基本強度 0.0〜1.0（SDK の gain と乗算される） |
+| `clip_gain` | 素材の強さの補正 0.0〜1.0。アプリの倍率（`app_gain`）と掛けて送る（式は `kit-format.md`「強さの式（正本）」） |
 
 Kit は **Studio で作成・編集** し、Helper 経由で Hapbeat にデプロイします。
 

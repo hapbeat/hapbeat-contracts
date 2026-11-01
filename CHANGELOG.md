@@ -23,6 +23,7 @@
 
 ### 破壊
 
+- 強さの名前を付け直す（DEC-103）: Kit の manifest の `parameters.intensity` → `parameters.clip_gain`、cue 表の `clips.<clip>.intensity`・`sounds.<Sound>.intensity` → `clip_gain`（cue 表でもこの欄だけ snake_case）、イベントの一覧の `events[].intensity` → `clip_gain`、`SDK_gain` → `app_gain`。式の正本は `kit-format.md`「強さの式（正本）」: `output = clip × app_gain × device_volume`、`clip = WAV × clip_gain`、送る値は `clamp(clip_gain × app_gain, 0, 1)`。API の `gain` 引数・Event Map の項目・route・variant・距離・Scene の発生の `gain` は名前を変えず `app_gain` の部品とする。STREAM_BEGIN の `gain` は 1.0 を送り、強さは source の PCM に掛ける（`message-format.md` と `sdk-multi-stream.md` §5.5 の食い違いを解消）。`cue-table.md` §9.1 素材の強さの元（Kit を持つプロジェクトは Kit の manifest、cue 表は写し。Kit の無いプロジェクトは cue 表）。古い名前は読まない（schema も拒否する）。
 - なし。0.x のうち Stream Gen 2 に対応した SDK（`versioning.md` §9）は、1.x のファームとつながる（PING・PONG と Stream Gen 2 のパケットの形は変えていない）。0.x の SDK は、1.x のファームが送る ERROR を無視するかログに出すだけで、`lease_reissued` の付いた応答は不正な tail として無視する（0.5.0 と同じく保留のまま）。実機で確認する。
 - Kit の `firmware_version_min` は major だけを比べ、`firmware_version_max` は照合しない（`versioning.md` §11）。0.x のファームは semver 全体で比べるため、1.x の書き手が `1.0.0` と書いた Kit を 0.x の機体は拒否する（意図どおり）。
 - UI 設定のボタンの ID の意味（DEC-098）: これまで機器は ID を回転させない向きの物理位置として割り当てていた。`orientation: "flipped"` の UI 設定では、左右（Duo は列の上下と左右）の働きが入れ替わる。Studio の表示も見た目の位置に揃える。
