@@ -179,7 +179,8 @@ Event ID の形式（正準仕様は `specs/event-id.md`。以下は要約）:
 
 `events.<id>` と `stream_events.<id>` が同じキーを持つ場合、両者の `parameters` は
 **独立に読まれる**。読む側はその時点で使う bucket の値のみを参照する。Studio の「BOTH モード」
-で authored された event はこのパターンで manifest に出力される。
+で authored された event はこのパターンで manifest に出力される。`clip_gain` も独立に読むが、1 つのイベントの素材なので
+両方に同じ値を書くのが普通（Studio のエディタはイベントごとに 1 つの値を持ち、両方に書く）。
 
 ### clip_gain (number, 0.0–1.0, default: 1.0)
 
@@ -205,7 +206,7 @@ clip   = WAV × clip_gain
 | device volume | Hapbeat 本体の音量 | 着ける人。アプリは知らない | 本体の段階 |
 
 - **`app_gain` の部品**: 次の倍率はどれも名前を変えず（`gain` など）、契約では「これらの積が `app_gain`」として扱う。SDK の API の `gain` 引数、Event Map の項目の倍率と binding の出力、cue 表の route の `gain`・sfx の `volume`・variant の倍率（`hapticsGain`・`sfxVolume`・ramp）・`distanceFalloff`・`levelMap`・`gainJitterDb`（[`cue-table.md`](cue-table.md) §9）、Scene の記録の発生ごとの `events[].gain`（[`scene-recording.md`](scene-recording.md)）。
-- **送る値**（PLAY の `gain`、stream では source の PCM に掛ける倍率）は `clamp(clip_gain × app_gain, 0, 1)`。`app_gain` が 1 を超えても、送る値は 1 で頭打ちになる。送る側は `app_gain` やその部品を 0〜1 に制限しない（`clip_gain` = 0.5 なら `app_gain` = 2 で 1.0 になる）。
+- **送る値**（PLAY の `gain`、stream では source の PCM に掛ける倍率）は `clamp(clip_gain × app_gain, 0, 1)`。`app_gain` が 1 を超えても、送る値は 1 で頭打ちになる。送る側は `app_gain` やその部品を 0〜1 に制限しない（`clip_gain` = 0.5 なら `app_gain` = 2 で 1.0 になる）。積が数でない（NaN）・無限のときは 0 を送る（本体は受けた `gain` を頭打ちしない）。
 - **掛けるのは送る側（SDK・Studio）だけ**。本体は manifest の `clip_gain` を読まず（あっても無視する）、受け取った `gain` だけで鳴らす。
 - 送る側は、呼ぶ時の `gain` で `clip_gain` を置き換えない（掛ける）。Event Map などへの取り込みで `clip_gain` を項目の倍率に焼き込んだり、項目の倍率で `clip_gain` を上書きしたりしない（2 つの値として持ち、送る時に掛ける）。
 - 素材の `clip_gain` が分からないとき（Kit の無い StreamClip、manifest に無いイベント）は 1 として扱う。Kit を参照する項目で見つからないときは、送る側が警告を出してよい。

@@ -206,9 +206,10 @@ t ∈ [0, 1] → [0, 1]:
 
 ### 9.1 素材の強さの元
 
-- **Kit を持つプロジェクト**（`kit` の Kit がプロジェクトにある）: 触覚の素材の強さの元は、Kit の manifest の Event ID `<kit>.<clip>` のイベントの `parameters.clip_gain`（`events` にあればその値、無ければ `stream_events` の値。省略 = 1）。Studio のエディタで決める。
+- **Kit を持つプロジェクト**（`kit` の Kit がプロジェクトにある）: 触覚の素材の強さの元は、Kit の manifest の Event ID `<kit>.<clip>` のイベントの `parameters.clip_gain`（省略 = 1）。Studio のエディタで決める。
+  - その ID が `events` と `stream_events` の両方にあるときは、鳴らす出力の bucket の値を使う（本体に入れた Kit で鳴らすなら `events`、PCM で流すなら `stream_events`。[`kit-format.md`](kit-format.md)「同一 Event ID が両 bucket に存在する場合」）。片方にしか無ければ、その値を使う。
   - cue 表の `clips.<clip>.clip_gain` は、その**写し**。再生する側（Studio の Scene など）は Kit の値を使う。
-  - Studio は写しを Kit の値にそろえる（cue 表を書く時に写す）。写しが Kit と違っていれば、Kit の状態として出す。
+  - Studio は写しを Kit の値にそろえる（cue 表を書く時に写す）。写しが Kit と違っていれば、Kit の状態として出す。写しは 1 つの値なので、2 つの bucket で値が違う clip はそろえず、そのことを Kit の状態として出す。
   - Kit に無い clip は、cue 表の値を使う。
 - **Kit の無いプロジェクト**（ゲームの記録を PC から流すだけなど）: cue 表の `clips.<clip>.clip_gain` が元。
 - 音（`sounds`）の素材の強さの元は、常に cue 表の `sounds.<Sound>.clip_gain`（Kit は音を持たない）。
