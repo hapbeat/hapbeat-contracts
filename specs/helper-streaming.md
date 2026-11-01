@@ -27,6 +27,17 @@ The `stream_id` is a Studio-to-Helper coordination field. Helper does not put
 it into the device UDP packet. UDP stream sequence numbers start at zero for
 each accepted transaction and advance only for its forwarded data/end packets.
 
+## Stream gain
+
+`stream_begin` MAY carry `payload.gain`; a client omits it or sends `1.0`. The
+strength of a playback (`clamp(clip_gain × app_gain, 0, 1)`, `kit-format.md`
+"強さの式（正本）") is applied to the PCM the client sends, before mixing
+(`sdk-multi-stream.md` §5.5). Helper puts the value into STREAM_BEGIN's `gain`,
+which the device multiplies with the session PCM (`message-format.md` §0x30).
+Helper MUST reject a `gain` that is not a finite number from 0 to 1 with a
+`stream_ack` of `status` `error` and send nothing to the devices (the device
+rejects such a BEGIN).
+
 ## Replies to the client
 
 Helper answers each `stream_begin` with one `stream_ack`, and tells clients when

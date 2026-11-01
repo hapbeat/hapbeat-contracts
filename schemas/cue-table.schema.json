@@ -115,6 +115,7 @@
         "clip_gain": {
           "$ref": "#/$defs/unit"
         },
+        "intensity": false,
         "loop": {
           "type": "boolean"
         },
@@ -135,6 +136,7 @@
         "clip_gain": {
           "$ref": "#/$defs/unit"
         },
+        "intensity": false,
         "syncMs": {
           "$ref": "#/$defs/syncMs"
         }

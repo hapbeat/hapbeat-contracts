@@ -92,6 +92,7 @@
             "minimum": 0,
             "maximum": 1
           },
+          "intensity": false,
           "levelMap": {
             "$ref": "https://hapbeat.com/schemas/cue-table.schema.json#/$defs/levelMap"
           },

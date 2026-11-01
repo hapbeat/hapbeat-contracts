@@ -64,6 +64,8 @@ class CueTableTests(unittest.TestCase):
             (['clips', 'grab', 'clip_gain'], 1.5),
             (['clips', 'grab'], {'intensity': 0.6, 'loop': False}),  # the old name (DEC-103)
             (['sounds', 'Roar_A'], {'intensity': 1}),
+            (['clips', 'grab'], {'clip_gain': 0.6, 'intensity': 0.6, 'loop': False}),  # the old name next to the new one
+            (['sounds', 'Roar_A'], {'clip_gain': 1, 'intensity': 1}),
             (['clips', 'grab', 'loop'], DELETE),
             (['sounds', 'Roar-C'], {'clip_gain': 1}),
             (['cues', 'grab', 'haptics', 0, 'clips'], ['grab']),          # clip and clips
@@ -257,6 +259,7 @@ class CueInventoryTests(unittest.TestCase):
             (['events', 0, 'gain'], -1),
             (['events', 0, 'cue'], 'GrabLight'),
             (['events', 0, 'clip_gain'], 1.5),
+            (['events', 0, 'intensity'], 0.5),                          # the old name (DEC-103)
             (['events', 3, 'levelMap', 'points'], [[0, 1]]),
             (['maps', 0, 'referenced'], DELETE),
             (['schema_version'], 2),
