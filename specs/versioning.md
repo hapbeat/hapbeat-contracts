@@ -22,7 +22,7 @@
 
 | 製品 | 版の定義箇所 |
 |---|---|
-| デバイスファーム（全 env。band_v4_pwm・atoms3_broker・atom_lite_sensor を含む） | `firmware-versions.json`（env ごと、DEC-035） |
+| デバイスファーム（全 env。band_v4_pwm・band_v3_pwm・atoms3_broker・atom_lite_sensor を含む） | `firmware-versions.json`（env ごと、DEC-035） |
 | 送信機ファーム | `firmware-versions.json`（env ごと） |
 | Unity / Unreal / Python / JS / Arduino / Godot SDK | 各 repo のパッケージ定義 |
 | hapbeat-helper | `pyproject.toml` |

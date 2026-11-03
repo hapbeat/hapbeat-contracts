@@ -219,7 +219,7 @@ function match(target, address):
 
 ## 7. デバイスボタンでの設定
 
-デバイスのボタンでは **player 番号 / position / group** を変更可能（`player_inc/dec`・`position_inc/dec`・`group_inc/dec` アクション）。プレフィックスは Desktop 専用。
+デバイスのボタンでは **player 番号 / position / group** を変更可能（`player_inc/dec`・`group_inc/dec`・`position_cycle` アクション）。position は増減ではなく、UI 設定の `ui.position_cycle` に書いた並びを順に切り替える（`display-layout.md`「装着位置の切り替え」）。プレフィックスは Desktop 専用。
 
 ボタンで変更した場合、アドレスは正準形 `{既存プレフィックス}/player_{N}/{position}/group_{M}` に更新され、そのままアドレス文字列として NVS に永続化される（group 専用の NVS キーは存在しない）。プレフィックスが未設定の場合は `player_{N}/{position}/group_{M}` となる。
 

@@ -20,6 +20,8 @@
 - `scene-recording.md` §2 の `takes`、§5 記録のログ（JSON Lines の `start` / `take` / `take_end` / `cue` / `level` / `fail` / `end`、印 `HAPBEAT_SCENE `）、§6 プロジェクトの設定 `hapbeat-scene.json`、§7 記録と cue 表の突き合わせ。`cue-table.md` §10 イベントの一覧（`inventory.json`）と Event Map から cue 表の初版を作る規則（DEC-101）。schema `scene-log-record`・`scene-project`・`cue-inventory` と `scene-session` の `takes`、fixture `sample-scene-log.jsonl`・`sample-scene-project.json`・`sample-cue-inventory.json`。
 - `scene-recording.md`: 動画のプロジェクト（ゲームの記録を使わず、映像に触覚を付ける。`viewer-data.json` が原本）、§3.2.1 `viewer-data.json` の任意の `chapters`（映像の区切り。選んで再生・範囲で繰り返す目印）、§3.3 映像の音声トラックは任意で、動画のプロジェクトでは再生する側が番組の音として流してよい。schema `scene-viewer-data` の `chapters`。
 - `demo-session.md`「デモごとの設定」と descriptor の option の `scope`（`session` / `device`）、`demo-switch-control.md`「Demo settings」の `DEMO_SETTINGS_GET` / `DEMO_SETTINGS` / `DEMO_SETTINGS_SET`（DEC-099）。`DEMO_SETTINGS` の `hub_id`。schema と fixture（`descriptor_boxing`、`unsigned_demo_settings_*`）。
+- `display-layout.md`「装着位置の切り替え」（DEC-100）: UI 設定の `ui.position_cycle`（装着位置の並び）とボタンの動作 `position_cycle`（押すたびに並びの次の位置へ）。`device-addressing.md` §7 の存在しない `position_inc/dec` を `position_cycle` に改めた。
+- `pwm-experiment.md`: 対象のファームに `band_v3_pwm`（BandWL v3 で band_v4_pwm と同じ MCU-PWM の改造をした基板）を加えた。board は `band_wl_v3` のまま、`get_info` の `haptic_pwm` で見分ける。
 
 ### 破壊
 
