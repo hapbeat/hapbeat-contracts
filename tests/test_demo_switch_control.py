@@ -55,7 +55,7 @@ def canonical_steps(steps):
     encoded = []
     for step in steps:
         options = ','.join(f'{key}={value}' for key, value in sorted(step.get('options', {}).items()))
-        encoded.append(f"{step['demo_id']};{options};{1 if step.get('retry', True) else 0}")
+        encoded.append(f"{step['demo_id']};{options};{1 if step.get('retry', False) else 0}")
     return '|'.join(encoded)
 
 class PresetTests(unittest.TestCase):
@@ -100,7 +100,7 @@ class PresetTests(unittest.TestCase):
         self.assertEqual(value, 'energy-duel;tutorial=on;1|volley;scene=match;0')
         self.assertEqual(len(value.encode('utf-8')), 46)
         self.assertEqual(canonical_steps([]), '')
-        self.assertEqual(canonical_steps([{'demo_id': 'boxing', 'options': {'b': '2', 'a': '1'}}]), 'boxing;a=1,b=2;1')
+        self.assertEqual(canonical_steps([{'demo_id': 'boxing', 'options': {'b': '2', 'a': '1'}}]), 'boxing;a=1,b=2;0')
 
 def canonical_demos(demos):
     """`demos` HMAC value of HUB_SETTINGS (demo-switch-control.md, Authentication of the Hub settings and Hub start)."""
@@ -232,7 +232,7 @@ class HubParityTests(unittest.TestCase):
             'unsigned_hub_settings_get': 'de07246f7208dac8a116de59f8b2bf5f5e82135e5e276084a4b99664dc3d197a',
             'unsigned_hub_settings': '591f3a09b9240691077766f700262badfb2feed1ebaf528698a75db508450179',
             'unsigned_hub_settings_set': '3160415e0f228ec3b690007d187b458d80faac6d5d498913bccafc3c17924533',
-            'unsigned_hub_start': '8cc476ef9a64e5b376aad77225b57429736f116063bdf4149601e111bec1e7a2',
+            'unsigned_hub_start': '34e7719552c6c843ce09bc17029dac95c9d53a4173733359e45ca49d2a4efe2f',
         }
         for name, digest in expected.items():
             with self.subTest(name=name):
@@ -247,7 +247,7 @@ class HubParityTests(unittest.TestCase):
         self.assertIn(b'demos=29:volley;1;6:Volley|fps;0;3:FPS\n', canonical_bytes(FIXTURES['unsigned_hub_settings']))
         self.assertIn(b'visible_demos=6:volley\n', canonical_bytes(FIXTURES['unsigned_hub_settings_set']))
         self.assertIn(b'visible_demos=0:\n', canonical_bytes(dict(FIXTURES['unsigned_hub_settings_set'], visible_demos=[])))
-        self.assertIn(b'steps=20:volley;scene=match;1\n', canonical_bytes(FIXTURES['unsigned_hub_start']))
+        self.assertIn(b'steps=20:volley;scene=match;0\n', canonical_bytes(FIXTURES['unsigned_hub_start']))
         partial = canonical_bytes(FIXTURES['unsigned_state_partial'])
         self.assertTrue(partial.endswith(b'step_count=1:3\nscreen=10:completion\n'))
         self.assertNotIn(b'device_model=', partial)

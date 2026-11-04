@@ -207,7 +207,7 @@ A preset carries `name`, `visible` and `steps`:
   [remote preset transfer](demo-session.md#リモコンへのプリセット受け渡しqr--リンク) `name`. Shown on the Hub's preset button.
 - `visible`: whether the Hub's top screen offers the preset (the Hub still hides one without installed steps).
 - `steps`: 0–32 steps with the rules of the Hub start extra `steps` (`demo_id`, optional `options`, optional `retry`,
-  default true). An empty list clears the preset.
+  default false). An empty list clears the preset.
 
 The Hub-wide launch settings (`haptics_ui`, `recenter_ui`, `hand_style`, staff waiting mode, the demo tiles shown) are
 not part of a preset; they are read and changed with [Hub settings](#hub-settings), and in-run state with `CONTROL`.
@@ -221,7 +221,7 @@ not part of a preset; they are read and changed with [Hub settings](#hub-setting
 ```
 
 ```json
-{"version":1,"type":"PRESET","controller_id":"remote-pixel","nonce":"0123456789abcdef","preset":1,"revision":7,"name":"XR Kaigi A","visible":true,"step_count":2,"from":0,"steps":[{"demo_id":"energy-duel","options":{"tutorial":"on"}},{"demo_id":"volley","options":{"scene":"match"},"retry":false}]}
+{"version":1,"type":"PRESET","controller_id":"remote-pixel","nonce":"0123456789abcdef","preset":1,"revision":7,"name":"XR Kaigi A","visible":true,"step_count":2,"from":0,"steps":[{"demo_id":"energy-duel","options":{"tutorial":"on"},"retry":true},{"demo_id":"volley","options":{"scene":"match"}}]}
 ```
 
 - `preset` is 1–3 and `from` the first step wanted (0–31). `PRESET` returns as many steps from `from` as fit in 1024
@@ -238,7 +238,7 @@ not part of a preset; they are read and changed with [Hub settings](#hub-setting
 (the Hub-wide launch settings apply).
 
 ```json
-{"version":1,"type":"PRESET_SET","controller_id":"remote-pixel","seq":44,"demo_id":"demo_hub","preset":1,"name":"XR Kaigi A","visible":true,"steps":[{"demo_id":"energy-duel","options":{"tutorial":"on"}},{"demo_id":"volley","options":{"scene":"match"},"retry":false}]}
+{"version":1,"type":"PRESET_SET","controller_id":"remote-pixel","seq":44,"demo_id":"demo_hub","preset":1,"name":"XR Kaigi A","visible":true,"steps":[{"demo_id":"energy-duel","options":{"tutorial":"on"},"retry":true},{"demo_id":"volley","options":{"scene":"match"}}]}
 ```
 
 ```json
@@ -274,7 +274,7 @@ With a shared secret all four carry `auth`. Canonical bytes use the field encodi
 
 Booleans are `true` / `false`. The `steps` value is its steps joined with `|`; each step is
 `<demo_id>;<options>;<retry>` where `<options>` is `key=value` pairs sorted by key (ordinal) and joined with `,`
-(empty when there are none), and `<retry>` is `1` or `0` (`1` when omitted). Identifiers and option values cannot
+(empty when there are none), and `<retry>` is `1` or `0` (`0` when omitted). Identifiers and option values cannot
 contain `|`, `;`, `,` or `=`, so this is unambiguous. The example `PRESET_SET` above signs
 `steps=46:energy-duel;tutorial=on;1|volley;scene=match;0`.
 

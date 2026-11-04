@@ -92,14 +92,14 @@
         "demo_id": "energy-duel",
         "options": {
           "tutorial": "on"
-        }
+        },
+        "retry": true
       },
       {
         "demo_id": "volley",
         "options": {
           "scene": "match"
-        },
-        "retry": false
+        }
       }
     ]
   },
@@ -117,14 +117,14 @@
         "demo_id": "energy-duel",
         "options": {
           "tutorial": "on"
-        }
+        },
+        "retry": true
       },
       {
         "demo_id": "volley",
         "options": {
           "scene": "match"
-        },
-        "retry": false
+        }
       }
     ]
   },

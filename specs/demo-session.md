@@ -63,7 +63,7 @@ Hub は package / activity を **descriptor から取らない**。PackageManage
 session mode の runtime は、demo 固有の完了イベントで、体験者の正面に終了パネルを出す。
 
 - 表示: 見出し「体験完了」、`<index+1> / <len(steps)>`、ボタン。
-- ボタン: `retry` が true なら「もう一度」。次 step があれば「次へ：<次 step の title>」、最後なら「デモを終了」。
+- ボタン: `retry` が true なら「もう一度」。次 step があれば「次へ：<次 step の title>」、最後なら「デモを終了」。runtime はこの間にデモ独自のボタン（同じ step の別のモードへ進むなど）を置いてよく、これは `retry` に関係なく出す。
 - 表示後 1.0 秒間はボタンを受け付けない（誤操作防止）。パネル表示中はゲーム入力を止める。
 - 入力: 人差し指先のポーク（ハンドトラッキング）と、コントローラの ray + trigger の両方。
 - 「もう一度」は同じ step を demo 内で再開する（process 再起動ではない）。終了パネルを閉じる。
@@ -113,8 +113,8 @@ session mode の runtime は、demo 固有の完了イベントで、体験者�
 
 - Hub は起動 Intent の String extra `com.hapbeat.demo_hub.start` を受け付ける。値は JSON 1 個（最大 4096 bytes）:
   - `{"version":1,"preset":1}` … Hub のプリセット 1〜3 の plan で session を開始。
-  - `{"version":1,"demo_id":"handdemo","options":{"tutorial":"on"}}` … そのデモ 1 本の session（options は省略可、未指定・未知値はデモごとの設定の値、retry=true、finish=Hub、`haptics_ui` / `recenter_ui` / `hand_style` は Hub の管理画面の設定）。
-  - `{"version":1,"steps":[{"demo_id":"handdemo","options":{"tutorial":"on"}},{"demo_id":"trex-encounter","retry":false}]}` … 外部（リモコン）で組んだ plan の session。`steps` は 1〜32 件、各 step は `demo_id`（必須）、`options`（任意、規則は 1 本指定と同じ）、`retry`（任意、既定 true）だけを持つ。`haptics_ui` / `recenter_ui` / `hand_style` と `finish` は 1 本指定と同じく Hub が決める。未インストール・不正な step が 1 つでもあれば全体を開始しない。Hub のプリセット 1〜3 は変えない（外部の plan は保存しない）。
+  - `{"version":1,"demo_id":"handdemo","options":{"tutorial":"on"}}` … そのデモ 1 本の session（options は省略可、未指定・未知値はデモごとの設定の値、retry=false、finish=Hub、`haptics_ui` / `recenter_ui` / `hand_style` は Hub の管理画面の設定）。
+  - `{"version":1,"steps":[{"demo_id":"handdemo","options":{"tutorial":"on"},"retry":true},{"demo_id":"trex-encounter"}]}` … 外部（リモコン）で組んだ plan の session。`steps` は 1〜32 件、各 step は `demo_id`（必須）、`options`（任意、規則は 1 本指定と同じ）、`retry`（任意、既定 false）だけを持つ。`haptics_ui` / `recenter_ui` / `hand_style` と `finish` は 1 本指定と同じく Hub が決める。未インストール・不正な step が 1 つでもあれば全体を開始しない。Hub のプリセット 1〜3 は変えない（外部の plan は保存しない）。
   - `preset` / `demo_id` / `steps` はどれか 1 つだけ。未知フィールドは不正。
 - 受け付けたら Hub は自分のトップ画面を出さずに ticket を作って 1 本目を起動する（起動遷移の規則は同じ）。不正・未インストールなら Hub のトップを開いてステータス行に理由を出す。
 - 外部リモコンは Wi-Fi adb の `am start -n jp.hapbeat.demohub/com.unity3d.player.UnityPlayerGameActivity --es com.hapbeat.demo_hub.start '<json>'` でこれを使う。Hub が前面にあるときは、adb を使わずに Demo Switch の `HUB_START` / `PRESET_START`（[Hub start](demo-switch-control.md#hub-start)）でも同じ session を始められる。Demo Switch の `SWITCH`（UDP）は従来どおり ticket なしの直接起動で、session にはならない。
@@ -125,7 +125,7 @@ Web のデモ紹介ページ（devtools-site のショーケース）で組ん�
 
 - ペイロード: JSON 1 個。UTF-8 で最大 **700 bytes**（QR を誤り訂正 M で読みやすい大きさに保つため）。Schema: [`demo-remote-preset.schema.json`](../schemas/demo-remote-preset.schema.json)。例: [`sample-demo-remote-preset.json`](../fixtures/sample-demo-remote-preset.json)。
   ```json
-  {"version":1,"presets":[{"name":"XR Kaigi A","steps":[{"demo_id":"energy-duel","options":{"tutorial":"on"}},{"demo_id":"volley","options":{"scene":"match"},"retry":false}]}]}
+  {"version":1,"presets":[{"name":"XR Kaigi A","steps":[{"demo_id":"energy-duel","options":{"tutorial":"on"},"retry":true},{"demo_id":"volley","options":{"scene":"match"}}]}]}
   ```
   - `presets` は 1〜3 件。`name` は 1〜40 文字（Unicode のコードポイントで数える）で、空白以外の文字を 1 つ以上含み、制御文字（U+0000〜U+001F、U+007F〜U+009F）と行区切り（U+2028、U+2029）を含まない。
   - `steps` は 1〜32 件で、各 step の規則は「Hub を外部から起動してセッションを始める」の `steps` と同じ（`demo_id` 必須、`options` と `retry` は任意、それ以外のフィールドは不正）。`options` のキーと値は、その demo の descriptor の `options`（`id` と `values[].value`）に従い、schema の pattern（`[a-z0-9][a-z0-9._-]*`）を満たす。
