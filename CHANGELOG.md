@@ -2,7 +2,7 @@
 
 本 repo の版は [specs/versioning.md](specs/versioning.md) §3.7 に従う。major は全製品の major、minor は追加だけの仕様変更、patch は文言の修正である。1.0.0 までは tag を打たず、変更を「Unreleased」に積む。各項目には `versioning.md` §6 の分類（追加・破壊・修正）を付ける。
 
-## Unreleased（1.0.0 に含める）
+## 1.0.0 — 2026-11-06
 
 ### 追加
 
