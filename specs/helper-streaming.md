@@ -58,6 +58,11 @@ playback as lost (Studio's `LiveStreamLoss`), and may start a new transaction.
 Helper is the Stream Gen 2 sender for its clients (`stream-session.md`). For each
 destination of an active transaction:
 
+- Helper stops refreshing a device's lease one lease TTL after its last session ended, so the
+  device lets that lease expire. On the next `stream_begin` for that device Helper first sends a
+  unicast extended PING and waits briefly for the matched reply, then begins under the ticket it
+  shows. It does not begin under the old ticket: STREAM_LEASE_INVALID would cost the first part
+  of the clip, or all of a short one.
 - When a matched PONG shows a new `device_boot_id` or a different lease ticket,
   Helper ends the session under the old identity (END) and sends `stream_lost`
   (`device_rebooted` or `lease_changed`). It does not keep sending DATA under the
