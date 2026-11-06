@@ -2,6 +2,12 @@
 
 本 repo の版は [specs/versioning.md](specs/versioning.md) §3.7 に従う。major は全製品の major、minor は追加だけの仕様変更、patch は文言の修正である。1.0.0 までは tag を打たず、変更を「Unreleased」に積む。各項目には `versioning.md` §6 の分類（追加・破壊・修正）を付ける。
 
+## Unreleased
+
+### 追加
+
+- `scene-recording.md` §3.5 `viewer-edits.json`（schema `scene-viewer-edits.schema.json`）: 人が Studio の Scene で発生ひとつずつに付けた強さ（`gain`）と時刻（`t`）を、記録（`viewer-data.json`）とは別に持つ。発生は記録の `name`・`t`・`hand` で指し（半フレーム以内）、再生する側が記録に重ねる。撮り直しは記録だけを作り直すので、上書きは残る。Studio は記録を書き換えない。§3.6 に Studio の版の置き場 `versions/`（本仕様の対象外）。`kit-format.md`・`cue-table.md` §9 の `app_gain` の部品に、上書きした `gain` を書いた（DEC-112）。
+
 ## 1.0.0 — 2026-11-06
 
 ### 追加

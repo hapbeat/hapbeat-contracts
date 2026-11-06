@@ -77,7 +77,7 @@ hapbeat-contracts 自体は他のどの repo にも依存しません。
 | `demo-switch-control.md` | 独立 demo runtime 切替用 UDP 7710 control plane（logical demo ID、sequence、optional HMAC、ACK/READY/FAILED） |
 | `demo-session.md` | 独立 demo runtime を体験者が順に進める Demo Session（APK 内 descriptor、Intent で渡す session ticket、終了パネル、触覚 ON/OFF） |
 | `cue-table.md` | cue 表: ゲームのイベント（cue）→ 効果音・触覚 route の割り当て。Hapbeat Studio とゲームの交換形式（variants・揺らぎ・同期点・距離・ループの levelMap）と、SDK の Event Map から作るイベントの一覧（`inventory.json`）と初版の規則（§10） |
-| `scene-recording.md` | Scene の記録形式: ゲームの録画と cue の発生（`session.json`）、記録のログ（JSON Lines、§5）、プロジェクトの設定（`hapbeat-scene.json`、§6）、記録と cue 表の突き合わせ（台本の区切り `takes`、§7）、Studio が読む `Saved/HapticViewer/`（viewer-lib / viewer-data / 通し映像） |
+| `scene-recording.md` | Scene の記録形式: ゲームの録画と cue の発生（`session.json`）、記録のログ（JSON Lines、§5）、プロジェクトの設定（`hapbeat-scene.json`、§6）、記録と cue 表の突き合わせ（台本の区切り `takes`、§7）、Studio が読む `Saved/HapticViewer/`（viewer-lib / viewer-data / 通し映像）と、Studio が記録とは別に書く発生ごとの上書き（viewer-edits、§3.5） |
 
 ### schemas/
 

@@ -52,5 +52,12 @@
       { "t": 6.0, "name": "grab", "hand": "right", "gain": 0.9, "note": "right hand on the bone" }
     ],
     "levels": { "columns": ["rub:level:left", "rub:level:right"], "rows": [[0, 0], [0, 0.4]] }
+  },
+  "viewer_edits": {
+    "schema_version": 1,
+    "firings": [
+      { "of": { "name": "roar", "t": 4.0 }, "gain": 0.6 },
+      { "of": { "name": "grab", "t": 6.0, "hand": "right" }, "gain": 1.2, "t": 6.05 }
+    ]
   }
 }

@@ -16,7 +16,7 @@ def load(path):
 
 SCHEMAS = {name: load(f'schemas/{name}.schema.json')
            for name in ('cue-table', 'cue-inventory', 'scene-session', 'scene-viewer-lib', 'scene-viewer-data',
-                        'scene-log-record', 'scene-project')}
+                        'scene-viewer-edits', 'scene-log-record', 'scene-project')}
 REGISTRY = Registry().with_resources((s['$id'], Resource.from_contents(s)) for s in SCHEMAS.values())
 VALIDATORS = {name: Draft202012Validator(s, registry=REGISTRY) for name, s in SCHEMAS.items()}
 CUES = load('fixtures/sample-cue-table.json')
@@ -149,6 +149,25 @@ class SceneTests(unittest.TestCase):
         for path, value in [(['video'], DELETE), (['events', 0, 't'], -0.5), (['frames'], 0)]:
             with self.subTest(path=path):
                 self.assertFalse(data.is_valid(changed(SCENE['viewer_data'], path, value)))
+
+    def test_viewer_edits(self):
+        v, base = VALIDATORS['scene-viewer-edits'], SCENE['viewer_edits']
+        v.validate(base)
+        v.validate(changed(base, ['firings'], []))
+        cases = [
+            (['schema_version'], 2),
+            (['firings'], DELETE),
+            (['firings', 0, 'gain'], DELETE),                             # neither gain nor t
+            (['firings', 0, 'gain'], -0.1),
+            (['firings', 1, 't'], -1),
+            (['firings', 0, 'of'], DELETE),
+            (['firings', 0, 'of', 't'], DELETE),
+            (['firings', 0, 'of', 'name'], 'Roar'),
+            (['firings', 1, 'of', 'hand'], 'up'),
+        ]
+        for path, value in cases:
+            with self.subTest(path=path, value=value):
+                self.assertFalse(v.is_valid(changed(base, path, value)))
 
     def test_viewer_chapters(self):
         v = VALIDATORS['scene-viewer-data']

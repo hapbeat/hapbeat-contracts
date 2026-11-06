@@ -2,7 +2,7 @@
 
 バージョン: `schema_version` 1（2026-10-14、DEC-095）。Hapbeat Studio の Scene / Editor はベータで、この仕様も変わりうる。
 
-schema: [`schemas/scene-session.schema.json`](../schemas/scene-session.schema.json)、[`schemas/scene-viewer-lib.schema.json`](../schemas/scene-viewer-lib.schema.json)、[`schemas/scene-viewer-data.schema.json`](../schemas/scene-viewer-data.schema.json)、[`schemas/scene-log-record.schema.json`](../schemas/scene-log-record.schema.json)（§5）、[`schemas/scene-project.schema.json`](../schemas/scene-project.schema.json)（§6）。
+schema: [`schemas/scene-session.schema.json`](../schemas/scene-session.schema.json)、[`schemas/scene-viewer-lib.schema.json`](../schemas/scene-viewer-lib.schema.json)、[`schemas/scene-viewer-data.schema.json`](../schemas/scene-viewer-data.schema.json)、[`schemas/scene-viewer-edits.schema.json`](../schemas/scene-viewer-edits.schema.json)（§3.5）、[`schemas/scene-log-record.schema.json`](../schemas/scene-log-record.schema.json)（§5）、[`schemas/scene-project.schema.json`](../schemas/scene-project.schema.json)（§6）。
 
 ## 1. 位置づけと流れ
 
@@ -21,6 +21,7 @@ schema: [`schemas/scene-session.schema.json`](../schemas/scene-session.schema.js
 
 - `<プロジェクト>` はゲームのプロジェクトのルート（Unreal は `.uproject` のあるフォルダ、Unity は `Assets` の親）。`Saved/` はバージョン管理と、エンジンの資産取り込みの対象外にする。
 - Studio は `Saved/HapticViewer/` だけを読み、cue 表と WAV は `viewer-lib.json` の `paths` から読み書きする。
+- Studio は記録（`viewer-lib.json`・`viewer-data.json`・映像）を書き換えない。人が発生ひとつずつに付けた強さと時刻は `viewer-edits.json`（§3.5）に書き、再生する側が記録に重ねる。撮り直し（`hapbeat-helper scene build`）は記録だけを作り直し、`viewer-edits.json` には触れない。
 - 記録する側が `session.json` を直接書いてもよい（§5 のログを使わない）。その場合も `hapbeat-helper scene check` で §7 の突き合わせができる。
 - **動画のプロジェクト**: ゲームの記録を使わず、ある映像（スポーツの中継、VR デモの画面収録など）に触覚を付けるときも、同じ配置（`<プロジェクト>/Saved/HapticViewer/` と §3 の形式）を使う。`viewer-data.json` は記録の出力ではなく、人や AI が書く原本になる。そのプロジェクトでは `Saved/HapticViewer/` の JSON をバージョン管理に入れ、映像は権利と大きさに応じて入れない。
 
@@ -119,6 +120,7 @@ Studio はこの列名からループの cue とレイヤーを組み立てる�
 ```
 
 - `events[].t` = `frame / fps`（秒）。`name` は §2 の `cue`。`hand` / `gain` / `dist` / `note` は §2 と同じ。
+- 再生する側は、`viewer-edits.json`（§3.5）があれば、その上書きを重ねてから使う。
 - cue ごとに事前に切り出した動画は持たない。場面の一覧は Studio が発生時刻から作る（§3.4）。
 
 #### 3.2.1 `chapters`（任意）
@@ -145,9 +147,40 @@ Studio はこの列名からループの cue とレイヤーを組み立てる�
 - 0.2 秒以内に続く cue を 1 つの場面にまとめ、最初の cue の 2.0 秒前から 3.0 秒後までを区間にする。`ticks` の cue は単独で場面にする。
 - `moment_rules` があれば、cue ごとの場面の数と間隔を絞る。
 
-### 3.5 その他のファイル
+### 3.5 `viewer-edits.json`（発生ごとの上書き）
+
+人が Studio の Scene で、発生ひとつずつに付けた強さと時刻。記録とは別に持ち、記録の値の代わりに使う。
+
+```jsonc
+{
+  "schema_version": 1,
+  "firings": [
+    { "of": { "name": "roar", "t": 4.0 }, "gain": 0.6 },
+    { "of": { "name": "grab", "t": 6.0, "hand": "right" }, "gain": 1.2, "t": 6.05 }
+  ]
+}
+```
+
+| フィールド | 必須 | 意味 |
+|---|---|---|
+| `schema_version` | ✓ | `1` |
+| `firings` | ✓ | 上書きの一覧（順は問わない） |
+| `firings[].of` | ✓ | 上書きする発生。記録（§3.2）の `name`・`t`・`hand` をそのまま書く |
+| `firings[].gain` | | その発生の `events[].gain` の代わりに使う値（0 以上） |
+| `firings[].t` | | その発生の `events[].t` の代わりに使う時刻（秒。0 以上、`frames / fps` 以下） |
+
+- `gain` と `t` の少なくとも 1 つを書く。書かない方は記録の値を使う。
+- 発生の見つけ方: `of.name` と記録の `name` が同じ、`of.hand` と記録の `hand` が同じ（どちらも無いのも同じとみなす）、`of.t` と記録の `t` の差が半フレーム（`0.5 / fps`）以内。当てはまる発生が複数あれば、`t` が近いもの（同じなら記録の先のもの）。1 つの発生に当てる上書きは 1 つまでで、`of.t` の早い上書きから順に決める。
+- 当てはまる発生が無い上書き（撮り直しで発生が無くなった・時刻が変わったもの）は使わない。消さずに残し、Studio が数を見せて、人が消す。
+- 記録の発生（`events`）だけに当てる。ループの cue の入力値（`levels`）と、cue 表の `emit`（[`cue-table.md`](cue-table.md) §5.7）が作る発生には当てない。
+- `t` を変えた発生は、新しい時刻で鳴り、場面の一覧（§3.4）にも新しい時刻で入る。
+- 書くのは Studio だけで、ファイルを丸ごと書き直す。記録する側と `hapbeat-helper` は書かず、消さない（`scene check` は読まない）。動画のプロジェクト（§1）では、ほかの JSON と一緒にバージョン管理に入れる。
+- 再生する側（Studio の Scene・プレイヤー・映像を書き出す道具）は、このファイルを重ねる。重ねないと、Studio で聞いた強さと違って鳴る。
+
+### 3.6 その他のファイル
 
 - `studio-scene-ui.json` は Studio のパネル配置などの保存先で、本仕様の対象外。再録画でも消さない。
+- `versions/` は Studio が保存する版（`viewer-edits.json` と cue 表の写し）の置き場で、本仕様の対象外。再生する側は読まない。再録画でも消さない。
 
 ## 4. 記録する側の約束
 

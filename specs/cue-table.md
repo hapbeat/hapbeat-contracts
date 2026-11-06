@@ -200,7 +200,7 @@ t ∈ [0, 1] → [0, 1]:
 
 - 式は [`kit-format.md`](kit-format.md)「強さの式（正本）」: `output = clip × app_gain × device_volume`、`clip = WAV × clip_gain`。
 - WAV = 形（常にピーク約 −0.5 dBFS に正規化）、`clip_gain` = 素材の強さの補正（WAV と 2 つで 1 組）。
-- `app_gain` = 再生するアプリが掛ける倍率の積。cue 表では route の `gain`・sfx の `volume`、variant の `hapticsGain`・`sfxVolume`・ramp（`rampTo`・`rampSteps`）、`distanceFalloff`、`levelMap` の出力、`gainJitterDb` の乱数がその部品で、ゲームが発生ごとに掛ける倍率（SDK の API の `gain` 引数、Scene の記録の `events[].gain`）も掛ける。どれも名前は変えない。
+- `app_gain` = 再生するアプリが掛ける倍率の積。cue 表では route の `gain`・sfx の `volume`、variant の `hapticsGain`・`sfxVolume`・ramp（`rampTo`・`rampSteps`）、`distanceFalloff`、`levelMap` の出力、`gainJitterDb` の乱数がその部品で、ゲームが発生ごとに掛ける倍率（SDK の API の `gain` 引数、Scene の記録の `events[].gain`。Studio が `viewer-edits.json` で上書きした発生はその `gain`）も掛ける。どれも名前は変えない。
 - 触覚の送る値は `clamp(clip_gain × app_gain, 0, 1)`（掛けるのは送る側だけ。本体は `clip_gain` を知らない）。音（sfx）も同じ式で、音の `clip_gain` に `app_gain` を掛ける。
 - Studio の画面では、3 つの枠を「クリップ（素材）」「アプリ」「本体」と呼ぶ。素材の強さ（`clip_gain`）を変えるのは Studio のエディタ（Kit）で、Scene は `app_gain` の部品だけを変える。
 
