@@ -2,6 +2,16 @@
 
 本 repo の版は [specs/versioning.md](specs/versioning.md) §3.7 に従う。major は全製品の major、minor は追加だけの仕様変更、patch は文言の修正である。1.0.0 までは tag を打たず、変更を「Unreleased」に積む。各項目には `versioning.md` §6 の分類（追加・破壊・修正）を付ける。
 
+## Unreleased
+
+### 追加
+
+- `kit-install-protocol.md` §10 音声領域: 追記だけで 1 イベント 1 項目、新しいインストールが勝つ。削除は USB（`KIT_DELETE`）と Wi-Fi（`kit_delete`）で同じにし、ほかの Kit の音声は残し、Kit が 1 つも残らなければ音声領域を消去する。入れ直しは置き換える Kit の項目を書く前に除き、ほかに Kit が無ければ書く前に消去する。満杯は `ERR_NO_SPACE`（Wi-Fi は `"audio storage full"`）で断り、その Kit を残さない。起動時は同じイベントの最後の項目を使う。途中で止まったインストールが書いたバイトの上には書かない。
+
+### 修正
+
+- `kit-install-protocol.md`: `INSTALL_BEGIN`・`KIT_DELETE` の ACK を 30 秒待ち、応答の `seq` を照合する（音声領域の消去は書いた量 1 MB あたり約 2 秒）。`KIT_LIST_RESPONSE`（kit_count は uint16、total_size は無い）と `SPACE_RESPONSE`（`fs_total`・`fs_used`・`audio_total`・`audio_used`）をファームの実装に合わせた。§9 の上書きは退避しない（`.bak` は実装されていない）。
+
 ## 1.0.0 — 2026-11-06
 
 ### 追加
