@@ -153,7 +153,7 @@ Hapbeat Studio が機器へ書き込む UI 設定（ui-config。TCP の `write_u
 
 | 機種 | ID | 位置 |
 |------|----|------|
-| Band（`band_wl_v3`〜`band_wl_v5`） | `btn_l` / `btn_c` / `btn_r` | 左 / 中央 / 右 |
+| Band（`band_wl_v3`、`band_wl_v4`、Single の `band_wl_single_v5`） | `btn_l` / `btn_c` / `btn_r` | 左 / 中央 / 右 |
 | Band（`band_wl_v2`） | `btn_l` / `btn_r` | 左 / 右（中央のスイッチは起動用で使えない） |
 | Duo（`duo_wl_v3`、`duo_wl_v4`） | `btn_1` / `btn_2` / `btn_3` | 3 個並んだ列の 上 / 中 / 下 |
 | | `btn_4` / `btn_5` | 2 個並んだ列の 上 / 下 |
