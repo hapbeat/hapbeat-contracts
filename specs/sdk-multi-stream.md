@@ -94,7 +94,7 @@ leftGain  = gain * (pan <= 0 ? 1 : 1 - pan)
 rightGain = gain * (pan >= 0 ? 1 : 1 + pan)
 ```
 
-5. endpoint session の `STREAM_BEGIN` は `sample_rate=16000`、`channels=2`、`format=PCM16`、`total_samples=0`、`gain=1.0` とする。source gain / pan は PCM に適用済みとする。
+5. endpoint session の `STREAM_BEGIN` は `sample_rate=16000`、`channels=2`、`format=PCM16`、`total_samples=0`、`gain=1.0` とする。source gain / pan は PCM に適用済みとする。source gain は、その source の `clamp(clip_gain × app_gain, 0, 1)`（[`kit-format.md`](kit-format.md)「強さの式（正本）」。Kit の無い source の `clip_gain` は 1）。
 6. 1 logical source が複数 endpoint に一致する場合、各 endpoint session がその source の独立 cursor を持つ。endpoint 間の packet 到達同期は保証しない。
 7. **パラメータ変更の平滑化**: Playback の gain / pan を再生中に変えた場合、mixer は各 source の
    channel gain（§5.4 の leftGain / rightGain）を、直前の mix block の値から新しい値まで、その

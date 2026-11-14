@@ -108,13 +108,14 @@
     "clip": {
       "type": "object",
       "required": [
-        "intensity",
+        "clip_gain",
         "loop"
       ],
       "properties": {
-        "intensity": {
+        "clip_gain": {
           "$ref": "#/$defs/unit"
         },
+        "intensity": false,
         "loop": {
           "type": "boolean"
         },
@@ -129,12 +130,13 @@
     "sound": {
       "type": "object",
       "required": [
-        "intensity"
+        "clip_gain"
       ],
       "properties": {
-        "intensity": {
+        "clip_gain": {
           "$ref": "#/$defs/unit"
         },
+        "intensity": false,
         "syncMs": {
           "$ref": "#/$defs/syncMs"
         }

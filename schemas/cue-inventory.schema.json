@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hapbeat.com/schemas/cue-inventory.schema.json",
+  "title": "Hapbeat cue event inventory",
+  "description": "The SDK event items of a project (written by hapbeat-helper cues scan or by hand) from which hapbeat-helper cues init builds a first-draft cue table and the scene bindings (specs/cue-table.md section 10). Unique source values are not expressible here; hapbeat-helper checks them.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "engine",
+    "events"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "engine": {
+      "enum": [
+        "unity",
+        "unreal",
+        "godot",
+        "js",
+        "python",
+        "other"
+      ]
+    },
+    "project": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "maps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "referenced"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "id": {
+            "type": "string"
+          },
+          "referenced": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "source",
+          "name",
+          "loop",
+          "target",
+          "gain"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]*:\\S+$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cue": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*(:[a-z][a-z0-9_]*)?$"
+          },
+          "loop": {
+            "type": "boolean"
+          },
+          "target": {
+            "type": "string"
+          },
+          "gain": {
+            "type": "number",
+            "minimum": 0
+          },
+          "wav": {
+            "type": "string",
+            "minLength": 1
+          },
+          "clip_gain": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "intensity": false,
+          "levelMap": {
+            "$ref": "https://hapbeat.com/schemas/cue-table.schema.json#/$defs/levelMap"
+          },
+          "where": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "note": {
+            "type": "string"
+          },
+          "map": {
+            "type": "string",
+            "minLength": 1,
+            "description": "the entry's map (maps[].id)"
+          }
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

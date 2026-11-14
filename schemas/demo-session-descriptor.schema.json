@@ -53,6 +53,10 @@
           }
         },
         "default": { "$ref": "#/$defs/value" },
+        "scope": {
+          "enum": ["session", "device"],
+          "description": "session (default): chosen per experience (presets, plan steps). device: this headset's per-demo adjustment, set only by the Hub's per-demo settings (demo-session.md, デモごとの設定)."
+        },
         "when": {
           "type": "object",
           "minProperties": 1,

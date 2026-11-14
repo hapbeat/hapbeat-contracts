@@ -81,7 +81,7 @@ Hapbeat.play("my-game.sword_slash", 0.6f);      // Arduino / Godot
   "events": {
     "sample-kit.sine_100hz": {
       "clip": "sine_100hz.wav",
-      "parameters": { "intensity": 1.0 }
+      "parameters": { "clip_gain": 1.0 }
     }
   }
 }

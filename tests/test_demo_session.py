@@ -23,9 +23,10 @@ class DescriptorTests(unittest.TestCase):
         Draft202012Validator.check_schema(DESCRIPTOR.schema)
         DESCRIPTOR.validate(FIXTURES['descriptor_volley'])
         DESCRIPTOR.validate(FIXTURES['descriptor_trex'])
+        DESCRIPTOR.validate(FIXTURES['descriptor_boxing'])
 
     def test_defaults_and_when_reference_declared_values(self):
-        for key in ('descriptor_volley', 'descriptor_trex'):
+        for key in ('descriptor_volley', 'descriptor_trex', 'descriptor_boxing'):
             options = {o['id']: o for o in FIXTURES[key]['options']}
             for option in options.values():
                 self.assertIn(option['default'], [v['value'] for v in option['values']])
@@ -42,6 +43,18 @@ class DescriptorTests(unittest.TestCase):
         bad = copy.deepcopy(base)
         bad['options'][0]['values'][0]['value'] = '../x'
         self.assertFalse(DESCRIPTOR.is_valid(bad))
+        for scope in ('Device', 'hub', '', 1):
+            bad = copy.deepcopy(base)
+            bad['options'][0]['scope'] = scope
+            with self.subTest(scope=scope):
+                self.assertFalse(DESCRIPTOR.is_valid(bad))
+
+    def test_scope(self):
+        scopes = {o['id']: o.get('scope', 'session') for o in FIXTURES['descriptor_boxing']['options']}
+        self.assertEqual(scopes, {'round': 'session', 'haptics_db': 'device'})
+        session = copy.deepcopy(FIXTURES['descriptor_volley'])
+        session['options'][0]['scope'] = 'session'
+        DESCRIPTOR.validate(session)
 
 
 class TicketTests(unittest.TestCase):

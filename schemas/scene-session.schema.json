@@ -27,6 +27,20 @@
       }
     },
     "levels": { "$ref": "#/$defs/levels" },
+    "takes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["start", "end", "label"],
+        "properties": {
+          "start": { "type": "integer", "minimum": 0 },
+          "end": { "type": "integer", "minimum": 1 },
+          "label": { "type": "string" },
+          "expect": { "type": "array", "items": { "$ref": "#/$defs/cueRef" } },
+          "allow": { "type": "array", "items": { "$ref": "#/$defs/cueRef" } }
+        }
+      }
+    },
     "lib": { "$ref": "https://hapbeat.com/schemas/scene-viewer-lib.schema.json" }
   },
   "oneOf": [

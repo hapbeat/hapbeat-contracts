@@ -27,6 +27,17 @@ The `stream_id` is a Studio-to-Helper coordination field. Helper does not put
 it into the device UDP packet. UDP stream sequence numbers start at zero for
 each accepted transaction and advance only for its forwarded data/end packets.
 
+## Stream gain
+
+`stream_begin` MAY carry `payload.gain`; a client omits it or sends `1.0`. The
+strength of a playback (`clamp(clip_gain × app_gain, 0, 1)`, `kit-format.md`
+"強さの式（正本）") is applied to the PCM the client sends, before mixing
+(`sdk-multi-stream.md` §5.5). Helper puts the value into STREAM_BEGIN's `gain`,
+which the device multiplies with the session PCM (`message-format.md` §0x30).
+Helper MUST reject a `gain` that is not a finite number from 0 to 1 with a
+`stream_ack` of `status` `error` and send nothing to the devices (the device
+rejects such a BEGIN).
+
 ## Replies to the client
 
 Helper answers each `stream_begin` with one `stream_ack`, and tells clients when
@@ -47,6 +58,11 @@ playback as lost (Studio's `LiveStreamLoss`), and may start a new transaction.
 Helper is the Stream Gen 2 sender for its clients (`stream-session.md`). For each
 destination of an active transaction:
 
+- Helper stops refreshing a device's lease one lease TTL after its last session ended, so the
+  device lets that lease expire. On the next `stream_begin` for that device Helper first sends a
+  unicast extended PING and waits briefly for the matched reply, then begins under the ticket it
+  shows. It does not begin under the old ticket: STREAM_LEASE_INVALID would cost the first part
+  of the clip, or all of a short one.
 - When a matched PONG shows a new `device_boot_id` or a different lease ticket,
   Helper ends the session under the old identity (END) and sends `stream_lost`
   (`device_rebooted` or `lease_changed`). It does not keep sending DATA under the

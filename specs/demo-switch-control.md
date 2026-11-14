@@ -303,7 +303,8 @@ manage screen offers can be done from the controller. Like the Hub presets, only
   (0–64) is their number. Paging works like `PRESET`: `from` (0–63) is the first demo wanted, the reply carries as many as
   fit in 1024 bytes, and the controller asks again from `from + demos.length` while that is below `demo_count`.
 - `revision` increases whenever the Hub saves its settings (its manage screen or `HUB_SETTINGS_SET`, including a preset's
-  `visible`). If it differs between the pages, the controller starts reading again from 0.
+  `visible`) or its [per-demo settings](#demo-settings). If it differs between the pages, the controller starts reading again
+  from 0.
 
 ```json
 {"version":1,"type":"HUB_SETTINGS_SET","controller_id":"remote-pixel","seq":46,"demo_id":"demo_hub","haptics_ui":false,"recenter_ui":true,"hand_style":"skin","narration_volume":60,"staff_waiting":false,"visible_demos":["volley"]}
@@ -317,6 +318,45 @@ manage screen offers can be done from the controller. Like the Hub presets, only
 - On success the Hub sends `ACK`, stores the settings (increasing `revision`), applies them at once (its own hands and
   視線をリセット button, the top or staff waiting screen) and sends `READY`; a storage failure returns `FAILED/launch_failed`.
 - The device address is not written here (it is pushed with adb, see Demo Session).
+
+## Demo settings
+
+A controller may read and change the Hub's [per-demo settings](demo-session.md#デモごとの設定) (the value of every
+descriptor option of one installed demo, used for every launch of that demo from this Hub). Like the Hub settings, only
+the Hub handles these messages.
+
+```json
+{"version":1,"type":"DEMO_SETTINGS_GET","controller_id":"remote-pixel","nonce":"0123456789abcdef","target":"boxing"}
+```
+
+```json
+{"version":1,"type":"DEMO_SETTINGS","controller_id":"remote-pixel","nonce":"0123456789abcdef","hub_id":"5c1e0a9b7d3f2468","revision":4,"target":"boxing","installed":true,"settings":{"haptics_db":"2","round":"55"}}
+```
+
+- `DEMO_SETTINGS_GET` is answered like `HUB_SETTINGS_GET` (no sequence, a fresh `nonce`, answered while not foreground
+  too). `target` is the demo's `demo_id`.
+- `settings`: every option of the target's descriptor (both scopes, also those inactive by `when`) with the stored value.
+  The reply must fit in 1024 bytes: when the Hub loads a descriptor whose `DEMO_SETTINGS` could exceed it (long option IDs
+  or values), it logs a warning and keeps that demo out of the per-demo settings (its launches use the descriptor
+  defaults as before; its `DEMO_SETTINGS` has `installed` true and empty `settings`, and `DEMO_SETTINGS_SET` for it returns
+  `FAILED/not_allowed`). Descriptor authors keep option IDs and values short. For a demo that is not installed,
+  `installed` is false and `settings` is empty.
+- `hub_id`: 16 lowercase hex the Hub generates once (at its first start, from a secure random source) and stores with
+  its settings. It identifies this Hub (headset) to a controller that keeps local copies of its per-demo settings, so the
+  copies follow the headset and not its IP address or adb serial. It changes only when the Hub's data is cleared.
+- `revision` is the same counter as in `HUB_SETTINGS` (it increases with every save of the Hub's settings, including a
+  preset's `visible`, and of the per-demo settings; saving a preset's name or steps does not change it).
+
+```json
+{"version":1,"type":"DEMO_SETTINGS_SET","controller_id":"remote-pixel","seq":48,"demo_id":"demo_hub","target":"boxing","settings":{"haptics_db":"4"}}
+```
+
+- `DEMO_SETTINGS_SET` follows the `HUB_SETTINGS_SET` rules (CONTROL rules, refused with `FAILED/not_allowed` while the
+  manage screen is open or a launch is in progress). `settings` holds 1–8 option IDs of the target's descriptor, each with
+  one of its `values[].value`; only these options change. A target that is not installed returns `FAILED/not_allowed`, an
+  unknown option or value `FAILED/invalid_payload`, with the offending ID in `message`, and nothing is stored.
+- On success the Hub sends `ACK`, stores the settings (increasing `revision`) and sends `READY`; a storage failure returns
+  `FAILED/launch_failed`. The next launch of that demo uses them.
 
 ## Hub start
 
@@ -335,7 +375,7 @@ manage screen offers can be done from the controller. Like the Hub presets, only
 
 ## Authentication of the Hub settings and Hub start
 
-With a shared secret all four carry `auth`, with the field encoding above:
+With a shared secret all of them carry `auth`, with the field encoding above:
 
 - `HUB_SETTINGS_GET`: header `HAPBEAT-DEMO-SWITCH/1\nHUB_SETTINGS_GET\n`, fields `version`, `type`, `controller_id`,
   `nonce`, `from`.
@@ -350,3 +390,11 @@ With a shared secret all four carry `auth`, with the field encoding above:
   IDs joined with `|` in the order sent (empty for none).
 - `HUB_START`: header `HAPBEAT-DEMO-SWITCH/1\nCOMMAND\n`, fields `version`, `type`, `controller_id`, `seq`, `demo_id`,
   `steps` (encoded like `PRESET_SET`).
+- `DEMO_SETTINGS_GET`: header `HAPBEAT-DEMO-SWITCH/1\nDEMO_SETTINGS_GET\n`, fields `version`, `type`, `controller_id`,
+  `nonce`, `target`.
+- `DEMO_SETTINGS`: header `HAPBEAT-DEMO-SWITCH/1\nDEMO_SETTINGS\n`, fields `version`, `type`, `controller_id`, `nonce`,
+  `hub_id`, `revision`, `target`, `installed`, `settings`. The `settings` value is its entries sorted by option ID (ordinal) and
+  joined with `|`, each `<id>=<value>` (both match the identifier / value patterns, so they contain neither `|` nor `=`);
+  the example above signs `settings=21:haptics_db=2|round=55`.
+- `DEMO_SETTINGS_SET`: header `HAPBEAT-DEMO-SWITCH/1\nCOMMAND\n`, fields `version`, `type`, `controller_id`, `seq`,
+  `demo_id`, `target`, `settings` (encoded like `DEMO_SETTINGS`).

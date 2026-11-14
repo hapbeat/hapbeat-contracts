@@ -1,0 +1,260 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hapbeat.com/schemas/scene-log-record.schema.json",
+  "title": "Hapbeat Scene recording log record",
+  "description": "One line of the recording log (JSON Lines, optionally after the marker 'HAPBEAT_SCENE ') that hapbeat-helper scene session turns into session.json (specs/scene-recording.md section 5). Writers write only these record types; readers ignore unknown t values and unknown fields.",
+  "type": "object",
+  "required": [
+    "t"
+  ],
+  "oneOf": [
+    {
+      "properties": {
+        "t": {
+          "const": "start"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "fps": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 240
+        },
+        "project": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        }
+      },
+      "required": [
+        "t",
+        "schema_version",
+        "fps"
+      ]
+    },
+    {
+      "properties": {
+        "t": {
+          "const": "take"
+        },
+        "frame": {
+          "$ref": "#/$defs/frame"
+        },
+        "label": {
+          "type": "string"
+        },
+        "expect": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/cueRef"
+          }
+        },
+        "allow": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/cueRef"
+          }
+        }
+      },
+      "required": [
+        "t",
+        "frame",
+        "label"
+      ]
+    },
+    {
+      "properties": {
+        "t": {
+          "const": "take_end"
+        },
+        "frame": {
+          "$ref": "#/$defs/frame"
+        }
+      },
+      "required": [
+        "t",
+        "frame"
+      ]
+    },
+    {
+      "properties": {
+        "t": {
+          "const": "cue"
+        },
+        "frame": {
+          "$ref": "#/$defs/frame"
+        },
+        "cue": {
+          "$ref": "#/$defs/cueRef"
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "hand": {
+          "$ref": "#/$defs/hand"
+        },
+        "gain": {
+          "type": "number",
+          "minimum": 0
+        },
+        "dist": {
+          "type": "number",
+          "minimum": 0
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "t",
+        "frame"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "cue"
+          ],
+          "not": {
+            "required": [
+              "source"
+            ]
+          }
+        },
+        {
+          "required": [
+            "source"
+          ],
+          "not": {
+            "required": [
+              "cue"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "properties": {
+        "t": {
+          "const": "level"
+        },
+        "frame": {
+          "$ref": "#/$defs/frame"
+        },
+        "values": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/levelColumn"
+          },
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "value": {
+          "type": "number",
+          "minimum": 0
+        },
+        "hand": {
+          "$ref": "#/$defs/hand"
+        }
+      },
+      "required": [
+        "t",
+        "frame"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "values"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "source"
+                ]
+              },
+              {
+                "required": [
+                  "value"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "required": [
+            "source",
+            "value"
+          ],
+          "not": {
+            "required": [
+              "values"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "properties": {
+        "t": {
+          "const": "fail"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "frame": {
+          "$ref": "#/$defs/frame"
+        }
+      },
+      "required": [
+        "t",
+        "reason"
+      ]
+    },
+    {
+      "properties": {
+        "t": {
+          "const": "end"
+        },
+        "frames": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "t",
+        "frames"
+      ]
+    }
+  ],
+  "$defs": {
+    "frame": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "cueRef": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*(:[a-z][a-z0-9_]*)?$"
+    },
+    "source": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*:\\S+$",
+      "description": "SDK entry id <engine>:<map id>/<entry id> (Unity: unity:<Event Map asset guid>/<entry id>), mapped to a cue by hapbeat-scene.json bindings"
+    },
+    "hand": {
+      "enum": [
+        "left",
+        "right",
+        "both"
+      ]
+    },
+    "levelColumn": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*:(level|rate)(:(left|right))?$"
+    }
+  }
+}

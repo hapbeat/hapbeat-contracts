@@ -76,7 +76,7 @@ command_type の割当:
 | event_id | null-terminated string | 再生するイベントの識別子。Kit manifest の `events` (command-mode) のキーと一致する必要がある。`stream_events` のキーは SDK 内部ラベルでありここには乗らない |
 | target | null-terminated string | ターゲットアドレス（空文字 = 全台）。詳細は `device-addressing.md` 参照 |
 | target_time | int64 | 再生開始時刻（マイクロ秒）。`0` は即時再生 |
-| gain | float32 | 再生ゲイン（0.0 〜 1.0） |
+| gain | float32 | 再生ゲイン（0.0 〜 1.0）。送る側が `clamp(clip_gain × app_gain, 0, 1)` を計算した値（[`kit-format.md`](kit-format.md)「強さの式（正本）」）。受信機は manifest の `clip_gain` を掛けない |
 | pan | float32 | 左右バランス（-1.0 = 左のみ / 0.0 = 中央 / +1.0 = 右のみ）。**末尾の省略可能フィールド**: 受信側は存在しなければ 0.0（中央）として扱う。送信側は常に付与すること。適用則は下記 (DEC-055) |
 
 #### PLAY の pan 適用則（DEC-055）
@@ -279,7 +279,7 @@ STREAM_BEGIN/DATA/END には **event_id フィールドを含まない**。devic
 | channels | uint8 | チャンネル数（1=mono, 2=stereo） |
 | format | uint8 | オーディオフォーマット（0=PCM16, 1=IMA_ADPCM, **2=OPUS**） |
 | total_samples | uint32 | 総サンプル数（0=不明。情報用、省略可） |
-| gain | float32 | 再生ゲイン（0.0 〜 1.0）。intensity × SDK_gain × binding を SDK 側で計算した値 |
+| gain | float32 | 受信機がこの session の PCM に掛ける倍率（0.0 〜 1.0）。送る側は 1.0 を送り、素材とアプリの強さ（`clamp(clip_gain × app_gain, 0, 1)`、[`kit-format.md`](kit-format.md)「強さの式（正本）」）は各 source の PCM に掛けてから混ぜる（[`sdk-multi-stream.md`](sdk-multi-stream.md) §5.5） |
 | target | null-terminated string | optional。ターゲットアドレス（省略時は全台）。NUL を含め 64 bytes 以内。詳細は `device-addressing.md` 参照 |
 
 固定部分のサイズは 12 bytes (既存 8 + gain 4)。`target` は可変長（省略時は 0 bytes、存在する場合は null 終端文字列）。

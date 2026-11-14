@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hapbeat.com/schemas/scene-project.schema.json",
+  "title": "Hapbeat Scene project config",
+  "description": "hapbeat-scene.json at the project root: the values that do not change between recordings, which hapbeat-helper scene session combines with the recording log into session.json (specs/scene-recording.md section 6). A source must not appear in two bindings (not expressible here; hapbeat-helper checks it).",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "project",
+    "fps",
+    "lib"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "project": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "fps": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 240
+    },
+    "frames": {
+      "type": "string",
+      "minLength": 1
+    },
+    "video": {
+      "type": "string",
+      "minLength": 1
+    },
+    "log": {
+      "type": "string",
+      "minLength": 1
+    },
+    "capture": {
+      "enum": [
+        "game",
+        "sdk",
+        "both"
+      ]
+    },
+    "lib": {
+      "$ref": "https://hapbeat.com/schemas/scene-viewer-lib.schema.json"
+    },
+    "bindings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "source",
+          "cue"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]*:\\S+$"
+          },
+          "cue": {
+            "$ref": "#/$defs/cueRef"
+          },
+          "hand": {
+            "enum": [
+              "left",
+              "right",
+              "both"
+            ]
+          }
+        }
+      }
+    },
+    "columns": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_]*:(level|rate)(:(left|right))?$"
+      },
+      "description": "order of the levels columns (scene-recording.md section 5.2)"
+    }
+  },
+  "oneOf": [
+    {
+      "required": [
+        "frames"
+      ],
+      "not": {
+        "required": [
+          "video"
+        ]
+      }
+    },
+    {
+      "required": [
+        "video"
+      ],
+      "not": {
+        "required": [
+          "frames"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "cueRef": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*(:[a-z][a-z0-9_]*)?$"
+    }
+  }
+}

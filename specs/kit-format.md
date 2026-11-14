@@ -143,7 +143,7 @@ Event ID の形式（正準仕様は `specs/event-id.md`。以下は要約）:
 
 | フィールド | 型 | 必須 | 説明 |
 |-----------|-----|------|------|
-| `intensity` | number | いいえ | 制作者が意図した基準強度。0.0〜1.0（デフォルト: 1.0） |
+| `clip_gain` | number | いいえ | 素材の強さの補正（クリップゲイン）。0.0〜1.0（デフォルト: 1.0）。下の「clip_gain」と「強さの式」 |
 | `device_wiper` | integer | いいえ | イベント調整時の MCP4018 ワイパー値（0–127）。再現性のための参照情報 |
 | `loop` | boolean | いいえ | ループ再生の有無。デフォルトは `false` |
 
@@ -170,7 +170,7 @@ Event ID の形式（正準仕様は `specs/event-id.md`。以下は要約）:
 
 | フィールド | 型 | 必須 | 説明 |
 |-----------|-----|------|------|
-| `intensity` | number | いいえ | 制作者が意図した基準強度。0.0〜1.0（デフォルト: 1.0） |
+| `clip_gain` | number | いいえ | 素材の強さの補正（クリップゲイン）。0.0〜1.0（デフォルト: 1.0）。下の「clip_gain」と「強さの式」 |
 | `loop` | boolean | いいえ | ループ再生の有無。デフォルトは `false` |
 
 `stream_events.parameters` には `device_wiper` を含めない（SDK 送信側パラメータには関係しないため）。
@@ -179,22 +179,40 @@ Event ID の形式（正準仕様は `specs/event-id.md`。以下は要約）:
 
 `events.<id>` と `stream_events.<id>` が同じキーを持つ場合、両者の `parameters` は
 **独立に読まれる**。読む側はその時点で使う bucket の値のみを参照する。Studio の「BOTH モード」
-で authored された event はこのパターンで manifest に出力される。
+で authored された event はこのパターンで manifest に出力される。`clip_gain` も独立に読むが、1 つのイベントの素材なので
+両方に同じ値を書くのが普通（Studio のエディタはイベントごとに 1 つの値を持ち、両方に書く）。
 
-### intensity (number, 0.0–1.0, default: 1.0)
+### clip_gain (number, 0.0–1.0, default: 1.0)
 
-制作者が意図した基準強度。WAV のフル振幅に対する倍率。
+素材の強さの補正（クリップゲイン。音声の編集ソフトで、素材そのものに掛ける補正を指す語）。その WAV を何倍したものを、このイベントの素材とするか。**WAV と `clip_gain` は 2 つで 1 組**で、アプリの倍率（`app_gain`）が 1 の時にこのイベントが鳴らす強さを決める。WAV はフルスケールで書き（小さく作って上げると粗くなるため）、強さはここで持つ。
 
 - `1.0`: WAV をそのまま再生（デフォルト）
-- `0.7`: WAV の 70% の強さ（制作者が「これが中」と判断した値）
-- SDK の gain パラメータは intensity に対する追加倍率として適用される
-- 最終出力 = WAV振幅 × intensity × SDK_gain × デバイス音量
+- `0.7`: WAV の 70% の強さ（作る人が「これが中」と決めた値）
+- 決める人: 素材を作る人が、Hapbeat を着けて、記録した本体の音量（`target_device.volume_*`・`parameters.device_wiper`）で決める。Studio のエディタのイベントごとの強さ。
+- Kit を持つプロジェクトでは、この値が素材の強さの元になる。cue 表の `clip_gain` はその写し（[`cue-table.md`](cue-table.md) §9.1）。
 
-**SDK_gain の範囲**: 1.0 を基準として 0.0 ～ 約 2.0。1.0 で intensity そのままの強さ、2.0 で intensity の倍（ただし最終値は SDK 側で clip される）。
+### 強さの式（正本）
 
-**stream_clip / stream_source mode での intensity**: `device 側で stored clip の振幅に乗算される` のではなく、`SDK 側が STREAM_BEGIN.gain または PLAY.gain の float32 値に intensity を乗算して送信する`。
+```text
+output = clip × app_gain × device_volume
+clip   = WAV × clip_gain
+```
 
-**デバイス音量**: SDK は感知しない。Studio で kit authoring 時点のデバイス wiper 値を `parameters.device_wiper` に記録しており、再現するユーザーは当該 wiper 値にデバイスを合わせることで制作者の意図した強度を得られる。
+| 項 | 意味 | 決める人・置き場所 | 範囲 |
+|---|---|---|---|
+| WAV | 波形の形。フルスケールで書く | 素材を作る人 | −1〜1 |
+| `clip_gain` | 素材の強さの補正。WAV と 1 組で「クリップ（素材）」 | 素材を作る人。Kit の manifest の `parameters.clip_gain`（Kit の無いプロジェクトは cue 表の `clip_gain`。[`cue-table.md`](cue-table.md) §9.1） | 0〜1 |
+| `app_gain` | 再生するアプリが、呼ぶたびに掛ける倍率の積。1 = 素材どおり | アプリを作る人（UI なら一定、衝突なら速さに応じて、など） | 0〜約 2 |
+| device volume | Hapbeat 本体の音量 | 着ける人。アプリは知らない | 本体の段階 |
+
+- **`app_gain` の部品**: 次の倍率はどれも名前を変えず（`gain` など）、契約では「これらの積が `app_gain`」として扱う。SDK の API の `gain` 引数、Event Map の項目の倍率と binding の出力、cue 表の route の `gain`・sfx の `volume`・variant の倍率（`hapticsGain`・`sfxVolume`・ramp）・`distanceFalloff`・`levelMap`・`gainJitterDb`（[`cue-table.md`](cue-table.md) §9）、Scene の記録の発生ごとの `events[].gain`（[`scene-recording.md`](scene-recording.md)）。
+- **送る値**（PLAY の `gain`、stream では source の PCM に掛ける倍率）は `clamp(clip_gain × app_gain, 0, 1)`。`app_gain` が 1 を超えても、送る値は 1 で頭打ちになる。送る側は `app_gain` やその部品を 0〜1 に制限しない（`clip_gain` = 0.5 なら `app_gain` = 2 で 1.0 になる）。積が数でない（NaN）・無限のときは 0 を送る（本体は受けた `gain` を頭打ちしない）。
+- **掛けるのは送る側（SDK・Studio）だけ**。本体は manifest の `clip_gain` を読まず（あっても無視する）、受け取った `gain` だけで鳴らす。
+- 送る側は、呼ぶ時の `gain` で `clip_gain` を置き換えない（掛ける）。Event Map などへの取り込みで `clip_gain` を項目の倍率に焼き込んだり、項目の倍率で `clip_gain` を上書きしたりしない（2 つの値として持ち、送る時に掛ける）。
+- 素材の `clip_gain` が分からないとき（Kit の無い StreamClip、manifest に無いイベント）は 1 として扱う。Kit を参照する項目で見つからないときは、送る側が警告を出してよい。
+- stream（`stream_events`、stream_source）でも同じ。本体が stored clip に掛けるのではなく、SDK が source の PCM に `clip_gain × app_gain` を掛けてから混ぜ、STREAM_BEGIN の `gain` は 1.0 を送る（[`sdk-multi-stream.md`](sdk-multi-stream.md) §5.5、[`message-format.md`](message-format.md) STREAM_BEGIN）。
+
+**device volume**: アプリ（SDK）は知らない。Studio は Kit を作った時の本体の音量を `target_device.volume_*` と `parameters.device_wiper` に記録しており、同じ音量に合わせれば作った人の意図した強さになる。
 
 ### device_wiper (integer, 0–127, optional)
 
@@ -231,7 +249,7 @@ Event ID の形式（正準仕様は `specs/event-id.md`。以下は要約）:
       "description": "中程度の打撃 (device baked)",
       "tags": ["impact", "basic"],
       "parameters": {
-        "intensity": 0.8,
+        "clip_gain": 0.8,
         "device_wiper": 64,
         "loop": false
       }
@@ -244,7 +262,7 @@ Event ID の形式（正準仕様は `specs/event-id.md`。以下は要約）:
       "clip": "hit_hard.wav",
       "description": "強い打撃 (FIRE と CLIP 双方を持つ BOTH 例)",
       "parameters": {
-        "intensity": 1.0,
+        "clip_gain": 1.0,
         "device_wiper": 64
       }
     }
@@ -254,14 +272,14 @@ Event ID の形式（正準仕様は `specs/event-id.md`。以下は要約）:
       "clip": "hit_hard.wav",
       "description": "強い打撃 (SDK streaming variant — events と同 ID で BOTH 表現)",
       "parameters": {
-        "intensity": 1.0
+        "clip_gain": 1.0
       }
     },
     "basic-impacts.rain_loop": {
       "clip": "rain_loop.wav",
       "description": "雨の環境音触覚 (host streaming)",
       "parameters": {
-        "intensity": 0.3,
+        "clip_gain": 0.3,
         "loop": true
       }
     }
