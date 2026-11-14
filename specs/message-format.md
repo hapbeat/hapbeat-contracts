@@ -220,7 +220,7 @@ caps_version 1 の `type`:
 | 0x03 | stream_gens | uint8 bitmap | 受け付ける Stream の世代。bit0 = Gen 1、bit1 = Gen 2。stream を受けないノード（broker・sensor）は `0` |
 | 0x04 | stream_formats | uint8 bitmap | デコードできる形式。bit0 = PCM16、bit1 = IMA ADPCM、bit2 = Opus（STREAM_BEGIN の `format` の値 0 / 1 / 2 の順） |
 | 0x05 | stream_limits | 4 bytes | `lease_ttl_s`（uint8）、`lease_slots`（uint8）、`inactivity_timeout_s`（uint8）、reserved（uint8 = 0）。値の意味は `stream-session.md` |
-| 0x06 | haptic_channels | uint8 | 機体が駆動するモーター（触覚出力）の数。1 = モーター 1 個（mono。PLAY の pan を無視し、stereo の stream を (L+R)/2 で鳴らす）、2 = 左右（stereo）。ファームは board ごとのビルド設定として持つ（例: DuoWL v4 は 2、Band v2〜v4 は 1） |
+| 0x06 | haptic_channels | uint8 | 機体が駆動するモーター（触覚出力）の数。1 = モーター 1 個（mono。PLAY の pan を無視し、stereo の stream を (L+R)/2 で鳴らす）、2 = 左右（stereo）。ファームは board ごとのビルド設定として持つ（例: DuoWL v4 と BandWL Twin は 2、Band v2〜v4 と BandWL Single は 1） |
 | 0x07 | address_max_len | uint8 | 受け付ける address・target の最大 byte 数（NUL を除く） |
 | 0x08 | features | uint32 bitmap | 追加機能。bit0 = `play_pan`（PLAY の `pan` を左右へ適用する）、bit1 = `error_reply`（§0xFF の ERROR を返す）。他の bit は予約（`0`） |
 

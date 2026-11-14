@@ -7,6 +7,8 @@
 ### 追加
 
 - `kit-install-protocol.md` §10 音声領域: 追記だけで 1 イベント 1 項目、新しいインストールが勝つ。削除は USB（`KIT_DELETE`）と Wi-Fi（`kit_delete`）で同じにし、ほかの Kit の音声は残し、Kit が 1 つも残らなければ音声領域を消去する。入れ直しは置き換える Kit の項目を書く前に除き、ほかに Kit が無ければ書く前に消去する。満杯は `ERR_NO_SPACE`（Wi-Fi は `"audio storage full"`）で断り、その Kit を残さない。起動時は同じイベントの最後の項目を使う。途中で止まったインストールが書いたバイトの上には書かない。
+- `display-layout.md`: BandWL v5 / v5.1（モーター 1 個）の board を `band_wl_single_v5` にした（ファームの env は `band_single_v5`）。モーター 2 個の Twin は `band_wl_twin_v1`。Twin のボタンの ID は、実機でボタンの向きを確かめてから決める。
+- `message-format.md` §0x13: `haptic_channels` の例に BandWL Twin（2。2 つのモーターを L / R で別々に駆動）と BandWL Single（1）を加えた。
 
 ### 修正
 
@@ -31,7 +33,6 @@
 - `scene-recording.md`: 動画のプロジェクト（ゲームの記録を使わず、映像に触覚を付ける。`viewer-data.json` が原本）、§3.2.1 `viewer-data.json` の任意の `chapters`（映像の区切り。選んで再生・範囲で繰り返す目印）、§3.3 映像の音声トラックは任意で、動画のプロジェクトでは再生する側が番組の音として流してよい。schema `scene-viewer-data` の `chapters`。
 - `demo-session.md`「デモごとの設定」と descriptor の option の `scope`（`session` / `device`）、`demo-switch-control.md`「Demo settings」の `DEMO_SETTINGS_GET` / `DEMO_SETTINGS` / `DEMO_SETTINGS_SET`（DEC-099）。`DEMO_SETTINGS` の `hub_id`。schema と fixture（`descriptor_boxing`、`unsigned_demo_settings_*`）。
 - `display-layout.md`「装着位置の切り替え」（DEC-100）: UI 設定の `ui.position_cycle`（装着位置の並び）とボタンの動作 `position_cycle`（押すたびに並びの次の位置へ）。`device-addressing.md` §7 の存在しない `position_inc/dec` を `position_cycle` に改めた。
-- `display-layout.md`: BandWL v5 / v5.1（モーター 1 個）の board を `band_wl_single_v5` にした（ファームの env は `band_single_v5`）。モーター 2 個の Twin は `band_wl_twin_v1`。Twin のボタンの ID は、実機でボタンの向きを確かめてから決める。
 - `pwm-experiment.md`: 対象のファームに `band_v3_pwm`（BandWL v3 で band_v4_pwm と同じ MCU-PWM の改造をした基板）を加えた。board は `band_wl_v3` のまま、`get_info` の `haptic_pwm` で見分ける。
 
 ### 破壊
